@@ -58,6 +58,17 @@ class PuyoPuyoGame {
         this.lastFallTime = 0;
         this.timeStart = 0;
         
+        // アニメーション効果用の変数
+        this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
+            Array(this.BOARD_WIDTH).fill().map(() => ({
+                scale: 1.0,
+                bounce: 0,
+                rotation: 0,
+                lastLandTime: 0
+            }))
+        );
+        this.animationTime = 0;
+        
         this.setupEventListeners();
         this.generateNextPiece();
         this.spawnNewPiece();
@@ -218,6 +229,8 @@ class PuyoPuyoGame {
                 if (boardY >= 0 && boardY < this.BOARD_HEIGHT && 
                     boardX >= 0 && boardX < this.BOARD_WIDTH) {
                     this.board[boardY][boardX] = this.currentPiece.colors[i];
+                    // 着地アニメーション開始
+                    this.startLandingAnimation(boardX, boardY);
                 }
             }
             
@@ -318,6 +331,8 @@ class PuyoPuyoGame {
             if (boardY >= 0 && boardY < this.BOARD_HEIGHT && 
                 boardX >= 0 && boardX < this.BOARD_WIDTH) {
                 this.board[boardY][boardX] = this.currentPiece.colors[i];
+                // 着地アニメーション開始
+                this.startLandingAnimation(boardX, boardY);
             }
         }
         
@@ -407,6 +422,8 @@ class PuyoPuyoGame {
                     this.board[writePos][x] = this.board[y][x];
                     if (writePos !== y) {
                         this.board[y][x] = 0;
+                        // 落下したぷよにアニメーション効果を追加
+                        this.startLandingAnimation(x, writePos);
                     }
                     writePos--;
                 }
@@ -452,6 +469,54 @@ class PuyoPuyoGame {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
+    // 着地アニメーション開始
+    startLandingAnimation(x, y) {
+        if (x >= 0 && x < this.BOARD_WIDTH && y >= 0 && y < this.BOARD_HEIGHT) {
+            this.puyoAnimations[y][x].scale = 1.3;
+            this.puyoAnimations[y][x].bounce = 0.2;
+            this.puyoAnimations[y][x].lastLandTime = Date.now();
+        }
+    }
+    
+    // アニメーションの更新
+    updateAnimations() {
+        const currentTime = Date.now();
+        this.animationTime = currentTime;
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                const anim = this.puyoAnimations[y][x];
+                
+                // 着地後のバウンス効果
+                if (anim.lastLandTime > 0) {
+                    const timeSinceLanding = currentTime - anim.lastLandTime;
+                    const duration = 300; // 300ms でアニメーション完了
+                    
+                    if (timeSinceLanding < duration) {
+                        const progress = timeSinceLanding / duration;
+                        const easeOut = 1 - Math.pow(1 - progress, 3);
+                        
+                        anim.scale = 1.0 + (0.3 * (1 - easeOut));
+                        anim.bounce = 0.2 * Math.sin(progress * Math.PI * 3) * (1 - progress);
+                    } else {
+                        anim.scale = 1.0;
+                        anim.bounce = 0;
+                        anim.lastLandTime = 0;
+                    }
+                }
+                
+                // 接続されているぷよのぷるぷる効果
+                if (this.board[y][x] !== 0) {
+                    const connected = this.getConnectedDirections(x, y, this.board[y][x]);
+                    if (connected.up || connected.down || connected.left || connected.right) {
+                        const wave = Math.sin(this.animationTime * 0.005 + x + y) * 0.02;
+                        anim.rotation = wave;
+                    }
+                }
+            }
+        }
+    }
+    
     gameLoop() {
         if (!this.gameRunning) return;
         
@@ -459,6 +524,9 @@ class PuyoPuyoGame {
         
         this.time = Math.floor((currentTime - this.timeStart) / 1000);
         this.updateDisplay();
+        
+        // アニメーションを更新
+        this.updateAnimations();
         
         // 切り離されたピースは高速落下（100ms間隔）
         const effectiveFallSpeed = this.isSeparatedPiece ? 100 : this.fallSpeed;
@@ -481,7 +549,9 @@ class PuyoPuyoGame {
         for (let y = 0; y < this.BOARD_HEIGHT; y++) {
             for (let x = 0; x < this.BOARD_WIDTH; x++) {
                 if (this.board[y][x] !== 0) {
-                    this.drawPuyo(x, y, this.board[y][x]);
+                    const connected = this.getConnectedDirections(x, y, this.board[y][x]);
+                    const animation = this.puyoAnimations[y][x];
+                    this.drawAnimatedPuyo(x, y, this.board[y][x], connected, animation);
                 }
             }
         }
@@ -525,7 +595,7 @@ class PuyoPuyoGame {
         }
     }
     
-    drawPuyo(x, y, colorIndex) {
+    drawAnimatedPuyo(x, y, colorIndex, isConnected = null, animation = null) {
         // プレイエリア内のみ描画
         if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT) {
             return;
@@ -533,29 +603,277 @@ class PuyoPuyoGame {
         
         const pixelX = x * this.CELL_SIZE;
         const pixelY = y * this.CELL_SIZE;
+        const puyoSize = this.CELL_SIZE - 4;
+        const puyoX = pixelX + 2;
+        const puyoY = pixelY + 2;
+        
+        this.ctx.save();
+        
+        // アニメーション変形を適用
+        if (animation) {
+            const centerX = puyoX + puyoSize / 2;
+            const centerY = puyoY + puyoSize / 2;
+            
+            this.ctx.translate(centerX, centerY);
+            this.ctx.scale(animation.scale, animation.scale + animation.bounce);
+            this.ctx.rotate(animation.rotation);
+            this.ctx.translate(-centerX, -centerY);
+        }
+        
+        // 接続状態に基づいて角丸半径を調整
+        let radius = 12;
+        
+        // 接続されている方向に応じてパスを作成
+        this.ctx.beginPath();
+        
+        if (isConnected) {
+            this.drawConnectedShape(puyoX, puyoY, puyoSize, puyoSize, radius, isConnected);
+        } else {
+            this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        }
+        
+        this.ctx.clip();
         
         // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
         if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
             this.ctx.drawImage(
                 this.puyoImages[colorIndex], 
-                pixelX + 2, 
-                pixelY + 2, 
-                this.CELL_SIZE - 4, 
-                this.CELL_SIZE - 4
+                puyoX, 
+                puyoY, 
+                puyoSize, 
+                puyoSize
             );
         } else {
             // フォールバック：色での描画
             this.ctx.fillStyle = this.colors[colorIndex];
-            this.ctx.fillRect(pixelX + 2, pixelY + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4);
+            this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
             
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.fillRect(pixelX + 4, pixelY + 4, this.CELL_SIZE - 12, this.CELL_SIZE - 12);
+            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
         }
         
-        // 境界線を描画
-        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(pixelX + 2, pixelY + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4);
+        this.ctx.restore();
+        
+        // 接続エフェクト（光沢）を追加
+        if (isConnected && (isConnected.up || isConnected.down || isConnected.left || isConnected.right)) {
+            this.drawConnectionGlow(puyoX, puyoY, puyoSize, isConnected);
+        }
+        
+        // 境界線の描画
+        this.ctx.save();
+        
+        // アニメーション変形を再適用（境界線用）
+        if (animation) {
+            const centerX = puyoX + puyoSize / 2;
+            const centerY = puyoY + puyoSize / 2;
+            
+            this.ctx.translate(centerX, centerY);
+            this.ctx.scale(animation.scale, animation.scale + animation.bounce);
+            this.ctx.rotate(animation.rotation);
+            this.ctx.translate(-centerX, -centerY);
+        }
+        
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        
+        if (isConnected) {
+            this.drawConnectedShape(puyoX, puyoY, puyoSize, puyoSize, radius, isConnected);
+        } else {
+            this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        }
+        
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+    
+    drawPuyo(x, y, colorIndex, isConnected = null) {
+        // プレイエリア内のみ描画
+        if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT) {
+            return;
+        }
+        
+        const pixelX = x * this.CELL_SIZE;
+        const pixelY = y * this.CELL_SIZE;
+        const puyoSize = this.CELL_SIZE - 4;
+        const puyoX = pixelX + 2;
+        const puyoY = pixelY + 2;
+        
+        // 接続状態に基づいて角丸半径を調整
+        let radius = 12;
+        
+        // 接続されている方向に応じてパスを作成
+        this.ctx.save();
+        this.ctx.beginPath();
+        
+        if (isConnected) {
+            this.drawConnectedShape(puyoX, puyoY, puyoSize, puyoSize, radius, isConnected);
+        } else {
+            this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        }
+        
+        this.ctx.clip();
+        
+        // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
+        if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
+            this.ctx.drawImage(
+                this.puyoImages[colorIndex], 
+                puyoX, 
+                puyoY, 
+                puyoSize, 
+                puyoSize
+            );
+        } else {
+            // フォールバック：色での描画
+            this.ctx.fillStyle = this.colors[colorIndex];
+            this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
+            
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
+        }
+        
+        this.ctx.restore();
+        
+        // 接続エフェクト（光沢）を追加
+        if (isConnected && (isConnected.up || isConnected.down || isConnected.left || isConnected.right)) {
+            this.drawConnectionGlow(puyoX, puyoY, puyoSize, isConnected);
+        }
+        
+        // 境界線の描画
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        
+        if (isConnected) {
+            this.drawConnectedShape(puyoX, puyoY, puyoSize, puyoSize, radius, isConnected);
+        } else {
+            this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        }
+        
+        this.ctx.stroke();
+    }
+    
+    // 角丸矩形を描画するヘルパーメソッド
+    roundRect(x, y, width, height, radius) {
+        this.ctx.moveTo(x + radius, y);
+        this.ctx.lineTo(x + width - radius, y);
+        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        this.ctx.lineTo(x + width, y + height - radius);
+        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        this.ctx.lineTo(x + radius, y + height);
+        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        this.ctx.lineTo(x, y + radius);
+        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.closePath();
+    }
+    
+    // 接続状態に応じた形状を作成
+    drawConnectedShape(x, y, width, height, radius, connected) {
+        // 角の丸みを接続状態に応じて調整
+        const topLeftRadius = (connected.up || connected.left) ? 4 : radius;
+        const topRightRadius = (connected.up || connected.right) ? 4 : radius;
+        const bottomLeftRadius = (connected.down || connected.left) ? 4 : radius;
+        const bottomRightRadius = (connected.down || connected.right) ? 4 : radius;
+        
+        // カスタム角丸矩形
+        this.ctx.moveTo(x + topLeftRadius, y);
+        this.ctx.lineTo(x + width - topRightRadius, y);
+        this.ctx.quadraticCurveTo(x + width, y, x + width, y + topRightRadius);
+        this.ctx.lineTo(x + width, y + height - bottomRightRadius);
+        this.ctx.quadraticCurveTo(x + width, y + height, x + width - bottomRightRadius, y + height);
+        this.ctx.lineTo(x + bottomLeftRadius, y + height);
+        this.ctx.quadraticCurveTo(x, y + height, x, y + height - bottomLeftRadius);
+        this.ctx.lineTo(x, y + topLeftRadius);
+        this.ctx.quadraticCurveTo(x, y, x + topLeftRadius, y);
+        this.ctx.closePath();
+    }
+    
+    // 接続部分の光沢効果
+    drawConnectionGlow(x, y, size, connected) {
+        this.ctx.save();
+        
+        // 接続方向に応じたグラデーション
+        if (connected.up || connected.down || connected.left || connected.right) {
+            const gradient = this.ctx.createRadialGradient(
+                x + size/2, y + size/2, 0,
+                x + size/2, y + size/2, size/2
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(x + size/2, y + size/2, size/3, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+    }
+    
+    // 隣接する同じ色のぷよを検出
+    getConnectedDirections(x, y, colorIndex) {
+        const directions = { up: false, down: false, left: false, right: false };
+        
+        // 上
+        if (y > 0 && this.board[y - 1][x] === colorIndex) {
+            directions.up = true;
+        }
+        // 下
+        if (y < this.BOARD_HEIGHT - 1 && this.board[y + 1][x] === colorIndex) {
+            directions.down = true;
+        }
+        // 左
+        if (x > 0 && this.board[y][x - 1] === colorIndex) {
+            directions.left = true;
+        }
+        // 右
+        if (x < this.BOARD_WIDTH - 1 && this.board[y][x + 1] === colorIndex) {
+            directions.right = true;
+        }
+        
+        return directions;
+    }
+    
+    // 接続状態に応じた境界線の描画
+    drawConnectedBorder(x, y, colorIndex, connected) {
+        const pixelX = x * this.CELL_SIZE;
+        const pixelY = y * this.CELL_SIZE;
+        const puyoX = pixelX + 2;
+        const puyoY = pixelY + 2;
+        const puyoSize = this.CELL_SIZE - 4;
+        
+        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.lineWidth = 1;
+        
+        // 接続されていない方向にのみ境界線を描画
+        this.ctx.beginPath();
+        
+        // 上辺
+        if (!connected.up) {
+            this.ctx.moveTo(puyoX + 12, puyoY);
+            this.ctx.lineTo(puyoX + puyoSize - 12, puyoY);
+        }
+        
+        // 下辺
+        if (!connected.down) {
+            this.ctx.moveTo(puyoX + 12, puyoY + puyoSize);
+            this.ctx.lineTo(puyoX + puyoSize - 12, puyoY + puyoSize);
+        }
+        
+        // 左辺
+        if (!connected.left) {
+            this.ctx.moveTo(puyoX, puyoY + 12);
+            this.ctx.lineTo(puyoX, puyoY + puyoSize - 12);
+        }
+        
+        // 右辺
+        if (!connected.right) {
+            this.ctx.moveTo(puyoX + puyoSize, puyoY + 12);
+            this.ctx.lineTo(puyoX + puyoSize, puyoY + puyoSize - 12);
+        }
+        
+        this.ctx.stroke();
     }
     
     drawSeparatedPuyo(x, y, colorIndex) {
@@ -566,31 +884,47 @@ class PuyoPuyoGame {
         
         const pixelX = x * this.CELL_SIZE;
         const pixelY = y * this.CELL_SIZE;
+        const radius = 12;
+        const puyoSize = this.CELL_SIZE - 4;
+        const puyoX = pixelX + 2;
+        const puyoY = pixelY + 2;
         
         // 切り離されたピースは少し暗く表示
         this.ctx.globalAlpha = 0.8;
+        
+        // 角丸のパスを作成
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        this.ctx.clip();
         
         // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
         if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
             this.ctx.drawImage(
                 this.puyoImages[colorIndex], 
-                pixelX + 2, 
-                pixelY + 2, 
-                this.CELL_SIZE - 4, 
-                this.CELL_SIZE - 4
+                puyoX, 
+                puyoY, 
+                puyoSize, 
+                puyoSize
             );
         } else {
             // フォールバック：色での描画
             this.ctx.fillStyle = this.colors[colorIndex];
-            this.ctx.fillRect(pixelX + 2, pixelY + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4);
+            this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
             
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            this.ctx.fillRect(pixelX + 4, pixelY + 4, this.CELL_SIZE - 12, this.CELL_SIZE - 12);
+            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
         }
         
+        this.ctx.restore();
+        
+        // 境界線
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(pixelX + 2, pixelY + 2, this.CELL_SIZE - 4, this.CELL_SIZE - 4);
+        this.ctx.beginPath();
+        this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
+        this.ctx.stroke();
+        
         this.ctx.globalAlpha = 1.0; // 透明度を元に戻す
     }
     
