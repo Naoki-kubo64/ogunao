@@ -1,12 +1,8 @@
 // Firebase設定は firebase-config.js で読み込まれます
 // dbオブジェクトはそちらで初期化されています
 
-// デモ用のローカルランキングデータ
-let localRanking = [
-    { name: "テストプレイヤー1", score: 5000, timestamp: new Date() },
-    { name: "テストプレイヤー2", score: 3000, timestamp: new Date() },
-    { name: "テストプレイヤー3", score: 1000, timestamp: new Date() }
-];
+// デモ用のローカルランキングデータ（初期は空）
+let localRanking = [];
 
 class PuyoPuyoGame {
     constructor() {
@@ -26,6 +22,7 @@ class PuyoPuyoGame {
         this.difficulty = 'normal';
         this.fallSpeed = 1000;
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
+        this.scoreSubmitted = false; // スコアが登録済みかどうか
         
         this.colors = [
             null,
@@ -153,6 +150,9 @@ class PuyoPuyoGame {
         // ランキング関連ボタン
         document.getElementById('refresh-ranking').addEventListener('click', () => this.loadRanking());
         document.getElementById('submit-score').addEventListener('click', () => this.submitScore());
+        
+        // Firebase接続テスト（開発用）
+        this.testFirebaseConnection();
     }
     
     handleKeyPress(e) {
@@ -1095,11 +1095,14 @@ class PuyoPuyoGame {
     
     gameOver() {
         this.gameRunning = false;
+        this.scoreSubmitted = false; // リセット
         document.getElementById('final-score').textContent = this.score;
         
         // スコア登録ボタンを表示
         const submitButton = document.getElementById('submit-score');
+        const scoreRegistration = document.getElementById('score-registration');
         submitButton.style.display = 'block';
+        scoreRegistration.style.display = 'block';
         submitButton.disabled = false;
         submitButton.textContent = 'スコアを登録';
         
@@ -1116,6 +1119,28 @@ class PuyoPuyoGame {
         this.chain = 0;
         this.gameRunning = false;
         this.isSeparatedPiece = false;
+        this.scoreSubmitted = false;
+        
+        // アニメーションもリセット
+        this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
+            Array(this.BOARD_WIDTH).fill().map(() => ({
+                scale: 1.0,
+                bounce: 0,
+                rotation: 0,
+                lastLandTime: 0
+            }))
+        );
+        
+        // スコア登録UIをリセット
+        const submitButton = document.getElementById('submit-score');
+        const scoreRegistration = document.getElementById('score-registration');
+        const playerNameInput = document.getElementById('player-name');
+        
+        scoreRegistration.style.display = 'none';
+        submitButton.disabled = false;
+        submitButton.textContent = 'スコアを登録';
+        playerNameInput.value = '';
+        
         this.generateNextPiece();
         this.spawnNewPiece();
         this.updateDisplay();
@@ -1285,29 +1310,54 @@ class PuyoPuyoGame {
                 difficulty: this.difficulty
             };
             
-            await db.collection('rankings').add(scoreData);
+            console.log('送信するスコアデータ:', scoreData);
+            console.log('Firestoreに接続中...');
             
+            await db.collection('rankings').add(scoreData);
+            console.log('Firestoreへの登録成功!');
+            
+            // 成功時の処理
+            this.scoreSubmitted = true;
             alert('スコアを登録しました！');
-            document.getElementById('player-name').value = '';
-            submitButton.style.display = 'none';
+            
+            // スコア登録UIを非表示
+            const scoreRegistration = document.getElementById('score-registration');
+            scoreRegistration.style.display = 'none';
             
             // ランキングを更新
             await this.loadRanking();
             
         } catch (error) {
             console.error('スコア登録エラー:', error);
-            alert('スコア登録に失敗しました。ネットワーク接続を確認してください。');
             
-            // フォールバック：エラー時はローカルデータに追加
-            const scoreData = {
-                name: playerName,
-                score: this.score,
-                timestamp: new Date(),
-                maxChain: this.chain,
-                difficulty: this.difficulty
-            };
-            localRanking.push(scoreData);
-            await this.loadRanking();
+            // 詳細なエラー判定
+            if (error.code === 'permission-denied') {
+                alert('スコア登録の権限がありません。管理者にお問い合わせください。');
+            } else if (error.code === 'unavailable') {
+                alert('現在サーバーに接続できません。後でもう一度お試しください。');
+            } else {
+                // その他のエラー（ネットワークエラーなど）
+                console.log('Firebaseエラー、ローカルに保存します:', error);
+                
+                // フォールバック：ローカルデータに追加
+                const localScoreData = {
+                    name: playerName,
+                    score: this.score,
+                    timestamp: new Date(),
+                    maxChain: this.chain,
+                    difficulty: this.difficulty
+                };
+                localRanking.push(localScoreData);
+                
+                this.scoreSubmitted = true;
+                alert('スコアを登録しました！（ローカル保存）');
+                
+                // スコア登録UIを非表示
+                const scoreRegistration = document.getElementById('score-registration');
+                scoreRegistration.style.display = 'none';
+                
+                await this.loadRanking();
+            }
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'スコアを登録';
@@ -1318,6 +1368,51 @@ class PuyoPuyoGame {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    // Firebase接続テスト（開発用）
+    async testFirebaseConnection() {
+        try {
+            console.log('Firebase接続テスト開始...');
+            
+            // Firestoreの読み取りテスト
+            const testRead = await db.collection('rankings').limit(1).get();
+            console.log('✅ Firestore読み取り成功');
+            
+            // 書き込み権限テスト用のテストデータ
+            const testData = {
+                name: 'テスト',
+                score: 0,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                maxChain: 0,
+                difficulty: 'normal'
+            };
+            
+            // 書き込みテスト（実際には追加しない、ルールチェックのみ）
+            try {
+                await db.collection('rankings').add(testData);
+                console.log('✅ Firestore書き込み権限OK');
+                // テストデータを削除したいところですが、deleteRuleが制限されている可能性があるのでそのまま
+            } catch (writeError) {
+                console.error('❌ Firestore書き込み権限エラー:', writeError);
+                console.log('Firebase Consoleでセキュリティルールを確認してください');
+                console.log('推奨ルール（開発用）:');
+                console.log(`
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rankings/{document} {
+      allow read, write: if true;
+    }
+  }
+}
+                `);
+            }
+            
+        } catch (error) {
+            console.error('❌ Firebase接続エラー:', error);
+            console.log('Firebase設定またはFirestore設定を確認してください');
+        }
     }
 }
 

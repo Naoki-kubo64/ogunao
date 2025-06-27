@@ -493,7 +493,7 @@ body::before {
 /* スコア登録関連のスタイル */
 .score-registration {
     margin: 15px 0;
-    display: flex;
+    display: none; /* 初期は非表示 */
     flex-direction: column;
     gap: 10px;
 }
