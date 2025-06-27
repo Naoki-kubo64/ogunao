@@ -89,6 +89,11 @@ class PuyoPuyoGame {
         };
         this.cutin5ChainImage.src = 'images/5rensa.png';
         
+        // BGM設定
+        this.bgm = new Audio('music/ぷよぷよっと始まる毎日.mp3');
+        this.bgm.loop = true;
+        this.bgm.volume = 0.5;
+        
         this.lastFallTime = 0;
         this.timeStart = 0;
         
@@ -186,12 +191,24 @@ class PuyoPuyoGame {
         this.gameLoop();
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.add('hidden');
+        
+        // BGM再生開始
+        this.bgm.play().catch(e => {
+            console.log('BGM auto-play blocked:', e);
+        });
     }
     
     togglePause() {
         this.gameRunning = !this.gameRunning;
         if (this.gameRunning) {
             this.gameLoop();
+            // ポーズ解除時にBGM再開
+            this.bgm.play().catch(e => {
+                console.log('BGM resume failed:', e);
+            });
+        } else {
+            // ポーズ時にBGM一時停止
+            this.bgm.pause();
         }
     }
     
@@ -1080,6 +1097,10 @@ class PuyoPuyoGame {
         this.gameRunning = false;
         document.getElementById('final-score').textContent = this.score;
         document.getElementById('game-over').classList.remove('hidden');
+        
+        // BGM停止
+        this.bgm.pause();
+        this.bgm.currentTime = 0;
     }
     
     restart() {
@@ -1095,6 +1116,10 @@ class PuyoPuyoGame {
         this.render();
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.remove('hidden');
+        
+        // BGM停止
+        this.bgm.pause();
+        this.bgm.currentTime = 0;
     }
     
     // デバッグ機能
