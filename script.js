@@ -1,3 +1,13 @@
+// Firebase設定は firebase-config.js で読み込まれます
+// dbオブジェクトはそちらで初期化されています
+
+// デモ用のローカルランキングデータ
+let localRanking = [
+    { name: "テストプレイヤー1", score: 5000, timestamp: new Date() },
+    { name: "テストプレイヤー2", score: 3000, timestamp: new Date() },
+    { name: "テストプレイヤー3", score: 1000, timestamp: new Date() }
+];
+
 class PuyoPuyoGame {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -109,6 +119,9 @@ class PuyoPuyoGame {
         this.updateDisplay();
         this.render();
         
+        // ランキングを初期読み込み
+        this.loadRanking();
+        
         // ゲーム開始メッセージを表示
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
     }
@@ -136,6 +149,10 @@ class PuyoPuyoGame {
         document.getElementById('debug-pattern-4').addEventListener('click', () => this.debugSetChainPattern(4));
         document.getElementById('debug-pattern-5').addEventListener('click', () => this.debugSetChainPattern(5));
         document.getElementById('debug-pattern-7').addEventListener('click', () => this.debugSetChainPattern(7));
+        
+        // ランキング関連ボタン
+        document.getElementById('refresh-ranking').addEventListener('click', () => this.loadRanking());
+        document.getElementById('submit-score').addEventListener('click', () => this.submitScore());
     }
     
     handleKeyPress(e) {
@@ -1079,6 +1096,16 @@ class PuyoPuyoGame {
     gameOver() {
         this.gameRunning = false;
         document.getElementById('final-score').textContent = this.score;
+        
+        // スコア登録ボタンを表示
+        const submitButton = document.getElementById('submit-score');
+        submitButton.style.display = 'block';
+        submitButton.disabled = false;
+        submitButton.textContent = 'スコアを登録';
+        
+        // プレイヤー名入力欄をクリア
+        document.getElementById('player-name').value = '';
+        
         document.getElementById('game-over').classList.remove('hidden');
     }
     
@@ -1182,6 +1209,115 @@ class PuyoPuyoGame {
         
         this.render();
         console.log(`${chainCount}連鎖パターンを設置しました`);
+    }
+    
+    // ランキング機能
+    async loadRanking() {
+        const rankingList = document.getElementById('ranking-list');
+        rankingList.innerHTML = '<div class="loading">読み込み中...</div>';
+        
+        try {
+            const snapshot = await db.collection('rankings')
+                .orderBy('score', 'desc')
+                .limit(10)
+                .get();
+            
+            const rankings = [];
+            snapshot.forEach(doc => {
+                rankings.push(doc.data());
+            });
+            
+            // フォールバック：Firestoreが空の場合はローカルデータも表示
+            if (rankings.length === 0) {
+                const localRankings = [...localRanking].sort((a, b) => b.score - a.score);
+                this.displayRanking(localRankings);
+            } else {
+                this.displayRanking(rankings);
+            }
+        } catch (error) {
+            console.error('ランキング読み込みエラー:', error);
+            // エラー時はローカルデータを表示
+            const localRankings = [...localRanking].sort((a, b) => b.score - a.score);
+            this.displayRanking(localRankings);
+        }
+    }
+    
+    displayRanking(rankings) {
+        const rankingList = document.getElementById('ranking-list');
+        
+        if (rankings.length === 0) {
+            rankingList.innerHTML = '<div class="loading">まだランキングがありません</div>';
+            return;
+        }
+        
+        rankingList.innerHTML = rankings.map((item, index) => `
+            <div class="ranking-item">
+                <span class="ranking-rank">${index + 1}位</span>
+                <span class="ranking-name">${this.escapeHtml(item.name)}</span>
+                <span class="ranking-score">${item.score.toLocaleString()}</span>
+            </div>
+        `).join('');
+    }
+    
+    async submitScore() {
+        const playerName = document.getElementById('player-name').value.trim();
+        const submitButton = document.getElementById('submit-score');
+        
+        if (!playerName) {
+            alert('プレイヤー名を入力してください');
+            return;
+        }
+        
+        if (playerName.length > 10) {
+            alert('プレイヤー名は10文字以内で入力してください');
+            return;
+        }
+        
+        submitButton.disabled = true;
+        submitButton.textContent = '登録中...';
+        
+        try {
+            const scoreData = {
+                name: playerName,
+                score: this.score,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                maxChain: this.chain,
+                difficulty: this.difficulty
+            };
+            
+            await db.collection('rankings').add(scoreData);
+            
+            alert('スコアを登録しました！');
+            document.getElementById('player-name').value = '';
+            submitButton.style.display = 'none';
+            
+            // ランキングを更新
+            await this.loadRanking();
+            
+        } catch (error) {
+            console.error('スコア登録エラー:', error);
+            alert('スコア登録に失敗しました。ネットワーク接続を確認してください。');
+            
+            // フォールバック：エラー時はローカルデータに追加
+            const scoreData = {
+                name: playerName,
+                score: this.score,
+                timestamp: new Date(),
+                maxChain: this.chain,
+                difficulty: this.difficulty
+            };
+            localRanking.push(scoreData);
+            await this.loadRanking();
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'スコアを登録';
+        }
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

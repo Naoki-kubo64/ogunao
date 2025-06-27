@@ -1,109 +1,178 @@
-# おぐなお - Puyo Puyo Game
+# おぐなお (Ogunao) - ぷよぷよ風ゲーム
 
-モジュラーアーキテクチャで設計されたぷよぷよゲーム
+本格的なぷよぷよ風パズルゲームです。連鎖でカットインが表示され、Firebaseを使用したオンラインランキング機能を搭載しています。
 
-## アーキテクチャ概要
+## 🎮 ゲーム機能
 
-### ディレクトリ構造
+- **本格的なぷよぷよゲームプレイ**
+  - 4つ以上同じ色がくっつくと消える
+  - 連鎖システム
+  - 難易度選択（簡単・普通・難しい）
+
+- **視覚効果**
+  - ぷよぷよの角丸表示
+  - 同じ色がくっつく視覚表現
+  - 着地時のバウンスアニメーション
+  - 接続時のぷるぷる効果
+
+- **カットイン機能**
+  - 3連鎖以上でカットイン表示
+  - 5連鎖で専用画像
+  - 連鎖数に応じたメッセージ
+
+- **オンラインランキング**
+  - Firebaseを使用したリアルタイムランキング
+  - スコア、最大連鎖、難易度を記録
+  - 上位10位まで表示
+
+- **デバッグ機能**
+  - 各連鎖のテスト機能
+  - 連鎖パターン自動設置
+  - カットインテスト
+
+## 🚀 セットアップ
+
+### 1. リポジトリのクローン
+```bash
+git clone <repository-url>
+cd ogunao
 ```
-├── index.html          # メインHTML
-├── style.css           # スタイルシート
-├── images/             # ゲーム画像
+
+### 2. Firebase設定
+1. Firebase Consoleでプロジェクトを作成
+2. Firestoreを有効化
+3. `firebase-config.example.js` を `firebase-config.js` にコピー
+4. 実際のFirebase設定値を入力
+
+```javascript
+// firebase-config.js
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project.firebasestorage.app",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef123456789",
+    measurementId: "G-XXXXXXXXXX"
+};
+```
+
+### 3. Firestoreセキュリティルール設定
+Firebase Console → Firestore → ルール で以下を設定：
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rankings/{document} {
+      allow read: if true;
+      allow create: if validateRanking(resource.data);
+    }
+  }
+  
+  function validateRanking(data) {
+    return data.keys().hasAll(['name', 'score', 'timestamp', 'maxChain', 'difficulty']) &&
+           data.name is string &&
+           data.name.size() <= 10 &&
+           data.score is number &&
+           data.score >= 0 &&
+           data.maxChain is number &&
+           data.maxChain >= 0 &&
+           data.difficulty in ['easy', 'normal', 'hard'];
+  }
+}
+```
+
+### 4. 画像ファイルの配置
+`images/` フォルダに以下の画像を配置：
+- `nao11.jpg` - ぷよ画像1
+- `nao12.jpg` - ぷよ画像2
+- `nao4.png` - ぷよ画像3
+- `raw.png` - ぷよ画像4
+- `ホラーなお.png` - ぷよ画像5
+- `saginaoki.jpg` - カットイン画像
+- `5rensa.png` - 5連鎖専用カットイン画像
+
+### 5. ローカルサーバーで実行
+```bash
+# 簡単なHTTPサーバーを起動
+python -m http.server 8000
+# または
+npx serve
+```
+
+ブラウザで `http://localhost:8000` にアクセス
+
+## 🎯 操作方法
+
+- **A** : 左移動
+- **D** : 右移動  
+- **S** : 下移動
+- **Space** : 回転
+- **Enter** : ゲーム開始/一時停止
+
+## 📁 プロジェクト構造
+
+```
+ogunao/
+├── index.html              # メインHTML
+├── script.js               # ゲームロジック
+├── style.css               # スタイルシート
+├── firebase-config.js      # Firebase設定（gitignore対象）
+├── firebase-config.example.js # Firebase設定例
+├── images/                 # ゲーム画像
 │   ├── nao11.jpg
 │   ├── nao12.jpg
 │   ├── nao4.png
 │   ├── raw.png
 │   ├── ホラーなお.png
-│   └── saginaoki.jpg
-└── js/                 # JavaScriptモジュール
-    ├── main.js         # エントリーポイント
-    ├── game.js         # メインゲームクラス
-    ├── config.js       # 設定定数
-    ├── utils.js        # ユーティリティ関数
-    ├── imageManager.js # 画像管理
-    ├── gameBoard.js    # ゲームボード管理
-    ├── piece.js        # ぷよピース管理
-    ├── renderer.js     # 描画管理
-    ├── effects.js      # エフェクト管理
-    ├── gameLogic.js    # ゲームロジック
-    └── debugManager.js # デバッグ機能
+│   ├── saginaoki.jpg
+│   └── 5rensa.png
+├── .gitignore              # Git無視ファイル
+└── README.md               # このファイル
 ```
 
-### モジュール設計
+## 🔒 セキュリティ
 
-#### 1. **Config (config.js)**
-- ゲーム設定の中央管理
-- 定数定義とコンフィグレーション
+- Firebase設定ファイルは `.gitignore` で管理対象外
+- Firestoreセキュリティルールでデータ検証
+- ユーザー入力のHTMLエスケープ処理
+- プレイヤー名の文字数制限（10文字）
 
-#### 2. **Utils (utils.js)**
-- 共通ユーティリティ関数
-- DOM操作、数値計算、アニメーション
+## 🎨 カスタマイズ
 
-#### 3. **ImageManager (imageManager.js)**
-- 画像リソースの非同期読み込み
-- 画像状態管理とフォールバック
+### 画像の変更
+`images/` フォルダ内の画像ファイルを差し替えることで、ぷよやカットイン画像をカスタマイズできます。
 
-#### 4. **GameBoard (gameBoard.js)**
-- ゲームボード状態管理
-- 衝突判定、接続判定
-- アニメーション状態管理
+### カットインメッセージの変更
+`script.js` の `showCutinEffect` メソッド内でメッセージを編集できます。
 
-#### 5. **Piece (piece.js)**
-- ぷよピースの管理
-- 回転、移動、分離処理
-- ピース生成器
+### 難易度調整
+`updateFallSpeed` メソッドで各難易度の落下速度を調整できます。
 
-#### 6. **Renderer (renderer.js)**
-- Canvas描画の責務
-- ぷよの視覚的表現
-- エフェクト描画
+## 🐛 トラブルシューティング
 
-#### 7. **EffectsManager (effects.js)**
-- 爆発、連鎖、カットインエフェクト
-- DOM要素の動的生成/削除
+### Firebaseエラー
+- Firebase設定値が正しいか確認
+- Firestoreが有効化されているか確認
+- セキュリティルールが正しく設定されているか確認
 
-#### 8. **GameLogic (gameLogic.js)**
-- ゲームルールの実装
-- 連鎖処理、スコア計算
-- 衝突判定ロジック
+### 画像が表示されない
+- 画像ファイルが正しいパスに配置されているか確認
+- ブラウザの開発者ツールでエラーを確認
 
-#### 9. **DebugManager (debugManager.js)**
-- デバッグ機能の管理
-- 連鎖パターン設置
-- テスト用エフェクト
+### ランキングが表示されない
+- ネットワーク接続を確認
+- Firebase Consoleでデータが正しく保存されているか確認
 
-#### 10. **Game (game.js)**
-- メインゲームループ
-- 各モジュールの統合
-- 状態管理
+## 📄 ライセンス
 
-### 設計原則
+このプロジェクトはMITライセンスのもとで公開されています。
 
-1. **単一責任原則**: 各クラスは1つの責務のみ
-2. **依存性注入**: コンストラクタで依存関係を明示
-3. **ES6モジュール**: import/exportによる明確な依存関係
-4. **設定の外部化**: config.jsによる設定管理
-5. **イベント駆動**: 疎結合なコンポーネント間通信
+## 🤝 コントリビューション
 
-### 特徴
-
-- **保守性**: 機能ごとに分離された明確な責務
-- **テスト容易性**: 各モジュールが独立してテスト可能
-- **拡張性**: 新機能追加時の影響範囲を最小化
-- **可読性**: 構造化されたコードと明確な命名規則
-
-## 操作方法
-
-- **A**: 左移動
-- **D**: 右移動
-- **S**: 下移動
-- **Space**: 回転
-- **Enter**: ゲーム開始/一時停止
-
-## デバッグ機能
-
-右側のデバッグパネルから以下が可能：
-- 連鎖エフェクトのテスト
-- 特定連鎖パターンの設置
-- ボードクリア
-- カットインエフェクトのテスト
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成

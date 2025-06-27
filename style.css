@@ -407,3 +407,132 @@ body::before {
 .debug-controls button:nth-child(3n) {
     background: linear-gradient(45deg, #ff8844, #ffaa66);
 }
+
+/* ランキング関連のスタイル */
+.ranking-section {
+    margin-top: 20px;
+    background: rgba(0, 255, 0, 0.1);
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ranking-header h3 {
+    color: #00ff00;
+    margin: 0;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.ranking-header button {
+    background: linear-gradient(45deg, #00aa00, #00ff00);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 255, 0, 0.4);
+    transition: all 0.2s ease;
+}
+
+.ranking-header button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 255, 0, 0.6);
+}
+
+.ranking-list {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.ranking-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+    color: #fff;
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-rank {
+    font-weight: bold;
+    color: #00ff00;
+    min-width: 25px;
+}
+
+.ranking-name {
+    flex: 1;
+    text-align: left;
+    margin-left: 10px;
+}
+
+.ranking-score {
+    color: #ffa500;
+    font-weight: bold;
+}
+
+.loading {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* スコア登録関連のスタイル */
+.score-registration {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.score-registration input {
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #ffa500;
+    border-radius: 5px;
+    padding: 10px;
+    color: #fff;
+    font-size: 16px;
+    text-align: center;
+}
+
+.score-registration input::placeholder {
+    color: #aaa;
+}
+
+.score-registration button {
+    background: linear-gradient(45deg, #00aa00, #00ff00);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 255, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.score-registration button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 255, 0, 0.6);
+}
+
+.score-registration button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
