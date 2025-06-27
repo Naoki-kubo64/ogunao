@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おぐなお</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="game-area">
+            <div class="game-info">
+                <div class="score">スコア: <span id="score">0</span></div>
+                <div class="time">時間: <span id="time">0</span>秒</div>
+                <div class="chain">連鎖: <span id="chain">0</span></div>
+                <div class="difficulty">
+                    <label for="difficulty-select">難易度:</label>
+                    <select id="difficulty-select">
+                        <option value="easy">簡単</option>
+                        <option value="normal" selected>普通</option>
+                        <option value="hard">難しい</option>
+                    </select>
+                </div>
+                <div class="next-puyo">
+                    <div>次のぷよ</div>
+                    <div id="next-puyo" class="next-display"></div>
+                </div>
+            </div>
+            <div class="game-board">
+                <canvas id="game-canvas" width="240" height="360"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-info">
+                    <p>操作方法:</p>
+                    <p>A : 左移動</p>
+                    <p>D : 右移動</p>
+                    <p>S : 下移動</p>
+                    <p>Space : 回転</p>
+                    <p>Enter : ゲーム開始/一時停止</p>
+                </div>
+            </div>
+        </div>
+        <div class="game-status">
+            <div id="start-screen" class="start-screen">
+                <h2>おぐなお</h2>
+                <p>Enterキーを押してゲーム開始!</p>
+            </div>
+            <div id="game-over" class="game-over hidden">
+                <h2>ゲームオーバー</h2>
+                <p>最終スコア: <span id="final-score">0</span></p>
+                <button id="restart-btn">もう一度プレイ</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
