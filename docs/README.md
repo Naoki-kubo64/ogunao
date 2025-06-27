@@ -1,4 +1,13 @@
 # おぐなお (Ogunao) - ぷよぷよ風ゲーム
+## 🌐 GitHub Pages デモ
+
+このプロジェクトのライブデモ: https://yourusername.github.io/ogunao/
+
+### GitHub Pagesでの制限事項
+- Firebase設定ファイルが公開されるため、Firestoreセキュリティルールを適切に設定してください
+- 本番環境では適切な認証機能の実装を推奨します
+
+
 
 本格的なぷよぷよ風パズルゲームです。連鎖でカットインが表示され、Firebaseを使用したオンラインランキング機能を搭載しています。
 
