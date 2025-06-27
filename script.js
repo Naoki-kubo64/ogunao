@@ -28,8 +28,9 @@ class PuyoPuyoGame {
         
         // 画像を読み込み
         this.puyoImages = [];
+        this.cutinImage = null;
         this.imagesLoaded = 0;
-        this.totalImages = 5;
+        this.totalImages = 6; // カットイン画像を含めて6枚
         
         const imageFiles = [
             'images/nao11.jpg',
@@ -44,7 +45,7 @@ class PuyoPuyoGame {
             this.puyoImages[i + 1].onload = () => {
                 this.imagesLoaded++;
                 if (this.imagesLoaded === this.totalImages) {
-                    console.log('All puyo images loaded');
+                    console.log('All images loaded');
                     this.render(); // 画像読み込み完了後に再描画
                 }
             };
@@ -54,6 +55,22 @@ class PuyoPuyoGame {
             };
             this.puyoImages[i + 1].src = imageFiles[i];
         }
+        
+        // カットイン画像を読み込み
+        this.cutinImage = new Image();
+        this.cutinImage.onload = () => {
+            this.imagesLoaded++;
+            console.log('Cutin image loaded');
+            if (this.imagesLoaded === this.totalImages) {
+                console.log('All images loaded');
+                this.render();
+            }
+        };
+        this.cutinImage.onerror = () => {
+            console.error('Failed to load cutin image: images/saginaoki.jpg');
+            this.imagesLoaded++;
+        };
+        this.cutinImage.src = 'images/saginaoki.jpg';
         
         this.lastFallTime = 0;
         this.timeStart = 0;
@@ -86,6 +103,22 @@ class PuyoPuyoGame {
             this.difficulty = e.target.value;
             this.updateFallSpeed();
         });
+        
+        // デバッグボタンのイベントリスナー
+        document.getElementById('debug-2chain').addEventListener('click', () => this.debugChain(2));
+        document.getElementById('debug-3chain').addEventListener('click', () => this.debugChain(3));
+        document.getElementById('debug-4chain').addEventListener('click', () => this.debugChain(4));
+        document.getElementById('debug-5chain').addEventListener('click', () => this.debugChain(5));
+        document.getElementById('debug-7chain').addEventListener('click', () => this.debugChain(7));
+        document.getElementById('debug-cutin').addEventListener('click', () => this.debugCutin());
+        document.getElementById('debug-clear').addEventListener('click', () => this.debugClear());
+        
+        // 連鎖パターン設置ボタン
+        document.getElementById('debug-pattern-2').addEventListener('click', () => this.debugSetChainPattern(2));
+        document.getElementById('debug-pattern-3').addEventListener('click', () => this.debugSetChainPattern(3));
+        document.getElementById('debug-pattern-4').addEventListener('click', () => this.debugSetChainPattern(4));
+        document.getElementById('debug-pattern-5').addEventListener('click', () => this.debugSetChainPattern(5));
+        document.getElementById('debug-pattern-7').addEventListener('click', () => this.debugSetChainPattern(7));
     }
     
     handleKeyPress(e) {
@@ -388,6 +421,10 @@ class PuyoPuyoGame {
             
             if (chainCount > 1) {
                 this.showChainEffect(chainCount);
+                // 連鎖数に応じてカットインを表示
+                if (chainCount >= 3) {
+                    this.showCutinEffect(chainCount);
+                }
             }
         }
     }
@@ -463,6 +500,48 @@ class PuyoPuyoGame {
                 effect.parentElement.removeChild(effect);
             }
         }, 1000);
+    }
+    
+    showCutinEffect(chainCount) {
+        // カットイン画像が読み込まれていない場合は表示しない
+        if (!this.cutinImage || !this.cutinImage.complete) {
+            return;
+        }
+        
+        // カットイン要素を作成
+        const cutin = document.createElement('div');
+        cutin.className = 'cutin-effect';
+        
+        // 画像要素を作成
+        const img = document.createElement('img');
+        img.src = this.cutinImage.src;
+        img.className = 'cutin-image';
+        
+        // テキスト要素を作成
+        const text = document.createElement('div');
+        text.className = 'cutin-text';
+        
+        // 連鎖数に応じたメッセージ
+        if (chainCount >= 7) {
+            text.textContent = `${chainCount}連鎖！ 最高や！`;
+        } else if (chainCount >= 5) {
+            text.textContent = `${chainCount}連鎖！ やるやん！`;
+        } else {
+            text.textContent = `${chainCount}連鎖！`;
+        }
+        
+        cutin.appendChild(img);
+        cutin.appendChild(text);
+        
+        // ゲーム領域に追加
+        this.canvas.parentElement.appendChild(cutin);
+        
+        // アニメーション終了後に削除
+        setTimeout(() => {
+            if (cutin.parentElement) {
+                cutin.parentElement.removeChild(cutin);
+            }
+        }, 2000);
     }
     
     sleep(ms) {
@@ -991,6 +1070,93 @@ class PuyoPuyoGame {
         this.render();
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.remove('hidden');
+    }
+    
+    // デバッグ機能
+    debugChain(chainCount) {
+        console.log(`デバッグ: ${chainCount}連鎖をシミュレート`);
+        this.showChainEffect(chainCount);
+        if (chainCount >= 3) {
+            this.showCutinEffect(chainCount);
+        }
+        // スコアも更新
+        this.chain = Math.max(this.chain, chainCount);
+        this.score += 100 * chainCount * chainCount;
+        this.updateDisplay();
+    }
+    
+    debugCutin() {
+        console.log('デバッグ: カットインテスト');
+        // ランダムな連鎖数でカットインを表示
+        const randomChain = Math.floor(Math.random() * 5) + 3; // 3-7連鎖
+        this.showCutinEffect(randomChain);
+    }
+    
+    debugClear() {
+        console.log('デバッグ: ボードクリア');
+        this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        // アニメーションもリセット
+        this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
+            Array(this.BOARD_WIDTH).fill().map(() => ({
+                scale: 1.0,
+                bounce: 0,
+                rotation: 0,
+                lastLandTime: 0
+            }))
+        );
+        this.render();
+    }
+    
+    // 特定の連鎖パターンをボードに設置するデバッグ機能
+    debugSetChainPattern(chainCount) {
+        this.debugClear();
+        
+        switch(chainCount) {
+            case 2:
+                // 2連鎖パターン
+                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤4個
+                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑4個（上に）
+                break;
+                
+            case 3:
+                // 3連鎖パターン
+                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤
+                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑
+                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3; // 青
+                break;
+                
+            case 4:
+                // 4連鎖パターン
+                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤
+                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑
+                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3; // 青
+                this.board[3][2] = 4; this.board[3][3] = 4; this.board[2][2] = 4; this.board[2][3] = 4; // 黄
+                break;
+                
+            case 5:
+                // 5連鎖パターン
+                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1;
+                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2;
+                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3;
+                this.board[3][2] = 4; this.board[3][3] = 4; this.board[2][2] = 4; this.board[2][3] = 4;
+                this.board[1][2] = 5; this.board[1][3] = 5; this.board[0][2] = 5; this.board[0][3] = 5; // 紫
+                break;
+                
+            case 7:
+                // 7連鎖パターン（より複雑）
+                this.board[8][0] = 1; this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1;
+                this.board[7][1] = 2; this.board[7][2] = 2; this.board[6][1] = 2; this.board[6][2] = 2;
+                this.board[5][1] = 3; this.board[5][2] = 3; this.board[4][1] = 3; this.board[4][2] = 3;
+                this.board[3][1] = 4; this.board[3][2] = 4; this.board[2][1] = 4; this.board[2][2] = 4;
+                this.board[1][1] = 5; this.board[1][2] = 5; this.board[0][1] = 5; this.board[0][2] = 5;
+                // 右側にも追加
+                this.board[8][4] = 1; this.board[8][5] = 1; this.board[7][4] = 1; this.board[7][5] = 1;
+                this.board[6][4] = 2; this.board[6][5] = 2; this.board[5][4] = 2; this.board[5][5] = 2;
+                break;
+        }
+        
+        this.render();
+        console.log(`${chainCount}連鎖パターンを設置しました`);
     }
 }
 
