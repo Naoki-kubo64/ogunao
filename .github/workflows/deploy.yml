@@ -3,8 +3,17 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
+
+# 権限設定を追加
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行の制限
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -12,20 +21,27 @@ jobs:
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
       
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         
     - name: Build for GitHub Pages
       run: node build.js
       
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: './docs'
+        
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs
-        cname: false
+      id: deployment
+      uses: actions/deploy-pages@v2
