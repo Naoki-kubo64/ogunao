@@ -106,7 +106,7 @@ service cloud.firestore {
 }
 ```
 
-### 4. 画像ファイルの配置
+### 4. 画像・音声ファイルの配置
 `images/` フォルダに以下の画像を配置：
 - `nao11.jpg` - ぷよ画像1
 - `nao12.jpg` - ぷよ画像2
@@ -115,6 +115,9 @@ service cloud.firestore {
 - `ホラーなお.png` - ぷよ画像5
 - `saginaoki.jpg` - カットイン画像
 - `5rensa.png` - 5連鎖専用カットイン画像
+
+`music/` フォルダに以下の音声ファイルを配置：
+- `ぷよぷよっと始まる毎日.mp3` - BGM
 
 ### 5. ローカルサーバーで実行
 ```bash

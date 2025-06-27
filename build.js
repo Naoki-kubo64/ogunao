@@ -32,6 +32,12 @@ if (fs.existsSync('images')) {
     console.log('✅ imagesディレクトリをコピーしました');
 }
 
+// musicディレクトリをコピー
+if (fs.existsSync('music')) {
+    fs.cpSync('music', path.join(buildDir, 'music'), { recursive: true });
+    console.log('✅ musicディレクトリをコピーしました');
+}
+
 // index.htmlを編集してFirebase設定を修正
 const indexPath = path.join(buildDir, 'index.html');
 let indexContent = fs.readFileSync(indexPath, 'utf8');
