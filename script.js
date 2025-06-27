@@ -29,8 +29,9 @@ class PuyoPuyoGame {
         // 画像を読み込み
         this.puyoImages = [];
         this.cutinImage = null;
+        this.cutin5ChainImage = null;
         this.imagesLoaded = 0;
-        this.totalImages = 6; // カットイン画像を含めて6枚
+        this.totalImages = 7; // カットイン画像2枚を含めて7枚
         
         const imageFiles = [
             'images/nao11.jpg',
@@ -71,6 +72,22 @@ class PuyoPuyoGame {
             this.imagesLoaded++;
         };
         this.cutinImage.src = 'images/saginaoki.jpg';
+        
+        // 5連鎖カットイン画像を読み込み
+        this.cutin5ChainImage = new Image();
+        this.cutin5ChainImage.onload = () => {
+            this.imagesLoaded++;
+            console.log('5Chain cutin image loaded');
+            if (this.imagesLoaded === this.totalImages) {
+                console.log('All images loaded');
+                this.render();
+            }
+        };
+        this.cutin5ChainImage.onerror = () => {
+            console.error('Failed to load 5chain cutin image: images/5rensa.png');
+            this.imagesLoaded++;
+        };
+        this.cutin5ChainImage.src = 'images/5rensa.png';
         
         this.lastFallTime = 0;
         this.timeStart = 0;
@@ -503,8 +520,14 @@ class PuyoPuyoGame {
     }
     
     showCutinEffect(chainCount) {
-        // カットイン画像が読み込まれていない場合は表示しない
-        if (!this.cutinImage || !this.cutinImage.complete) {
+        // 5連鎖の場合は専用画像を使用
+        let cutinImageToUse;
+        if (chainCount === 5 && this.cutin5ChainImage && this.cutin5ChainImage.complete) {
+            cutinImageToUse = this.cutin5ChainImage;
+        } else if (this.cutinImage && this.cutinImage.complete) {
+            cutinImageToUse = this.cutinImage;
+        } else {
+            // カットイン画像が読み込まれていない場合は表示しない
             return;
         }
         
@@ -514,7 +537,7 @@ class PuyoPuyoGame {
         
         // 画像要素を作成
         const img = document.createElement('img');
-        img.src = this.cutinImage.src;
+        img.src = cutinImageToUse.src;
         img.className = 'cutin-image';
         
         // テキスト要素を作成
@@ -524,7 +547,9 @@ class PuyoPuyoGame {
         // 連鎖数に応じたメッセージ
         if (chainCount >= 7) {
             text.textContent = `${chainCount}連鎖！ 最高や！`;
-        } else if (chainCount >= 5) {
+        } else if (chainCount === 5) {
+            text.textContent = `5連鎖！ すごいやん！`;
+        } else if (chainCount >= 4) {
             text.textContent = `${chainCount}連鎖！ やるやん！`;
         } else {
             text.textContent = `${chainCount}連鎖！`;
