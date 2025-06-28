@@ -14,6 +14,7 @@
 <body>
     <div class="container">
         <div class="game-area">
+            <!-- ゲーム情報とランキング（左側） -->
             <div class="game-info">
                 <div class="score">スコア: <span id="score">0</span></div>
                 <div class="time">時間: <span id="time">0</span>秒</div>
@@ -26,10 +27,8 @@
                         <option value="hard">難しい</option>
                     </select>
                 </div>
-                <div class="next-puyo">
-                    <div>次のぷよ</div>
-                    <div id="next-puyo" class="next-display"></div>
-                </div>
+                
+                <!-- ランキングセクション -->
                 <div class="ranking-section">
                     <div class="ranking-header">
                         <h3>ランキング</h3>
@@ -38,51 +37,74 @@
                     <div id="ranking-list" class="ranking-list">
                         <div class="loading">読み込み中...</div>
                     </div>
+                    <div class="ranking-controls">
+                        <button id="show-more-ranking" class="hidden">もっと見る</button>
+                        <button id="show-less-ranking" class="hidden">閉じる</button>
+                    </div>
                 </div>
             </div>
+            
+            <!-- ゲームボード（中央） -->
             <div class="game-board">
-                <canvas id="game-canvas" width="240" height="360"></canvas>
-            </div>
-            <div class="controls">
-                <div class="control-info">
-                    <p>操作方法:</p>
-                    <p>A : 左移動</p>
-                    <p>D : 右移動</p>
-                    <p>S : 下移動</p>
-                    <p>Space : 回転</p>
-                    <p>Enter : ゲーム開始/一時停止</p>
+                <canvas id="game-canvas" width="480" height="720"></canvas>
+                
+                <!-- 次のぷよ表示と操作方法（右上） -->
+                <div class="next-puyo">
+                    <div class="next-puyo-label">NEXT</div>
+                    <div class="next-display">
+                        <canvas id="next-puyo-canvas" width="80" height="160"></canvas>
+                    </div>
+                    
+                    <!-- 操作方法 -->
+                    <div class="control-info">
+                        <p>操作方法:</p>
+                        <p>A : 左移動</p>
+                        <p>D : 右移動</p>
+                        <p>S : 下移動</p>
+                        <p>Space : 回転</p>
+                        <p>Enter : 開始/停止</p>
+                    </div>
+                    
+                    <!-- デバッグモード（開発時のみ表示） -->
+                    <div class="debug-controls" id="debug-controls">
+                        <p>デバッグモード:</p>
+                        <div class="debug-row">
+                            <button id="debug-2chain">2連鎖</button>
+                            <button id="debug-3chain">3連鎖</button>
+                            <button id="debug-4chain">4連鎖</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-5chain">5連鎖</button>
+                            <button id="debug-7chain">7連鎖</button>
+                            <button id="debug-cutin">カットイン</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-pattern-2">2設置</button>
+                            <button id="debug-pattern-3">3設置</button>
+                            <button id="debug-pattern-4">4設置</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-pattern-5">5設置</button>
+                            <button id="debug-pattern-7">7設置</button>
+                            <button id="debug-clear">クリア</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="debug-controls">
-                    <p>デバッグモード:</p>
-                    <div class="debug-row">
-                        <button id="debug-2chain">2連鎖テスト</button>
-                        <button id="debug-3chain">3連鎖テスト</button>
-                        <button id="debug-4chain">4連鎖テスト</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-5chain">5連鎖テスト</button>
-                        <button id="debug-7chain">7連鎖テスト</button>
-                        <button id="debug-cutin">カットインテスト</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-2">2連鎖設置</button>
-                        <button id="debug-pattern-3">3連鎖設置</button>
-                        <button id="debug-pattern-4">4連鎖設置</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-5">5連鎖設置</button>
-                        <button id="debug-pattern-7">7連鎖設置</button>
-                        <button id="debug-clear">ボードクリア</button>
-                    </div>
-                </div>
             </div>
+            
+            <!-- 空のコントロール（右側） -->
         </div>
-        <div class="game-status">
-            <div id="start-screen" class="start-screen">
+        
+        <!-- ゲーム状態オーバーレイ -->
+        <div id="start-screen" class="game-overlay start-screen">
+            <div class="overlay-content">
                 <h2>おぐなお</h2>
                 <p>Enterキーを押してゲーム開始!</p>
             </div>
-            <div id="game-over" class="game-over hidden">
+        </div>
+        
+        <div id="game-over" class="game-overlay game-over hidden">
+            <div class="overlay-content">
                 <h2>ゲームオーバー</h2>
                 <p>最終スコア: <span id="final-score">0</span></p>
                 <div id="score-registration" class="score-registration">
