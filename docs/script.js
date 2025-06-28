@@ -10,7 +10,7 @@ class PuyoPuyoGame {
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
         this.BOARD_HEIGHT = 9;
-        this.CELL_SIZE = 40;
+        this.CELL_SIZE = 80;
         
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
         this.currentPiece = null;
@@ -23,6 +23,8 @@ class PuyoPuyoGame {
         this.fallSpeed = 1000;
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
         this.scoreSubmitted = false; // スコアが登録済みかどうか
+        this.allRankings = []; // 全ランキングデータ
+        this.showingFullRanking = false; // 全ランキング表示中かどうか
         
         this.colors = [
             null,
@@ -124,6 +126,9 @@ class PuyoPuyoGame {
         // ランキングを初期読み込み
         this.loadRanking();
         
+        // デバッグモード表示制御
+        this.initDebugMode();
+        
         // ゲーム開始メッセージを表示
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
     }
@@ -155,6 +160,8 @@ class PuyoPuyoGame {
         // ランキング関連ボタン
         document.getElementById('refresh-ranking').addEventListener('click', () => this.loadRanking());
         document.getElementById('submit-score').addEventListener('click', () => this.submitScore());
+        document.getElementById('show-more-ranking').addEventListener('click', () => this.showMoreRanking());
+        document.getElementById('show-less-ranking').addEventListener('click', () => this.showLessRanking());
         
         // Firebase接続テスト（開発用）
         this.testFirebaseConnection();
@@ -1067,40 +1074,63 @@ class PuyoPuyoGame {
     }
     
     renderNextPiece() {
-        const nextDisplay = document.getElementById('next-puyo');
-        nextDisplay.innerHTML = '';
+        const nextCanvas = document.getElementById('next-puyo-canvas');
+        if (!nextCanvas) return;
+        
+        const ctx = nextCanvas.getContext('2d');
+        
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
         
         if (this.nextPiece) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 80;
-            const ctx = canvas.getContext('2d');
+            // 次ぷよを縦に2つ並べて表示
+            const puyoSize = 35; // ぷよのサイズ
+            const spacing = 5; // ぷよ間のスペース
+            const centerX = nextCanvas.width / 2 - puyoSize / 2;
+            const startY = 10;
             
-            for (let i = 0; i < this.nextPiece.positions.length; i++) {
-                const pos = this.nextPiece.positions[i];
-                const x = (pos.x + 1) * 20 + 10;
-                const y = pos.y * 20 + 10;
-                
+            // 2つのぷよを縦に配置
+            for (let i = 0; i < this.nextPiece.colors.length && i < 2; i++) {
                 const colorIndex = this.nextPiece.colors[i];
+                const x = centerX;
+                const y = startY + i * (puyoSize + spacing);
                 
-                // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
+                // 背景の丸い枠を描画
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.beginPath();
+                ctx.arc(x + puyoSize/2, y + puyoSize/2, puyoSize/2 + 2, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 画像が読み込まれている場合は画像を描画
                 if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 18, 18);
+                    // 丸くクリップして描画
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(x + puyoSize/2, y + puyoSize/2, puyoSize/2, 0, 2 * Math.PI);
+                    ctx.clip();
+                    ctx.drawImage(this.puyoImages[colorIndex], x, y, puyoSize, puyoSize);
+                    ctx.restore();
                 } else {
                     // フォールバック：色での描画
                     ctx.fillStyle = this.colors[colorIndex];
-                    ctx.fillRect(x, y, 18, 18);
+                    ctx.beginPath();
+                    ctx.arc(x + puyoSize/2, y + puyoSize/2, puyoSize/2, 0, 2 * Math.PI);
+                    ctx.fill();
                     
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(x + 2, y + 2, 14, 14);
+                    // ハイライト効果
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(x + puyoSize/2 - 5, y + puyoSize/2 - 5, puyoSize/4, 0, 2 * Math.PI);
+                    ctx.fill();
                 }
                 
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, y, 18, 18);
+                // 境界線
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x + puyoSize/2, y + puyoSize/2, puyoSize/2, 0, 2 * Math.PI);
+                ctx.stroke();
             }
-            
-            nextDisplay.appendChild(canvas);
         }
     }
     
@@ -1269,7 +1299,7 @@ class PuyoPuyoGame {
         try {
             const snapshot = await db.collection('rankings')
                 .orderBy('score', 'desc')
-                .limit(10)
+                .limit(50) // より多くのデータを取得
                 .get();
             
             const rankings = [];
@@ -1280,33 +1310,72 @@ class PuyoPuyoGame {
             // フォールバック：Firestoreが空の場合はローカルデータも表示
             if (rankings.length === 0) {
                 const localRankings = [...localRanking].sort((a, b) => b.score - a.score);
-                this.displayRanking(localRankings);
+                this.allRankings = localRankings;
             } else {
-                this.displayRanking(rankings);
+                this.allRankings = rankings;
             }
+            
+            this.showingFullRanking = false;
+            this.displayRanking();
         } catch (error) {
             console.error('ランキング読み込みエラー:', error);
             // エラー時はローカルデータを表示
             const localRankings = [...localRanking].sort((a, b) => b.score - a.score);
-            this.displayRanking(localRankings);
+            this.allRankings = localRankings;
+            this.showingFullRanking = false;
+            this.displayRanking();
         }
     }
     
-    displayRanking(rankings) {
+    displayRanking() {
         const rankingList = document.getElementById('ranking-list');
+        const showMoreBtn = document.getElementById('show-more-ranking');
+        const showLessBtn = document.getElementById('show-less-ranking');
         
-        if (rankings.length === 0) {
+        if (this.allRankings.length === 0) {
             rankingList.innerHTML = '<div class="loading">まだランキングがありません</div>';
+            showMoreBtn.classList.add('hidden');
+            showLessBtn.classList.add('hidden');
             return;
         }
         
-        rankingList.innerHTML = rankings.map((item, index) => `
+        // 表示するランキングを決定
+        const displayRankings = this.showingFullRanking ? 
+            this.allRankings : 
+            this.allRankings.slice(0, 3);
+        
+        rankingList.innerHTML = displayRankings.map((item, index) => `
             <div class="ranking-item">
                 <span class="ranking-rank">${index + 1}位</span>
                 <span class="ranking-name">${this.escapeHtml(item.name)}</span>
                 <span class="ranking-score">${item.score.toLocaleString()}</span>
             </div>
         `).join('');
+        
+        // ボタンの表示制御
+        if (this.allRankings.length > 3) {
+            if (this.showingFullRanking) {
+                showMoreBtn.classList.add('hidden');
+                showLessBtn.classList.remove('hidden');
+            } else {
+                showMoreBtn.classList.remove('hidden');
+                showLessBtn.classList.add('hidden');
+            }
+        } else {
+            showMoreBtn.classList.add('hidden');
+            showLessBtn.classList.add('hidden');
+        }
+    }
+    
+    // ランキング表示切り替えメソッド
+    showMoreRanking() {
+        this.showingFullRanking = true;
+        this.displayRanking();
+    }
+    
+    showLessRanking() {
+        this.showingFullRanking = false;
+        this.displayRanking();
     }
     
     async submitScore() {
@@ -1395,6 +1464,51 @@ class PuyoPuyoGame {
         return div.innerHTML;
     }
     
+    // デバッグモード表示制御
+    initDebugMode() {
+        const debugControls = document.getElementById('debug-controls');
+        
+        // 開発モードの検出方法：
+        // 1. hostname が localhost または 127.0.0.1
+        // 2. protocol が file: (ローカルファイル)
+        // 3. URLパラメータに debug=true が含まれている
+        // 4. hostname が github.io でない（本番環境）
+        
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname === '';
+        
+        const isFileProtocol = window.location.protocol === 'file:';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugParam = urlParams.get('debug') === 'true';
+        
+        const isGithubPages = window.location.hostname.includes('github.io');
+        
+        // デバッグモードの条件：
+        // - ローカル環境（localhost、file:プロトコル）
+        // - または、明示的にdebug=trueパラメータが指定されている
+        // - GitHub Pagesでない限り
+        const isDebugMode = (isLocalhost || isFileProtocol || debugParam) && !isGithubPages;
+        
+        if (debugControls) {
+            if (isDebugMode) {
+                debugControls.style.display = 'block';
+                console.log('🔧 デバッグモードが有効です');
+                console.log('環境情報:');
+                console.log('- Hostname:', window.location.hostname);
+                console.log('- Protocol:', window.location.protocol);
+                console.log('- Debug param:', debugParam);
+                console.log('- GitHub Pages:', isGithubPages);
+            } else {
+                debugControls.style.display = 'none';
+                console.log('🚀 本番モードで実行中（デバッグコントロールは非表示）');
+            }
+        } else {
+            console.warn('⚠️ debug-controls要素が見つかりません');
+        }
+    }
+
     // Firebase接続テスト（開発用）
     async testFirebaseConnection() {
         try {
