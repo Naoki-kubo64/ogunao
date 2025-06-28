@@ -2,8 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(grep:*)",
-      "Bash(rg:*)",
-      "Bash(node:*)"
+      "Bash(rg:*)"
     ],
     "deny": []
   }
