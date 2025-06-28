@@ -38,7 +38,7 @@ if (fs.existsSync('music')) {
     console.log('✅ musicディレクトリをコピーしました');
 }
 
-// index.htmlを編集してFirebase設定を修正＆デバッグ要素を削除
+// index.htmlを編集してFirebase設定を修正
 const indexPath = path.join(buildDir, 'index.html');
 let indexContent = fs.readFileSync(indexPath, 'utf8');
 
@@ -48,14 +48,8 @@ indexContent = indexContent.replace(
     '<script src="firebase-config.example.js"></script>'
 );
 
-// デバッグコントロール要素を削除（コメントも含めて削除）
-indexContent = indexContent.replace(
-    /\s*<!-- デバッグモード（開発時のみ表示） -->\s*[\s\S]*?<\/div>\s*(?=\s*<\/div>)/,
-    ''
-);
-
 fs.writeFileSync(indexPath, indexContent);
-console.log('✅ index.htmlのFirebase設定を修正し、デバッグ要素を削除しました');
+console.log('✅ index.htmlのFirebase設定を修正しました');
 
 // firebase-config.example.jsを編集してページ用の設定にする
 const configPath = path.join(buildDir, 'firebase-config.example.js');
