@@ -43,31 +43,33 @@ body::before {
     box-shadow: 
         0 0 30px rgba(255, 165, 0, 0.6),
         inset 0 0 30px rgba(255, 69, 0, 0.1);
-    padding: 16px;
+    padding: 0;
     backdrop-filter: blur(10px);
     width: 95vw;
+    height: 90vh;
     position: relative;
+    overflow: hidden;
 }
 
 .game-area {
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
-    flex-wrap: nowrap;
-    justify-content: center;
-    min-height: 600px;
     position: relative;
+    width: 100%;
+    height: 100%;
 }
 
+/* ゲーム情報をgame-canvasの左に配置 */
 .game-info {
-    min-width: 280px;
+    position: absolute;
+    top: 0px;
+    left: -300px;
+    width: 280px;
     background: rgba(255, 69, 0, 0.1);
     border: 2px solid #ff4500;
     border-radius: 10px;
     padding: 16px;
     box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
     font-size: 18px;
-    flex: 0 0 auto;
+    z-index: 2;
 }
 
 .game-info > div {
@@ -92,11 +94,11 @@ body::before {
     margin-left: 10px;
 }
 
-/* 次のぷよ表示と操作方法を右上に配置 */
+/* 次のぷよ表示と操作方法をgame-canvasの右上に配置 */
 .next-puyo {
     position: absolute;
-    top: 20px;
-    right: -220px;
+    top: -30px;
+    right: -200px;
     z-index: 10;
     width: 180px;
 }
@@ -129,9 +131,11 @@ body::before {
 }
 
 .game-board {
-    position: relative;
-    order: 0;
-    flex: 0 0 auto;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
 }
 
 #game-canvas {
@@ -143,17 +147,7 @@ body::before {
         inset 0 0 20px rgba(255, 69, 0, 0.1);
 }
 
-.controls {
-    min-width: 280px;
-    background: rgba(255, 140, 0, 0.1);
-    border: 2px solid #ff8c00;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
-    font-size: 16px;
-    order: 1;
-    flex: 0 0 auto;
-}
+/* controlsセクションは不要（NEXTエリアに統合済み） */
 
 /* NEXTの下の操作方法 */
 .next-puyo .control-info {
