@@ -3,8 +3,7 @@
     "allow": [
       "Bash(grep:*)",
       "Bash(rg:*)",
-      "Bash(node:*)",
-      "Bash(diff:*)"
+      "Bash(node:*)"
     ],
     "deny": []
   }
