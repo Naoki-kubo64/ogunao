@@ -23,6 +23,9 @@
     <audio id="game-bgm-2" preload="auto" loop>
         <source src="music/2.mp3" type="audio/mpeg">
     </audio>
+    <audio id="naochan-bgm" preload="auto" loop>
+        <source src="music/jagler1.mp3" type="audio/mpeg">
+    </audio>
     
     <!-- SE用のaudio要素 -->
     <audio id="se-gamestart" preload="auto">
@@ -46,14 +49,33 @@
     <audio id="se-clear" preload="auto">
         <source src="SE/消え.mp3" type="audio/mpeg">
     </audio>
+    <audio id="se-naochan-time" preload="auto">
+        <source src="SE/naotime.mp3" type="audio/mpeg">
+    </audio>
     <div class="container">
         <div class="game-area">
             <!-- ニコニコ動画風コメント表示領域 -->
             <div id="comment-overlay" class="comment-overlay"></div>
+            <!-- なおちゃん応援システム -->
+            <div id="naochan-support" class="naochan-support hidden">
+                <div class="support-message" id="support-message">頑張って！</div>
+                <div class="support-subtitle" id="support-subtitle">なおちゃんが応援してるよ♪</div>
+            </div>
             <div class="game-info">
                 <div class="score">スコア: <span id="score">0</span></div>
                 <div class="time">時間: <span id="time">0</span>秒</div>
                 <div class="chain">連鎖: <span id="chain">0</span></div>
+                <div id="naochan-timer" class="naochan-timer hidden">
+                    なおちゃんタイム: <span id="naochan-time">60</span>秒
+                </div>
+                <div id="combo-timers" class="combo-timers">
+                    <div id="ogu-combo-timer" class="combo-timer hidden">
+                        おぐコンボ: <span id="ogu-time">3</span>秒
+                    </div>
+                    <div id="nao-combo-timer" class="combo-timer hidden">
+                        なおコンボ: <span id="nao-time">10</span>秒
+                    </div>
+                </div>
                 <div class="difficulty">
                     <label for="difficulty-select">難易度:</label>
                     <select id="difficulty-select">
@@ -86,7 +108,10 @@
                         <div id="next-puyo"></div>
                     </div>
                 <div class="control-info">
-                    <p>操作方法:</p>
+                    <div class="control-header">
+                        <p>操作方法:</p>
+                        <button id="help-button" class="help-button">ルール説明</button>
+                    </div>
                     <p>A : 左移動</p>
                     <p>D : 右移動</p>
                     <p>S : 下移動</p>
@@ -132,6 +157,14 @@
                         <button id="debug-manual-mode">手動配置モード</button>
                         <button id="debug-exit-manual">配置終了</button>
                     </div>
+                    <div class="debug-row">
+                        <button id="debug-naochan-time">なおちゃんタイム発動</button>
+                        <button id="debug-ogu-combo">おぐコンボテスト</button>
+                    </div>
+                    <div class="debug-row">
+                        <button id="debug-nao-combo">なおコンボテスト</button>
+                        <button id="debug-saikyo-combo">最強コンボテスト</button>
+                    </div>
                     <div class="color-palette">
                         <p>配置する色:</p>
                         <div class="color-buttons">
@@ -170,6 +203,87 @@
             </div>
         </div>
     </div>
+    
+    <!-- ヘルプモーダル -->
+    <div id="help-modal" class="help-modal hidden">
+        <div class="help-modal-content">
+            <div class="help-header">
+                <h2>🎮 おぐなお - ゲームルール説明</h2>
+                <button id="help-close" class="help-close">&times;</button>
+            </div>
+            <div class="help-body">
+                <div class="help-section">
+                    <h3>🎯 基本ルール</h3>
+                    <ul>
+                        <li>同じ色のぷよを4個以上つなげて消去</li>
+                        <li>連鎖でより高いスコアを獲得</li>
+                        <li>盤面の上端にぷよが到達するとゲームオーバー</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h3>💫 おぐなおコンボシステム</h3>
+                    <div class="combo-explanation">
+                        <div class="combo-item">
+                            <h4>💚💙 おぐコンボ</h4>
+                            <p><strong>発動条件:</strong> 緑と青を同時に消去</p>
+                            <p><strong>効果:</strong> 3秒間ピース落下速度が2倍に！</p>
+                        </div>
+                        <div class="combo-item">
+                            <h4>❤️💛 なおコンボ</h4>
+                            <p><strong>発動条件:</strong> 赤と黄を同時に消去</p>
+                            <p><strong>効果:</strong> 10秒間次ピース2個先まで表示！</p>
+                        </div>
+                        <div class="combo-item">
+                            <h4>🌈 最強コンボ</h4>
+                            <p><strong>発動条件:</strong> 5色すべてを同時に消去</p>
+                            <p><strong>効果:</strong> 50,000点ボーナス＋なおちゃんタイム強制発動！</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h3>⭐ なおちゃんタイム</h3>
+                    <div class="naochan-explanation">
+                        <h4>発動条件</h4>
+                        <ul>
+                            <li>📊 <strong>スコア条件:</strong> 200,000点到達時（1回のみ）</li>
+                            <li>🎖️ <strong>中級スコア条件:</strong> 600,000点到達時（1回のみ）</li>
+                            <li>🏆 <strong>ハイスコア条件:</strong> 1,000,000点到達時（1回のみ）</li>
+                            <li>🎲 <strong>連鎖条件:</strong> 5連鎖以上で10%の確率</li>
+                            <li>🌈 <strong>最強コンボ:</strong> 強制発動</li>
+                        </ul>
+                        <h4>効果</h4>
+                        <ul>
+                            <li>⏰ <strong>持続時間:</strong> 60秒間</li>
+                            <li>💰 <strong>スコア3倍:</strong> すべてのスコアが3倍に</li>
+                            <li>🎵 <strong>専用BGM:</strong> なおちゃんタイム専用音楽</li>
+                            <li>🎭 <strong>なおちゃん応援:</strong> 特別な応援メッセージ</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-section">
+                    <h3>💬 なおちゃん応援システム</h3>
+                    <ul>
+                        <li>🏆 <strong>スコア応援:</strong> 5万・10万・20万点達成時</li>
+                        <li>⛓️ <strong>連鎖応援:</strong> 5・7・10連鎖以上時</li>
+                        <li>💭 <strong>自動チャット:</strong> なおちゃんが状況に応じてコメント</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h3>🎵 BGMシステム</h3>
+                    <ul>
+                        <li>🎼 <strong>通常BGM:</strong> ゲーム開始時</li>
+                        <li>🏆 <strong>特別BGM:</strong> 200,000点達成後</li>
+                        <li>⭐ <strong>なおちゃんタイムBGM:</strong> なおちゃんタイム中</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

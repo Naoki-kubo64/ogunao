@@ -15,6 +15,7 @@ class PuyoPuyoGame {
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
         this.currentPiece = null;
         this.nextPiece = null;
+        this.nextPiece2 = null; // なおコンボ用の2個目のピース
         this.score = 0;
         this.time = 0;
         this.chain = 0;
@@ -24,6 +25,35 @@ class PuyoPuyoGame {
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
         this.scoreSubmitted = false; // スコアが登録済みかどうか
         this.isPlacingPiece = false; // ピース配置中かどうか
+        
+        // コンボ状態
+        this.oguComboActive = false;
+        this.oguComboEndTime = 0;
+        this.naoComboActive = false;
+        this.showNextPieceExtra = false;
+        this.saikyoComboReady = false;
+        
+        // なおちゃんタイム状態
+        this.naochanTimeActive = false;
+        this.naochanTimeRemaining = 0;
+        this.naochanTimeStartTime = 0;
+        this.naochanTimeTriggeredByScore = false;
+        this.naochanTimeTriggeredBy600k = false;
+        this.naochanTimeTriggeredBy1M = false;
+        
+        // なおコンボタイマー
+        this.naoComboStartTime = 0;
+        
+        // 応援システムフラグ
+        this.supportTriggered50k = false;
+        this.supportTriggered100k = false;
+        this.supportTriggered200k = false;
+        this.supportTriggered600k = false;
+        this.supportTriggered1M = false;
+        this.supportTimer = null;
+        
+        // なおちゃんチャット機能初期化
+        this.initNaochanChat();
         
         this.colors = [
             null,
@@ -139,11 +169,13 @@ class PuyoPuyoGame {
         this.titleBgm = document.getElementById('title-bgm');
         this.bgm = document.getElementById('game-bgm');
         this.bgm2 = document.getElementById('game-bgm-2');
+        this.naochanBgm = document.getElementById('naochan-bgm');
         
-        if (this.titleBgm && this.bgm && this.bgm2) {
+        if (this.titleBgm && this.bgm && this.bgm2 && this.naochanBgm) {
             this.titleBgm.volume = 0.4;
             this.bgm.volume = 0.5;
             this.bgm2.volume = 0.5;
+            this.naochanBgm.volume = 0.5;
         } else {
             console.error('❌ Audio要素が見つかりません');
         }
@@ -153,6 +185,31 @@ class PuyoPuyoGame {
         this.bgmSwitched = false; // スコア200000でのBGM切り替えフラグ
         this.fadeInterval = null; // フェード処理用のインターバル
         
+        // なおちゃんタイムモード用の変数
+        this.naochanTimeActive = false; // なおちゃんタイム中かどうか
+        this.naochanTimeRemaining = 0; // 残り時間（ミリ秒）
+        this.naochanTimeStartTime = 0; // 開始時刻
+        this.originalPuyoImages = null; // 元のピース画像を保存
+        this.naochanImage = null; // なおちゃんタイム用画像
+        
+        // おぐなおコンボシステム用の変数
+        this.oguComboActive = false; // 「おぐ」コンボ（緑+青）の効果中
+        this.oguComboEndTime = 0; // 「おぐ」コンボ効果終了時刻
+        this.naoComboActive = false; // 「なお」コンボ（赤+黄）の効果中
+        this.showNextPieceExtra = false; // 次のピース2個先まで表示
+        this.saikyoComboReady = false; // 「最強」コンボ準備完了
+        
+        // なおちゃんタイム用画像を読み込み
+        this.naochanImage = new Image();
+        this.naochanImage.onload = () => {
+            console.log('✅ なおちゃんタイム用画像読み込み完了');
+        };
+        this.naochanImage.onerror = () => {
+            console.warn('⚠️ なおちゃんタイム用画像の読み込みに失敗（nao7.pngを使用）');
+            this.naochanImage = this.cutin3ChainImage; // フォールバック
+        };
+        this.naochanImage.src = 'images/nao7.png'; // 既存のなおちゃん画像を使用
+        
         // SE設定
         this.seGameStart = document.getElementById('se-gamestart');
         this.seChain2 = document.getElementById('se-chain2');
@@ -161,6 +218,7 @@ class PuyoPuyoGame {
         this.seMove = document.getElementById('se-move');
         this.seRotate = document.getElementById('se-rotate');
         this.seClear = document.getElementById('se-clear');
+        this.seNaochanTime = document.getElementById('se-naochan-time');
         
         // SE音量設定
         if (this.seGameStart) this.seGameStart.volume = 0.7;
@@ -170,6 +228,7 @@ class PuyoPuyoGame {
         if (this.seMove) this.seMove.volume = 0.4; // 移動音は控えめに
         if (this.seRotate) this.seRotate.volume = 0.5;
         if (this.seClear) this.seClear.volume = 0.6;
+        if (this.seNaochanTime) this.seNaochanTime.volume = 0.8;
         
         this.lastFallTime = 0;
         this.timeStart = 0;
@@ -250,6 +309,12 @@ class PuyoPuyoGame {
         // 手動配置モード関連ボタン
         document.getElementById('debug-manual-mode').addEventListener('click', () => this.toggleManualPlaceMode());
         document.getElementById('debug-exit-manual').addEventListener('click', () => this.exitManualPlaceMode());
+        
+        // 新機能デバッグボタン
+        document.getElementById('debug-naochan-time').addEventListener('click', () => this.debugNaochanTime());
+        document.getElementById('debug-ogu-combo').addEventListener('click', () => this.debugOguCombo());
+        document.getElementById('debug-nao-combo').addEventListener('click', () => this.debugNaoCombo());
+        document.getElementById('debug-saikyo-combo').addEventListener('click', () => this.debugSaikyoCombo());
         
         // 色選択ボタン
         for (let i = 0; i <= 5; i++) {
@@ -415,22 +480,32 @@ class PuyoPuyoGame {
     }
     
     handleKeyPress(e) {
-        console.log('Key pressed:', e.key, 'Game running:', this.gameRunning);
+        console.log('Key pressed:', e.key, 'Game running:', this.gameRunning, 'Active element:', document.activeElement?.id || 'none');
         
         // 隠しコマンドの処理（どの状態でも有効）
         this.handleSecretCommand(e.key);
         
-        // コメント入力中はゲーム操作を無効にする
+        // ゲーム開始時のEnterキー処理（最優先）
+        if (!this.gameRunning && e.key === 'Enter') {
+            e.preventDefault();
+            console.log('🎮 Starting game with Enter key');
+            // コメント入力フィールドからフォーカスを外す
+            const commentInput = document.getElementById('comment-input');
+            if (document.activeElement === commentInput) {
+                console.log('📝 Removing focus from comment input');
+                commentInput.blur();
+            }
+            this.startGame();
+            return;
+        }
+        
+        // コメント入力中はその他のゲーム操作を無効にする
         const commentInput = document.getElementById('comment-input');
         if (document.activeElement === commentInput) {
             return;
         }
         
         if (!this.gameRunning) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.startGame();
-            }
             return;
         }
         
@@ -521,6 +596,11 @@ class PuyoPuyoGame {
         this.lastFallTime = Date.now();
         this.updateFallSpeed();
         
+        // なおちゃんがゲーム開始を応援
+        setTimeout(() => {
+            this.sendContextualNaochanChat('game_start');
+        }, 2000);
+        
         // ピースが存在しない場合は新しく生成
         if (!this.currentPiece) {
             console.log('No current piece, spawning new one...');
@@ -551,13 +631,17 @@ class PuyoPuyoGame {
         this.gameRunning = !this.gameRunning;
         if (this.gameRunning) {
             this.gameLoop();
-            // ポーズ解除時にBGM再開
-            this.bgm.play().catch(e => {
-                console.log('BGM resume failed:', e);
-            });
+            // ポーズ解除時に現在のBGMを再開
+            if (this.currentBgm) {
+                this.currentBgm.play().catch(e => {
+                    console.log('BGM resume failed:', e);
+                });
+            }
         } else {
-            // ポーズ時にBGM一時停止
-            this.bgm.pause();
+            // ポーズ時に現在のBGMを一時停止
+            if (this.currentBgm) {
+                this.currentBgm.pause();
+            }
         }
     }
     
@@ -573,6 +657,8 @@ class PuyoPuyoGame {
     updateVolume(value) {
         const volume = value / 100;
         this.bgm.volume = volume;
+        this.bgm2.volume = volume;
+        this.naochanBgm.volume = volume;
         this.titleBgm.volume = volume * 0.8; // タイトルBGMは少し静か目
         
         // SE音量も調整
@@ -589,12 +675,29 @@ class PuyoPuyoGame {
     }
     
     generateNextPiece() {
+        // 常に5色すべて使用
         const color1 = Math.floor(Math.random() * 5) + 1;
         const color2 = Math.floor(Math.random() * 5) + 1;
+        
+        // 現在のnextPieceを次のnextPieceに移動
+        if (this.nextPiece) {
+            this.nextPiece2 = { ...this.nextPiece };
+        }
+        
         this.nextPiece = {
             colors: [color1, color2],
             positions: [{x: 0, y: 0}, {x: 0, y: 1}]
         };
+        
+        // 2個目のピースも生成（なおコンボ時の表示用）
+        if (!this.nextPiece2) {
+            const color3 = Math.floor(Math.random() * 5) + 1;
+            const color4 = Math.floor(Math.random() * 5) + 1;
+            this.nextPiece2 = {
+                colors: [color3, color4],
+                positions: [{x: 0, y: 0}, {x: 0, y: 1}]
+            };
+        }
     }
     
     spawnNewPiece() {
@@ -854,6 +957,9 @@ class PuyoPuyoGame {
                 console.log(`  グループ${index + 1}: 色${color}, ${group.length}個, 位置: ${group.map(p => `(${p.x},${p.y})`).join(', ')}`);
             });
             
+            // おぐなおコンボチェック（削除前に実行）
+            this.checkOgunaoCombo(allMatches);
+            
             // 全てのマッチしたグループを同時に処理
             for (let group of allMatches) {
                 totalCleared += group.length;
@@ -922,12 +1028,26 @@ class PuyoPuyoGame {
         }
         
         if (chainCount > 0) {
-            this.score += totalCleared * 100 * chainCount * chainCount;
+            // なおちゃんタイムのスコア倍率を適用
+            const scoreMultiplier = this.getNaochanTimeScoreMultiplier();
+            const baseScore = totalCleared * 100 * chainCount * chainCount;
+            const finalScore = baseScore * scoreMultiplier;
+            
+            this.score += finalScore;
             this.updateDisplay();
+            this.checkSupportTriggers();
+            
+            // なおちゃんタイム発動チェック
+            this.checkNaochanTimeActivation(chainCount);
+            
             console.log(`🏆 === 連鎖シーケンス完了 ===`);
             console.log(`🔢 最終連鎖数: ${chainCount}`);
             console.log(`🧱 総消去ブロック数: ${totalCleared}`);
-            console.log(`💰 獲得スコア: ${totalCleared * 100 * chainCount * chainCount}`);
+            console.log(`💰 基本スコア: ${baseScore}`);
+            if (scoreMultiplier > 1) {
+                console.log(`✨ なおちゃんタイム倍率: x${scoreMultiplier}`);
+                console.log(`💰 最終スコア: ${finalScore}`);
+            }
         }
         
         } catch (error) {
@@ -984,18 +1104,22 @@ class PuyoPuyoGame {
         const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
         const matches = [];
         
+        console.log('🔍 findAllMatches開始 - なおちゃんタイム:', this.naochanTimeActive);
+        
         for (let y = 0; y < this.BOARD_HEIGHT; y++) {
             for (let x = 0; x < this.BOARD_WIDTH; x++) {
                 if (this.board[y][x] !== 0 && !visited[y][x]) {
                     const group = this.findConnectedGroup(x, y, this.board[y][x], visited);
+                    console.log(`位置(${x},${y}) 色${this.board[y][x]}: ${group.length}個のグループ`);
                     if (group.length >= 4) {
                         matches.push(group);
-                        console.log(`Found match group of ${group.length} blocks at color ${this.board[y][x]}`);
+                        console.log(`✅ ${group.length}個のマッチグループを発見 - 色${this.board[y][x]}`);
                     }
                 }
             }
         }
         
+        console.log(`🎯 合計${matches.length}個のマッチグループ発見`);
         return matches;
     }
     
@@ -1319,6 +1443,12 @@ class PuyoPuyoGame {
         // アニメーションを更新
         this.updateAnimations();
         
+        // なおちゃんタイムを更新
+        this.updateNaochanTime();
+        
+        // なおちゃんチャット機能（自動投稿）
+        this.sendNaochanChat();
+        
         // 緊急スポーンを一時的に無効化（デバッグ用）
         // if (!this.currentPiece && !this.isInChainSequence && !this.isPlacingPiece) {
         //     this.generateNextPiece();
@@ -1326,7 +1456,9 @@ class PuyoPuyoGame {
         // }
         
         // 切り離されたピースは高速落下（100ms間隔）
-        const effectiveFallSpeed = this.isSeparatedPiece ? 100 : this.fallSpeed;
+        // おぐコンボ効果も考慮
+        let baseFallSpeed = this.isSeparatedPiece ? 100 : this.getOguComboFallSpeed();
+        const effectiveFallSpeed = baseFallSpeed;
         
         if (currentTime - this.lastFallTime > effectiveFallSpeed) {
             if (this.currentPiece) {
@@ -1732,10 +1864,11 @@ class PuyoPuyoGame {
         nextDisplay.innerHTML = '';
         
         if (this.nextPiece) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 96;
-            canvas.height = 96;
-            const ctx = canvas.getContext('2d');
+            // 1個目のピース（通常表示）
+            const canvas1 = document.createElement('canvas');
+            canvas1.width = 96;
+            canvas1.height = 96;
+            const ctx1 = canvas1.getContext('2d');
             
             for (let i = 0; i < this.nextPiece.positions.length; i++) {
                 const pos = this.nextPiece.positions[i];
@@ -1746,22 +1879,64 @@ class PuyoPuyoGame {
                 
                 // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
                 if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
+                    ctx1.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
                 } else {
                     // フォールバック：色での描画
-                    ctx.fillStyle = this.colors[colorIndex];
-                    ctx.fillRect(x, y, 28, 28);
+                    ctx1.fillStyle = this.colors[colorIndex];
+                    ctx1.fillRect(x, y, 28, 28);
                     
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(x + 3, y + 3, 22, 22);
+                    ctx1.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx1.fillRect(x + 3, y + 3, 22, 22);
                 }
                 
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, 28, 28);
+                ctx1.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx1.lineWidth = 2;
+                ctx1.strokeRect(x, y, 28, 28);
             }
             
-            nextDisplay.appendChild(canvas);
+            nextDisplay.appendChild(canvas1);
+            
+            // なおコンボ効果中は2個目のピースも表示
+            if (this.showNextPieceExtra && this.nextPiece2) {
+                const label = document.createElement('div');
+                label.textContent = '2個目';
+                label.style.color = '#FFFF44';
+                label.style.fontSize = '12px';
+                label.style.textAlign = 'center';
+                label.style.marginTop = '5px';
+                nextDisplay.appendChild(label);
+                
+                const canvas2 = document.createElement('canvas');
+                canvas2.width = 96;
+                canvas2.height = 96;
+                const ctx2 = canvas2.getContext('2d');
+                
+                for (let i = 0; i < this.nextPiece2.positions.length; i++) {
+                    const pos = this.nextPiece2.positions[i];
+                    const x = (pos.x + 1) * 24 + 12;
+                    const y = pos.y * 24 + 12;
+                    
+                    const colorIndex = this.nextPiece2.colors[i];
+                    
+                    // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
+                    if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
+                        ctx2.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
+                    } else {
+                        // フォールバック：色での描画
+                        ctx2.fillStyle = this.colors[colorIndex];
+                        ctx2.fillRect(x, y, 28, 28);
+                        
+                        ctx2.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx2.fillRect(x + 3, y + 3, 22, 22);
+                    }
+                    
+                    ctx2.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx2.lineWidth = 2;
+                    ctx2.strokeRect(x, y, 28, 28);
+                }
+                
+                nextDisplay.appendChild(canvas2);
+            }
         }
     }
     
@@ -1769,6 +1944,37 @@ class PuyoPuyoGame {
         document.getElementById('score').textContent = this.score;
         document.getElementById('time').textContent = this.time;
         document.getElementById('chain').textContent = this.chain;
+        
+        // なおちゃんタイムタイマー表示
+        const naochanTimer = document.getElementById('naochan-timer');
+        if (this.naochanTimeActive) {
+            naochanTimer.classList.remove('hidden');
+            const remainingSeconds = Math.ceil(this.naochanTimeRemaining / 1000);
+            document.getElementById('naochan-time').textContent = remainingSeconds;
+        } else {
+            naochanTimer.classList.add('hidden');
+        }
+        
+        // おぐコンボタイマー表示
+        const oguTimer = document.getElementById('ogu-combo-timer');
+        if (this.oguComboActive) {
+            oguTimer.classList.remove('hidden');
+            const remainingSeconds = Math.ceil((this.oguComboEndTime - Date.now()) / 1000);
+            document.getElementById('ogu-time').textContent = Math.max(0, remainingSeconds);
+        } else {
+            oguTimer.classList.add('hidden');
+        }
+        
+        // なおコンボタイマー表示
+        const naoTimer = document.getElementById('nao-combo-timer');
+        if (this.naoComboActive) {
+            naoTimer.classList.remove('hidden');
+            const elapsedTime = Date.now() - this.naoComboStartTime;
+            const remainingSeconds = Math.ceil((10000 - elapsedTime) / 1000);
+            document.getElementById('nao-time').textContent = Math.max(0, remainingSeconds);
+        } else {
+            naoTimer.classList.add('hidden');
+        }
         
         // スコア更新時にBGM切り替えをチェック
         this.checkScoreAndSwitchBgm();
@@ -1778,6 +1984,11 @@ class PuyoPuyoGame {
         this.gameRunning = false;
         this.scoreSubmitted = false; // リセット
         document.getElementById('final-score').textContent = this.score;
+        
+        // なおちゃんがゲームオーバーコメント
+        setTimeout(() => {
+            this.sendContextualNaochanChat('game_over');
+        }, 1000);
         
         // スコア登録ボタンを表示
         const submitButton = document.getElementById('submit-score');
@@ -1792,11 +2003,13 @@ class PuyoPuyoGame {
         
         document.getElementById('game-over').classList.remove('hidden');
         
-        // ゲームBGM停止
-        this.bgm.pause();
-        this.bgm.currentTime = 0;
+        // 現在再生中のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
         
-        // スコアと盤面をクリア
+        // スコアと盤面をクリア（なおちゃんタイムも含む）
         this.clearGameState();
         
         // タイトルBGMを再開
@@ -1878,7 +2091,241 @@ class PuyoPuyoGame {
         }
     }
     
+    // なおちゃんタイム発動チェック（5連鎖以上で10%の確率）
+    checkNaochanTimeActivation(chainCount) {
+        // 200,000点到達でなおちゃんタイム発動
+        if (this.score >= 200000 && !this.naochanTimeActive && !this.naochanTimeTriggeredByScore) {
+            console.log('💰 200,000点到達でなおちゃんタイム発動！');
+            this.naochanTimeTriggeredByScore = true; // 一度だけ発動
+            this.activateNaochanTime();
+            return;
+        }
+        
+        // 600,000点到達でなおちゃんタイム発動
+        if (this.score >= 600000 && !this.naochanTimeActive && !this.naochanTimeTriggeredBy600k) {
+            console.log('🎖️ 600,000点到達でなおちゃんタイム発動！');
+            this.naochanTimeTriggeredBy600k = true; // 一度だけ発動
+            this.activateNaochanTime();
+            return;
+        }
+        
+        // 1,000,000点到達でなおちゃんタイム発動
+        if (this.score >= 1000000 && !this.naochanTimeActive && !this.naochanTimeTriggeredBy1M) {
+            console.log('🏆 1,000,000点到達でなおちゃんタイム発動！');
+            this.naochanTimeTriggeredBy1M = true; // 一度だけ発動
+            this.activateNaochanTime();
+            return;
+        }
+        
+        // 5連鎖以上で10%の確率でなおちゃんタイム発動
+        if (chainCount >= 5 && !this.naochanTimeActive && Math.random() < 0.1) {
+            this.activateNaochanTime();
+        }
+    }
+    
+    // なおちゃんタイム発動
+    activateNaochanTime() {
+        if (this.naochanTimeActive) return;
+        
+        console.log('🌟 なおちゃんタイム発動！');
+        this.naochanTimeActive = true;
+        this.naochanTimeRemaining = 60000; // 60秒（1分）
+        this.naochanTimeStartTime = Date.now();
+        
+        // 現在のBGMを停止してなおちゃんタイムBGMに切り替え
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+        }
+        this.currentBgm = this.naochanBgm;
+        this.naochanBgm.play().catch(e => {
+            console.log('なおちゃんタイムBGM auto-play blocked:', e);
+        });
+        
+        // 発動SE再生
+        this.playSE(this.seNaochanTime, 'なおちゃんタイム発動');
+        
+        // 発動エフェクト表示
+        this.showNaochanTimeEffect();
+        
+        // なおちゃんタイム発動コメント
+        setTimeout(() => {
+            this.sendContextualNaochanChat('naochan_time');
+        }, 1500);
+        
+        // 画面を再描画
+        this.render();
+    }
+    
+    // なおちゃんタイム更新（ゲームループで呼ばれる）
+    updateNaochanTime() {
+        if (!this.naochanTimeActive) return;
+        
+        const currentTime = Date.now();
+        this.naochanTimeRemaining = Math.max(0, 60000 - (currentTime - this.naochanTimeStartTime));
+        
+        // 時間切れチェック
+        if (this.naochanTimeRemaining <= 0) {
+            this.deactivateNaochanTime();
+        }
+    }
+    
+    // なおちゃんタイム終了
+    deactivateNaochanTime() {
+        if (!this.naochanTimeActive) return;
+        
+        console.log('✨ なおちゃんタイム終了');
+        this.naochanTimeActive = false;
+        this.naochanTimeRemaining = 0;
+        
+        // BGMを元に戻す
+        if (this.currentBgm === this.naochanBgm) {
+            this.naochanBgm.pause();
+            this.naochanBgm.currentTime = 0;
+            
+            // スコア200000以上なら2番目のBGM、そうでなければ通常BGM
+            this.currentBgm = this.bgmSwitched ? this.bgm2 : this.bgm;
+            this.currentBgm.play().catch(e => {
+                console.log('BGM resume failed:', e);
+            });
+        }
+        
+        // 画面を再描画
+        this.render();
+    }
+    
+    // なおちゃんタイム中のスコア倍率を適用
+    getNaochanTimeScoreMultiplier() {
+        return this.naochanTimeActive ? 3 : 1;
+    }
+    
+    // なおちゃんタイムエフェクト表示
+    showNaochanTimeEffect() {
+        // 画面全体にキラキラエフェクトを追加
+        const effect = document.createElement('div');
+        effect.className = 'naochan-time-effect';
+        effect.innerHTML = `
+            <div class="naochan-time-text">⭐ なおちゃんタイム ⭐</div>
+            <div class="naochan-time-subtitle">60秒間 スコア3倍！5色で大連鎖！</div>
+        `;
+        document.body.appendChild(effect);
+        
+        // 3秒後に削除
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 3000);
+    }
+    
+    // おぐなおコンボチェック
+    checkOgunaoCombo(allMatches) {
+        const colorsInMatch = new Set();
+        
+        // マッチした色を記録
+        for (let group of allMatches) {
+            if (group.length > 0) {
+                const color = this.board[group[0].y][group[0].x];
+                colorsInMatch.add(color);
+            }
+        }
+        
+        // 「おぐ」コンボ: 緑(2) + 青(3)
+        if (colorsInMatch.has(2) && colorsInMatch.has(3)) {
+            this.activateOguCombo();
+        }
+        
+        // 「なお」コンボ: 赤(1) + 黄(4)  
+        if (colorsInMatch.has(1) && colorsInMatch.has(4)) {
+            this.activateNaoCombo();
+        }
+        
+        // 「最強」コンボ: 5色すべて
+        if (colorsInMatch.size >= 5) {
+            this.activateSaikyoCombo();
+        }
+    }
+    
+    // 「おぐ」コンボ発動（緑+青で落下速度半減）
+    activateOguCombo() {
+        console.log('💚💙 「おぐ」コンボ発動！落下速度半減');
+        this.oguComboActive = true;
+        this.oguComboEndTime = Date.now() + 3000; // 3秒間
+        
+        this.playSE(this.seChain2, 'おぐコンボ');
+        this.showComboEffect('💚💙 おぐコンボ！', '落下速度半減 3秒間', '#44FF44');
+    }
+    
+    // 「なお」コンボ発動（赤+黄で次ピース予告拡張）
+    activateNaoCombo() {
+        console.log('❤️💛 「なお」コンボ発動！次ピース予告拡張');
+        this.naoComboActive = true;
+        this.showNextPieceExtra = true;
+        this.naoComboStartTime = Date.now(); // 開始時間を記録
+        
+        this.playSE(this.seChain3, 'なおコンボ');
+        this.showComboEffect('❤️💛 なおコンボ！', '次ピース2個先まで表示', '#FFFF44');
+        
+        // 10秒後に効果終了
+        setTimeout(() => {
+            this.naoComboActive = false;
+            this.showNextPieceExtra = false;
+            console.log('なおコンボ効果終了');
+        }, 10000);
+    }
+    
+    // 「最強」コンボ発動（5色すべてでボーナスタイム）
+    activateSaikyoCombo() {
+        console.log('🌈 「最強」コンボ発動！ボーナスタイム突入');
+        this.saikyoComboReady = true;
+        
+        this.playSE(this.seChain4, '最強コンボ');
+        this.showComboEffect('🌈 最強コンボ！', 'ボーナスタイム突入！', '#FF44FF');
+        
+        // スコアボーナス
+        this.score += 50000;
+        this.updateDisplay();
+        this.checkSupportTriggers();
+        
+        // なおちゃんタイムを強制発動
+        this.activateNaochanTime();
+    }
+    
+    // コンボエフェクト表示
+    showComboEffect(title, subtitle, color) {
+        const effect = document.createElement('div');
+        effect.className = 'combo-effect';
+        effect.innerHTML = `
+            <div class="combo-title" style="color: ${color}">${title}</div>
+            <div class="combo-subtitle">${subtitle}</div>
+        `;
+        document.body.appendChild(effect);
+        
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 2500);
+    }
+    
+    // おぐコンボの落下速度効果を取得
+    getOguComboFallSpeed() {
+        if (this.oguComboActive && Date.now() < this.oguComboEndTime) {
+            return this.fallSpeed * 2; // 落下速度を半分に（時間を2倍に）
+        }
+        
+        // 効果時間切れチェック
+        if (this.oguComboActive && Date.now() >= this.oguComboEndTime) {
+            this.oguComboActive = false;
+            console.log('おぐコンボ効果終了');
+        }
+        
+        return this.fallSpeed;
+    }
+    
     clearGameState() {
+        // ゲーム実行状態をリセット
+        this.gameRunning = false;
+        
         // スコア関連をクリア
         this.score = 0;
         this.time = 0;
@@ -1897,6 +2344,33 @@ class PuyoPuyoGame {
         this.currentChainSequence = 0;
         this.isPlacingPiece = false;
         this.bgmSwitched = false; // BGM切り替えフラグをリセット
+        
+        // 応援システムフラグをリセット
+        this.supportTriggered50k = false;
+        this.supportTriggered100k = false;
+        this.supportTriggered200k = false;
+        this.supportTriggered600k = false;
+        this.supportTriggered1M = false;
+        if (this.supportTimer) {
+            clearTimeout(this.supportTimer);
+            this.supportTimer = null;
+        }
+        
+        // なおちゃんタイムをリセット
+        if (this.naochanTimeActive) {
+            this.deactivateNaochanTime();
+        }
+        this.naochanTimeTriggeredByScore = false; // スコア発動フラグもリセット
+        this.naochanTimeTriggeredBy600k = false; // 60万点発動フラグもリセット
+        this.naochanTimeTriggeredBy1M = false; // 100万点発動フラグもリセット
+        
+        // おぐなおコンボ状態をリセット
+        this.oguComboActive = false;
+        this.oguComboEndTime = 0;
+        this.naoComboActive = false;
+        this.naoComboStartTime = 0;
+        this.showNextPieceExtra = false;
+        this.saikyoComboReady = false;
         
         // アニメーション状態をリセット
         this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
@@ -1981,6 +2455,14 @@ class PuyoPuyoGame {
         this.chain = Math.max(this.chain, chainCount);
         this.score += 100 * chainCount * chainCount;
         this.updateDisplay();
+        this.checkSupportTriggers();
+        
+        // 大連鎖時のなおちゃんコメント
+        if (chainCount >= 5) {
+            setTimeout(() => {
+                this.sendContextualNaochanChat('big_chain');
+            }, 1000);
+        }
     }
     
     debugCutin() {
@@ -2096,6 +2578,153 @@ class PuyoPuyoGame {
         
         this.render();
         console.log(`${chainCount}連鎖パターンを設置しました。右側のブロックから連鎖が始まります！`);
+    }
+    
+    // 🌟 新機能デバッグ関数群
+    
+    // 安全なブロック設置ヘルパー関数
+    safeSetBlock(y, x, color) {
+        if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+            this.board[y][x] = color;
+            return true;
+        } else {
+            console.warn(`⚠️ 範囲外アクセス: [${y}][${x}] (ボードサイズ: ${this.BOARD_HEIGHT}x${this.BOARD_WIDTH})`);
+            return false;
+        }
+    }
+    
+    // なおちゃんタイム強制発動
+    debugNaochanTime() {
+        console.log('🌟 デバッグ: なおちゃんタイム強制発動');
+        
+        // テスト用にボードに3色のブロックを配置
+        this.debugClear();
+        
+        // 赤ブロックを4個横に配置（底面）
+        this.safeSetBlock(8, 0, 1); // 赤
+        this.safeSetBlock(8, 1, 1); // 赤
+        this.safeSetBlock(8, 2, 1); // 赤
+        this.safeSetBlock(8, 3, 1); // 赤
+        
+        // 緑ブロックを4個縦に配置（左端）
+        this.safeSetBlock(7, 4, 2); // 緑
+        this.safeSetBlock(6, 4, 2); // 緑
+        this.safeSetBlock(5, 4, 2); // 緑
+        this.safeSetBlock(4, 4, 2); // 緑
+        
+        // 青ブロックを4個縦に配置（右端）
+        this.safeSetBlock(7, 5, 3); // 青
+        this.safeSetBlock(6, 5, 3); // 青
+        this.safeSetBlock(5, 5, 3); // 青
+        this.safeSetBlock(4, 5, 3); // 青
+        
+        this.render();
+        console.log('🧪 3色テストパターンを配置しました');
+        
+        this.activateNaochanTime();
+    }
+    
+    // おぐコンボテスト用パターン設置（緑+青）
+    debugOguCombo() {
+        console.log('💚💙 デバッグ: おぐコンボテスト用パターン設置');
+        console.log(`ボードサイズ: ${this.BOARD_HEIGHT}行 x ${this.BOARD_WIDTH}列`);
+        
+        // ボードをクリア
+        this.debugClear();
+        
+        // 連鎖パターン: 緑が消えたら青が落ちて消える
+        // 青グループ（上段、宙に浮いた状態）
+        this.safeSetBlock(5, 1, 3); // 青
+        this.safeSetBlock(4, 1, 3); // 青
+        this.safeSetBlock(5, 2, 3); // 青
+        this.safeSetBlock(4, 2, 3); // 青
+        
+        // 支えとなる別色ブロック（青を支える）
+        this.safeSetBlock(6, 1, 1); // 赤（支え）
+        this.safeSetBlock(6, 2, 1); // 赤（支え）
+        
+        // 緑グループ（底面、最初に消える）
+        this.safeSetBlock(8, 0, 2); // 緑
+        this.safeSetBlock(7, 0, 2); // 緑
+        this.safeSetBlock(8, 1, 2); // 緑
+        this.safeSetBlock(7, 1, 2); // 緑
+        
+        this.render();
+        console.log('💚💙 おぐコンボ連鎖パターンを設置。左端にピースを落として緑→青の連鎖を発動してください。');
+    }
+    
+    // なおコンボテスト用パターン設置（赤+黄）
+    debugNaoCombo() {
+        console.log('❤️💛 デバッグ: なおコンボテスト用パターン設置');
+        console.log(`ボードサイズ: ${this.BOARD_HEIGHT}行 x ${this.BOARD_WIDTH}列`);
+        
+        // ボードをクリア
+        this.debugClear();
+        
+        // 連鎖パターン: 赤が消えたら黄が落ちて消える
+        // 黄グループ（上段、宙に浮いた状態）
+        this.safeSetBlock(5, 3, 4); // 黄
+        this.safeSetBlock(4, 3, 4); // 黄
+        this.safeSetBlock(5, 4, 4); // 黄
+        this.safeSetBlock(4, 4, 4); // 黄
+        
+        // 支えとなる別色ブロック（黄を支える）
+        this.safeSetBlock(6, 3, 2); // 緑（支え）
+        this.safeSetBlock(6, 4, 2); // 緑（支え）
+        
+        // 赤グループ（底面、最初に消える）
+        this.safeSetBlock(8, 2, 1); // 赤
+        this.safeSetBlock(7, 2, 1); // 赤
+        this.safeSetBlock(8, 3, 1); // 赤
+        this.safeSetBlock(7, 3, 1); // 赤
+        
+        this.render();
+        console.log('❤️💛 なおコンボ連鎖パターンを設置。中央にピースを落として赤→黄の連鎖を発動してください。');
+    }
+    
+    // 最強コンボテスト用パターン設置（5色すべて）
+    debugSaikyoCombo() {
+        console.log('🌈 デバッグ: 最強コンボテスト用パターン設置');
+        console.log(`ボードサイズ: ${this.BOARD_HEIGHT}行 x ${this.BOARD_WIDTH}列`);
+        
+        // ボードをクリア
+        this.debugClear();
+        
+        // 5色連鎖パターン: 赤→緑→青→黄→紫の順で消える
+        
+        // 紫(5)グループ（最上段、最後に消える）
+        this.safeSetBlock(3, 4, 5);
+        this.safeSetBlock(2, 4, 5);
+        this.safeSetBlock(3, 5, 5);
+        this.safeSetBlock(2, 5, 5);
+        
+        // 黄(4)グループ（4段目）
+        this.safeSetBlock(4, 4, 4);
+        this.safeSetBlock(4, 5, 4);
+        this.safeSetBlock(5, 4, 4);
+        this.safeSetBlock(5, 5, 4);
+        
+        // 青(3)グループ（3段目）
+        this.safeSetBlock(6, 2, 3);
+        this.safeSetBlock(6, 3, 3);
+        this.safeSetBlock(5, 2, 3);
+        this.safeSetBlock(5, 3, 3);
+        
+        // 緑(2)グループ（2段目）
+        this.safeSetBlock(7, 0, 2);
+        this.safeSetBlock(7, 1, 2);
+        this.safeSetBlock(6, 0, 2);
+        this.safeSetBlock(6, 1, 2);
+        
+        // 赤(1)グループ（最下段、最初に消える）
+        this.safeSetBlock(8, 0, 1);
+        this.safeSetBlock(8, 1, 1);
+        this.safeSetBlock(8, 2, 1);
+        this.safeSetBlock(8, 3, 1);
+        
+        this.render();
+        console.log('🌈 最強コンボ5色連鎖パターンを設置。左側にピースを落として赤→緑→青→黄→紫の5色連鎖を発動してください。');
+        console.log('連鎖順序: 赤(1段目) → 緑(2段目) → 青(3段目) → 黄(4段目) → 紫(5段目)');
     }
     
     // 手動配置モード関連のメソッド
@@ -2634,6 +3263,225 @@ class PuyoPuyoGame {
             }
         }, 8000);
     }
+    
+    // なおちゃん応援システム
+    showNaochanSupport(message, subtitle = 'なおちゃんが応援してるよ♪', duration = 3000) {
+        const supportElement = document.getElementById('naochan-support');
+        const messageElement = document.getElementById('support-message');
+        const subtitleElement = document.getElementById('support-subtitle');
+        
+        messageElement.textContent = message;
+        subtitleElement.textContent = subtitle;
+        
+        // 既存のタイマーをクリア
+        if (this.supportTimer) {
+            clearTimeout(this.supportTimer);
+        }
+        
+        // 表示
+        supportElement.classList.remove('hidden');
+        
+        // 指定時間後に非表示
+        this.supportTimer = setTimeout(() => {
+            supportElement.classList.add('hidden');
+        }, duration);
+    }
+    
+    // スコアベースの応援システム
+    checkSupportTriggers() {
+        if (!this.gameRunning) return;
+        
+        // 連鎖数による応援
+        if (this.chain >= 5 && this.chain < 7) {
+            this.showNaochanSupport('すごい連鎖！', '5連鎖以上だよ！');
+        } else if (this.chain >= 7 && this.chain < 10) {
+            this.showNaochanSupport('大連鎖！！', '7連鎖以上！なおちゃん感動♪', 4000);
+        } else if (this.chain >= 10) {
+            this.showNaochanSupport('神連鎖！！！', '10連鎖以上！なおちゃんびっくり！！', 5000);
+        }
+        
+        // スコアによる応援
+        if (this.score >= 50000 && this.score < 100000 && !this.supportTriggered50k) {
+            this.showNaochanSupport('5万点突破！', 'いい調子だね～♪');
+            this.supportTriggered50k = true;
+        } else if (this.score >= 100000 && this.score < 200000 && !this.supportTriggered100k) {
+            this.showNaochanSupport('10万点突破！', 'すごいじゃない！');
+            this.supportTriggered100k = true;
+        } else if (this.score >= 200000 && this.score < 600000 && !this.supportTriggered200k) {
+            this.showNaochanSupport('20万点突破！', 'なおちゃんタイム発動！', 4000);
+            this.supportTriggered200k = true;
+        } else if (this.score >= 600000 && this.score < 1000000 && !this.supportTriggered600k) {
+            this.showNaochanSupport('60万点突破！', 'なおちゃんタイム再発動！', 4000);
+            this.supportTriggered600k = true;
+        } else if (this.score >= 1000000 && !this.supportTriggered1M) {
+            this.showNaochanSupport('100万点突破！！', 'なおちゃん超びっくり！！！', 5000);
+            this.supportTriggered1M = true;
+        }
+    }
+    
+    // なおちゃんチャット機能
+    initNaochanChat() {
+        this.naochanChatMessages = [
+            // ゲーム開始時
+            'みんな、ぷよぷよ頑張って～♪',
+            'なおちゃんも一緒にプレイするよ！',
+            '今日も楽しくぷよぷよしましょ♪',
+            
+            // 連鎖時
+            '3連鎖きた！いいね～',
+            '連鎖すごい！',
+            'うわー！大連鎖だ！',
+            'すごいじゃん！',
+            '神連鎖来た！！',
+            
+            // スコア時
+            'スコア伸びてる♪',
+            'この調子この調子！',
+            '上手だね～',
+            
+            // なおちゃんタイム時
+            'なおちゃんタイム！頑張って！',
+            'スコア3倍チャンス！',
+            '大連鎖のチャンスだよ～',
+            
+            // 励まし
+            'ドンマイドンマイ！',
+            '次頑張ろー！',
+            'まだまだこれから！',
+            '落ち着いて～',
+            
+            // 一般的なコメント
+            'お疲れ様♪',
+            'みんなすごいなぁ',
+            '楽しいね～',
+            'いい感じ！',
+            'ファイト！'
+        ];
+        
+        this.lastNaochanChatTime = 0;
+        this.naochanChatInterval = 15000; // 15秒間隔
+    }
+    
+    // なおちゃんが自動でチャット投稿
+    sendNaochanChat() {
+        const now = Date.now();
+        if (now - this.lastNaochanChatTime < this.naochanChatInterval) return;
+        
+        // ゲーム状況に応じたメッセージを選択
+        let messageCategory = [];
+        
+        if (this.naochanTimeActive) {
+            messageCategory = this.naochanChatMessages.slice(15, 18); // なおちゃんタイム関連
+        } else if (this.chain >= 5) {
+            messageCategory = this.naochanChatMessages.slice(6, 10); // 連鎖関連
+        } else if (this.score >= 50000) {
+            messageCategory = this.naochanChatMessages.slice(10, 13); // スコア関連
+        } else {
+            messageCategory = this.naochanChatMessages.slice(20, 25); // 一般的なコメント
+        }
+        
+        const randomMessage = messageCategory[Math.floor(Math.random() * messageCategory.length)];
+        
+        // なおちゃんからのコメントとして投稿
+        this.addComment('なおちゃん', randomMessage);
+        
+        this.lastNaochanChatTime = now;
+    }
+    
+    // 状況に応じたなおちゃんコメント
+    sendContextualNaochanChat(context) {
+        let message = '';
+        
+        switch (context) {
+            case 'game_start':
+                message = this.naochanChatMessages[Math.floor(Math.random() * 3)];
+                break;
+            case 'big_chain':
+                message = this.naochanChatMessages[6 + Math.floor(Math.random() * 4)];
+                break;
+            case 'naochan_time':
+                message = this.naochanChatMessages[15 + Math.floor(Math.random() * 3)];
+                break;
+            case 'game_over':
+                message = this.naochanChatMessages[18 + Math.floor(Math.random() * 2)];
+                break;
+            default:
+                message = this.naochanChatMessages[20 + Math.floor(Math.random() * 5)];
+        }
+        
+        this.addComment('なおちゃん', message);
+    }
+    
+    // なおちゃん専用コメント機能（リアルタイム表示のみ）
+    addComment(author, message) {
+        if (!message || message.trim() === '') return;
+        
+        const trimmedMessage = message.trim().substring(0, 50);
+        
+        // リアルタイム表示のみ（履歴やFirestoreには保存しない）
+        this.displayFlyingComment(`${author}: ${trimmedMessage}`);
+    }
 }
 
 const game = new PuyoPuyoGame();
+
+// ページ読み込み完了時にフォーカス管理
+document.addEventListener('DOMContentLoaded', () => {
+    // コメント入力フィールドからフォーカスを外す
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.blur();
+    }
+    
+    // ゲーム画面にフォーカスを当てる
+    document.body.focus();
+});
+
+// ページがすでに読み込まれている場合の処理
+if (document.readyState === 'loading') {
+    // DOMContentLoadedイベントを待つ
+} else {
+    // すでに読み込まれている場合は即座に実行
+    const commentInput = document.getElementById('comment-input');
+    if (commentInput) {
+        commentInput.blur();
+    }
+    document.body.focus();
+}
+
+// ヘルプモーダルの制御
+document.addEventListener('DOMContentLoaded', () => {
+    const helpButton = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+    const helpClose = document.getElementById('help-close');
+    
+    // ヘルプボタンクリック
+    if (helpButton) {
+        helpButton.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+        });
+    }
+    
+    // 閉じるボタンクリック
+    if (helpClose) {
+        helpClose.addEventListener('click', () => {
+            helpModal.classList.add('hidden');
+        });
+    }
+    
+    // モーダル背景クリックで閉じる
+    if (helpModal) {
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                helpModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Escキーで閉じる
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) {
+            helpModal.classList.add('hidden');
+        }
+    });
+});

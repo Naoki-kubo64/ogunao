@@ -336,6 +336,54 @@ body::before {
     display: none;
 }
 
+/* タイマー関連のスタイル */
+.naochan-timer {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 2px solid #FF8C00;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    animation: naochanTimerPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes naochanTimerPulse {
+    0% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+    100% { transform: scale(1.02); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+}
+
+.combo-timers {
+    margin-bottom: 10px;
+}
+
+.combo-timer {
+    background: rgba(68, 255, 68, 0.1);
+    color: #44FF44;
+    font-weight: bold;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    border: 2px solid #44FF44;
+    box-shadow: 0 0 10px rgba(68, 255, 68, 0.4);
+    font-size: 14px;
+}
+
+#ogu-combo-timer {
+    background: rgba(68, 255, 255, 0.1);
+    color: #44FFFF;
+    border-color: #44FFFF;
+    box-shadow: 0 0 10px rgba(68, 255, 255, 0.4);
+}
+
+#nao-combo-timer {
+    background: rgba(255, 255, 68, 0.1);
+    color: #FFFF44;
+    border-color: #FFFF44;
+    box-shadow: 0 0 10px rgba(255, 255, 68, 0.4);
+}
+
 .chain-effect {
     position: absolute;
     font-size: 24px;
@@ -894,6 +942,206 @@ body::before {
     font-weight: bold;
 }
 
+/* なおちゃんタイムエフェクト */
+.naochan-time-effect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    text-align: center;
+    animation: naochanTimeAppear 3s ease-out forwards;
+    pointer-events: none;
+}
+
+.naochan-time-text {
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 
+        4px 4px 8px rgba(0, 0, 0, 1),
+        0 0 20px rgba(255, 215, 0, 1),
+        0 0 40px rgba(255, 140, 0, 0.8);
+    animation: naochanTimeGlow 1s ease-in-out infinite alternate;
+    margin-bottom: 10px;
+}
+
+.naochan-time-subtitle {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    animation: naochanTimeFloat 2s ease-in-out infinite;
+}
+
+@keyframes naochanTimeAppear {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    80% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+}
+
+@keyframes naochanTimeGlow {
+    0% {
+        text-shadow: 
+            4px 4px 8px rgba(0, 0, 0, 1),
+            0 0 15px rgba(255, 215, 0, 0.8);
+    }
+    100% {
+        text-shadow: 
+            4px 4px 8px rgba(0, 0, 0, 1),
+            0 0 30px rgba(255, 215, 0, 1),
+            0 0 50px rgba(255, 140, 0, 0.8);
+    }
+}
+
+@keyframes naochanTimeFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* おぐなおコンボエフェクト */
+.combo-effect {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1500;
+    text-align: center;
+    animation: comboAppear 2.5s ease-out forwards;
+    pointer-events: none;
+}
+
+.combo-title {
+    font-size: 36px;
+    font-weight: bold;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 1);
+    animation: comboTitleGlow 1s ease-in-out infinite alternate;
+    margin-bottom: 5px;
+}
+
+.combo-subtitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    animation: comboSubtitleFloat 1.5s ease-in-out infinite;
+}
+
+@keyframes comboAppear {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3) rotate(-10deg);
+        opacity: 0;
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
+        opacity: 1;
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+        opacity: 0;
+    }
+}
+
+@keyframes comboTitleGlow {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes comboSubtitleFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* 新機能デバッグボタンのスタイル */
+#debug-naochan-time {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+#debug-naochan-time:hover {
+    background: linear-gradient(45deg, #FFA500, #FFD700);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    transform: scale(1.05);
+}
+
+#debug-ogu-combo {
+    background: linear-gradient(45deg, #44FF44, #4444FF);
+    color: #fff;
+    font-weight: bold;
+}
+
+#debug-ogu-combo:hover {
+    background: linear-gradient(45deg, #4444FF, #44FF44);
+    transform: scale(1.05);
+}
+
+#debug-nao-combo {
+    background: linear-gradient(45deg, #FF4444, #FFFF44);
+    color: #000;
+    font-weight: bold;
+}
+
+#debug-nao-combo:hover {
+    background: linear-gradient(45deg, #FFFF44, #FF4444);
+    transform: scale(1.05);
+}
+
+#debug-saikyo-combo {
+    background: linear-gradient(45deg, #FF44FF, #FF4444, #44FF44, #4444FF, #FFFF44);
+    background-size: 200% 200%;
+    color: #fff;
+    font-weight: bold;
+    animation: rainbowShimmer 2s ease-in-out infinite;
+}
+
+#debug-saikyo-combo:hover {
+    animation: rainbowShimmer 0.5s ease-in-out infinite;
+    transform: scale(1.05);
+}
+
+@keyframes rainbowShimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
 .loading.error small {
     display: block;
     font-size: 12px;
@@ -946,4 +1194,207 @@ body::before {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* なおちゃん応援システム */
+.naochan-support {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #FFB6C1, #FFA0B4);
+    border: 3px solid #FF69B4;
+    border-radius: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 0 20px rgba(255, 105, 180, 0.6);
+    z-index: 1000;
+    max-width: 300px;
+    animation: supportPulse 2s ease-in-out infinite;
+}
+
+.naochan-support.hidden {
+    display: none;
+}
+
+.support-message {
+    color: #FF1493;
+    font-weight: bold;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    margin-bottom: 8px;
+}
+
+.support-subtitle {
+    color: #DC143C;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+@keyframes supportPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(255, 105, 180, 0.6);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255, 105, 180, 0.8);
+    }
+}
+
+/* ヘルプ機能 */
+.control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.help-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+    transition: all 0.2s ease;
+}
+
+.help-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);
+}
+
+.help-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.help-modal.hidden {
+    display: none;
+}
+
+.help-modal-content {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 3px solid #ffa500;
+    border-radius: 15px;
+    padding: 20px;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 0 30px rgba(255, 165, 0, 0.6);
+    color: white;
+}
+
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ffa500;
+    padding-bottom: 10px;
+}
+
+.help-header h2 {
+    margin: 0;
+    color: #ffa500;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.help-close {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.help-close:hover {
+    background: #ff6666;
+    transform: scale(1.1);
+}
+
+.help-body {
+    line-height: 1.6;
+}
+
+.help-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 10px;
+    border-left: 4px solid #ffa500;
+}
+
+.help-section h3 {
+    color: #ffa500;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.help-section h4 {
+    color: #ffcc80;
+    margin: 10px 0 5px 0;
+}
+
+.help-section ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.help-section li {
+    margin-bottom: 8px;
+    color: #e0e0e0;
+}
+
+.combo-explanation {
+    display: grid;
+    gap: 15px;
+}
+
+.combo-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.combo-item h4 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.combo-item p {
+    margin: 5px 0;
+    color: #e0e0e0;
+}
+
+.naochan-explanation h4 {
+    color: #ff69b4;
+    margin: 15px 0 10px 0;
+    font-size: 16px;
+}
+
+.naochan-explanation ul {
+    background: rgba(255, 105, 180, 0.1);
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin: 10px 0;
 }
