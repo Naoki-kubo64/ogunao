@@ -145,6 +145,18 @@ class PuyoPuyoGame {
             console.error('❌ Audio要素が見つかりません');
         }
         
+        // SE設定
+        this.seGameStart = document.getElementById('se-gamestart');
+        this.seChain2 = document.getElementById('se-chain2');
+        this.seChain3 = document.getElementById('se-chain3');
+        this.seChain4 = document.getElementById('se-chain4');
+        
+        // SE音量設定
+        if (this.seGameStart) this.seGameStart.volume = 0.7;
+        if (this.seChain2) this.seChain2.volume = 0.8;
+        if (this.seChain3) this.seChain3.volume = 0.8;
+        if (this.seChain4) this.seChain4.volume = 0.8;
+        
         this.lastFallTime = 0;
         this.timeStart = 0;
         
@@ -279,6 +291,18 @@ class PuyoPuyoGame {
         console.log('タイトルBGMトリガー設定完了');
     }
     
+    playSE(seElement, seName) {
+        if (seElement) {
+            seElement.currentTime = 0; // 再生位置をリセット
+            seElement.play().catch(e => {
+                console.log(`${seName} SE再生に失敗:`, e.message);
+            });
+            console.log(`🔊 ${seName} SE再生`);
+        } else {
+            console.log(`❌ ${seName} SE要素が見つかりません`);
+        }
+    }
+    
     async initializeCommentSystem() {
         console.log('🎬 コメントシステム初期化開始');
         
@@ -411,6 +435,10 @@ class PuyoPuyoGame {
     
     startGame() {
         console.log('Starting game...');
+        
+        // ゲームスタートSEを再生
+        this.playSE(this.seGameStart, 'ゲームスタート');
+        
         this.gameRunning = true;
         this.timeStart = Date.now();
         this.lastFallTime = Date.now();
@@ -468,6 +496,13 @@ class PuyoPuyoGame {
         const volume = value / 100;
         this.bgm.volume = volume;
         this.titleBgm.volume = volume * 0.8; // タイトルBGMは少し静か目
+        
+        // SE音量も調整
+        if (this.seGameStart) this.seGameStart.volume = volume * 0.7;
+        if (this.seChain2) this.seChain2.volume = volume * 0.8;
+        if (this.seChain3) this.seChain3.volume = volume * 0.8;
+        if (this.seChain4) this.seChain4.volume = volume * 0.8;
+        
         document.getElementById('volume-display').textContent = `${value}%`;
         console.log(`🔊 音量調整: ${value}%`);
     }
@@ -707,6 +742,11 @@ class PuyoPuyoGame {
             console.log(`💥 ${allMatches.length}グループ、合計${allMatches.reduce((sum, group) => sum + group.length, 0)}個のブロックを消去`);
             this.debugPrintBoard('消去後のボード状態');
             
+            // 2連鎖のSE再生（ブロックが消えたタイミング）
+            if (chainCount === 2) {
+                this.playSE(this.seChain2, '2連鎖');
+            }
+            
             // 重力を適用
             this.applyGravity();
             this.render();
@@ -723,6 +763,17 @@ class PuyoPuyoGame {
             // 3連鎖以上の場合はカットインを表示（ただし待機する）
             if (chainCount >= 3) {
                 console.log(`🎬 Showing cutin for chain ${chainCount}`);
+                
+                // 3連鎖以降のSE再生（カットイン表示タイミング）
+                if (chainCount === 3) {
+                    this.playSE(this.seChain3, '3連鎖');
+                } else if (chainCount === 4) {
+                    this.playSE(this.seChain4, '4連鎖');
+                } else if (chainCount >= 5) {
+                    // 5連鎖以降も4連鎖のSEを使用
+                    this.playSE(this.seChain4, `${chainCount}連鎖`);
+                }
+                
                 await this.showCutinEffectAsync(chainCount);
                 await this.sleep(300); // カットイン後の短い待機
             } else {
