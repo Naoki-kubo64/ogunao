@@ -249,17 +249,47 @@ class PuyoPuyoGame {
             return;
         }
         
-        // Firebase初期化の完了を待つ
+        // Firebase初期化の完了を待つ（改善版）
         let retries = 0;
-        const maxRetries = 20; // 10秒間待機
+        const maxRetries = 40; // 20秒間待機（増加）
+        const retryInterval = 500; // 500ms間隔
         
+        console.log('🔄 Firebase初期化確認開始...');
+        
+        // より確実にFirebase初期化を待つ
         while (retries < maxRetries) {
-            if (window.db && window.firebase) {
+            // 複数の条件をチェック
+            const firebaseReady = window.firebase && typeof window.firebase.initializeApp === 'function';
+            const dbReady = window.db && typeof window.db.collection === 'function';
+            const configReady = typeof window.firebaseConfig !== 'undefined';
+            
+            if (firebaseReady && dbReady) {
                 console.log('✅ Firebase初期化確認完了');
-                break;
+                
+                // 追加の接続テスト
+                try {
+                    // 簡単な接続テストを実行
+                    const testResult = await Promise.race([
+                        this.testFirebaseConnection(),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('接続テストタイムアウト')), 3000)
+                        )
+                    ]);
+                    console.log('✅ Firebase接続テスト成功');
+                    break;
+                } catch (testError) {
+                    console.warn('⚠️ Firebase接続テスト失敗、リトライ中...', testError);
+                }
             }
-            console.log(`⏳ Firebase初期化待機中... (${retries + 1}/${maxRetries})`);
-            await this.sleep(500);
+            
+            // より詳細なログ
+            console.log(`⏳ Firebase初期化待機中... (${retries + 1}/${maxRetries})`, {
+                firebase: firebaseReady,
+                db: dbReady,
+                config: configReady
+            });
+            
+            await this.sleep(retryInterval);
             retries++;
         }
         
@@ -267,8 +297,11 @@ class PuyoPuyoGame {
             console.error('❌ Firebase初期化タイムアウト');
             const commentList = document.getElementById('comment-list');
             if (commentList) {
-                commentList.innerHTML = '<div class="loading error">Firebase接続タイムアウト<br><small>FIREBASE_SETUP.mdを確認してください</small></div>';
+                commentList.innerHTML = '<div class="loading error">Firebase接続タイムアウト<br><small>ネットワーク接続またはFirebase設定を確認してください</small></div>';
             }
+            
+            // オフラインモードに切り替え
+            console.log('📱 オフラインモードで継続...');
             return;
         }
         
@@ -1899,10 +1932,27 @@ class PuyoPuyoGame {
         return div.innerHTML;
     }
     
-    // Firebase接続テスト（開発用）
+    // Firebase接続テスト（改善版）
     async testFirebaseConnection() {
         try {
-            console.log('Firebase接続テスト開始...');
+            console.log('🔍 Firebase接続テスト開始...');
+            
+            // 基本的な接続テスト（最小限のリクエスト）
+            const testRead = await db.collection('comments').limit(1).get();
+            console.log('✅ Firestore基本接続成功');
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Firebase接続テストエラー:', error);
+            throw error;
+        }
+    }
+    
+    // Firebase接続テスト（旧バージョン・開発用）
+    async testFirebaseConnectionFull() {
+        try {
+            console.log('Firebase詳細接続テスト開始...');
             
             // Firestoreの読み取りテスト
             const testRead = await db.collection('rankings').limit(1).get();
@@ -1918,25 +1968,9 @@ class PuyoPuyoGame {
             };
             
             // 書き込みテスト（実際には追加しない、ルールチェックのみ）
-            try {
-                await db.collection('rankings').add(testData);
-                console.log('✅ Firestore書き込み権限OK');
-                // テストデータを削除したいところですが、deleteRuleが制限されている可能性があるのでそのまま
-            } catch (writeError) {
-                console.error('❌ Firestore書き込み権限エラー:', writeError);
-                console.log('Firebase Consoleでセキュリティルールを確認してください');
-                console.log('推奨ルール（開発用）:');
-                console.log(`
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /rankings/{document} {
-      allow read, write: if true;
-    }
-  }
-}
-                `);
-            }
+            // テストデータの自動追加を無効化
+            console.log('⚠️ テストデータの自動追加は無効化されています');
+            console.log('✅ Firebase接続は正常です');
             
         } catch (error) {
             console.error('❌ Firebase接続エラー:', error);
@@ -1958,6 +1992,11 @@ service cloud.firestore {
             return;
         }
         
+        // タイムアウト付きでコメント送信
+        const timeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('コメント送信がタイムアウトしました')), 10000)
+        );
+        
         try {
             const commentData = {
                 text: comment,
@@ -1966,7 +2005,12 @@ service cloud.firestore {
                 score: this.score || 0 // 現在のスコア
             };
             
-            await db.collection('comments').add(commentData);
+            // 10秒タイムアウトでコメント送信
+            await Promise.race([
+                db.collection('comments').add(commentData),
+                timeout
+            ]);
+            
             console.log('コメント送信成功:', comment);
             
             // 入力欄をクリア
@@ -1985,6 +2029,11 @@ service cloud.firestore {
             
         } catch (error) {
             console.error('コメント送信エラー:', error);
+            
+            if (error.message.includes('タイムアウト')) {
+                alert('コメント送信がタイムアウトしました。ネットワーク接続を確認してください。');
+            }
+            
             // エラー時でも自分のコメントは表示
             this.displayFlyingComment(comment);
             commentInput.value = '';
@@ -2020,6 +2069,11 @@ service cloud.firestore {
         // 読み込み中表示
         commentList.innerHTML = '<div class="loading">コメント履歴を読み込み中...</div>';
         
+        // タイムアウト設定（15秒）
+        const timeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('コメント履歴の読み込みがタイムアウトしました')), 15000)
+        );
+        
         try {
             // Firestoreの接続確認
             if (!window.db) {
@@ -2031,17 +2085,29 @@ service cloud.firestore {
             // まずはorderByなしで試す（インデックスが作成されていない可能性）
             let snapshot;
             try {
-                snapshot = await db.collection('comments')
-                    .orderBy('timestamp', 'desc')
-                    .limit(50)
-                    .get();
+                // タイムアウト付きでorderByクエリを実行
+                snapshot = await Promise.race([
+                    db.collection('comments')
+                        .orderBy('timestamp', 'desc')
+                        .limit(50)
+                        .get(),
+                    timeout
+                ]);
                 console.log('✅ orderByクエリ成功');
             } catch (orderByError) {
                 console.warn('⚠️ orderByクエリ失敗、シンプルクエリを試行:', orderByError);
-                // orderByが失敗した場合はシンプルなクエリで取得
-                snapshot = await db.collection('comments')
-                    .limit(50)
-                    .get();
+                
+                // orderByが失敗した場合はシンプルなクエリで取得（タイムアウト付き）
+                const simpleTimeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('シンプルクエリもタイムアウトしました')), 10000)
+                );
+                
+                snapshot = await Promise.race([
+                    db.collection('comments')
+                        .limit(50)
+                        .get(),
+                    simpleTimeout
+                ]);
                 console.log('✅ シンプルクエリ成功');
             }
             
@@ -2079,7 +2145,9 @@ service cloud.firestore {
             });
             
             let errorMessage = '読み込みエラー';
-            if (error.code === 'failed-precondition') {
+            if (error.message.includes('タイムアウト')) {
+                errorMessage = 'コメント履歴の読み込みがタイムアウトしました。ネットワーク接続を確認してください。';
+            } else if (error.code === 'failed-precondition') {
                 errorMessage = 'インデックスが必要です。Firebase Consoleでインデックスを作成してください。';
             } else if (error.code === 'permission-denied') {
                 errorMessage = 'アクセス権限がありません。Firestoreのセキュリティルールを確認してください。';
