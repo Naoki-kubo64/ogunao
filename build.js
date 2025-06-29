@@ -38,6 +38,12 @@ if (fs.existsSync('music')) {
     console.log('✅ musicディレクトリをコピーしました');
 }
 
+// SEディレクトリをコピー
+if (fs.existsSync('SE')) {
+    fs.cpSync('SE', path.join(buildDir, 'SE'), { recursive: true });
+    console.log('✅ SEディレクトリをコピーしました');
+}
+
 // index.htmlを編集してFirebase設定を修正
 const indexPath = path.join(buildDir, 'index.html');
 let indexContent = fs.readFileSync(indexPath, 'utf8');
