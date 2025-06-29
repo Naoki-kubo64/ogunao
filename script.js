@@ -46,7 +46,7 @@ class PuyoPuyoGame {
             'images/nao12.jpg', 
             'images/nao4.png',
             'images/raw.png',
-            'images/ホラーなお.png'
+            'images/歌手.png'
         ];
         
         for (let i = 0; i < imageFiles.length; i++) {
