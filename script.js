@@ -1704,20 +1704,32 @@ class PuyoPuyoGame {
         this.bgm.pause();
         this.bgm.currentTime = 0;
         
+        // スコアと盤面をクリア
+        this.clearGameState();
+        
         // タイトルBGMを再開
         this.startTitleBgm();
     }
     
-    restart() {
-        this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+    clearGameState() {
+        // スコア関連をクリア
         this.score = 0;
         this.time = 0;
         this.chain = 0;
-        this.gameRunning = false;
-        this.isSeparatedPiece = false;
-        this.scoreSubmitted = false;
         
-        // アニメーションもリセット
+        // 盤面をクリア
+        this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        
+        // 現在のピースをクリア
+        this.currentPiece = null;
+        this.nextPiece = null;
+        
+        // その他のゲーム状態をリセット
+        this.isSeparatedPiece = false;
+        this.isInChainSequence = false;
+        this.currentChainSequence = 0;
+        
+        // アニメーション状態をリセット
         this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
             Array(this.BOARD_WIDTH).fill().map(() => ({
                 scale: 1.0,
@@ -1726,6 +1738,21 @@ class PuyoPuyoGame {
                 lastLandTime: 0
             }))
         );
+        
+        // 表示を更新
+        this.updateDisplay();
+        this.render();
+        
+        console.log('🧹 ゲーム状態をクリアしました');
+    }
+    
+    restart() {
+        // ゲーム状態をクリア
+        this.clearGameState();
+        
+        // ゲーム実行フラグとスコア登録状態をリセット
+        this.gameRunning = false;
+        this.scoreSubmitted = false;
         
         // スコア登録UIをリセット
         const submitButton = document.getElementById('submit-score');
@@ -1737,10 +1764,11 @@ class PuyoPuyoGame {
         submitButton.textContent = 'スコアを登録';
         playerNameInput.value = '';
         
+        // 新しいピースを生成
         this.generateNextPiece();
         this.spawnNewPiece();
-        this.updateDisplay();
-        this.render();
+        
+        // 画面表示を更新
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.remove('hidden');
         
