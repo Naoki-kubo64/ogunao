@@ -232,11 +232,60 @@ class PuyoPuyoGame {
         // Firebase接続テスト（開発用）
         this.testFirebaseConnection();
         
-        // コメント監視を開始
-        this.startCommentListener();
+        // Firebase初期化後にコメント機能を開始
+        this.initializeCommentSystem();
+    }
+    
+    async initializeCommentSystem() {
+        console.log('🎬 コメントシステム初期化開始');
         
-        // コメント履歴を読み込み
-        this.loadCommentHistory();
+        // Firebase初期化エラーチェック
+        if (window.firebaseInitError) {
+            console.error('❌ Firebase初期化エラーが検出されました:', window.firebaseInitError);
+            const commentList = document.getElementById('comment-list');
+            if (commentList) {
+                commentList.innerHTML = '<div class="loading error">Firebase初期化エラー<br><small>設定を確認してください</small></div>';
+            }
+            return;
+        }
+        
+        // Firebase初期化の完了を待つ
+        let retries = 0;
+        const maxRetries = 20; // 10秒間待機
+        
+        while (retries < maxRetries) {
+            if (window.db && window.firebase) {
+                console.log('✅ Firebase初期化確認完了');
+                break;
+            }
+            console.log(`⏳ Firebase初期化待機中... (${retries + 1}/${maxRetries})`);
+            await this.sleep(500);
+            retries++;
+        }
+        
+        if (retries >= maxRetries) {
+            console.error('❌ Firebase初期化タイムアウト');
+            const commentList = document.getElementById('comment-list');
+            if (commentList) {
+                commentList.innerHTML = '<div class="loading error">Firebase接続タイムアウト<br><small>FIREBASE_SETUP.mdを確認してください</small></div>';
+            }
+            return;
+        }
+        
+        // コメント機能を開始
+        console.log('🚀 コメント機能開始');
+        
+        try {
+            this.startCommentListener();
+            await this.loadCommentHistory();
+            console.log('✅ コメントシステム初期化完了');
+        } catch (error) {
+            console.error('❌ コメントシステム初期化エラー:', error);
+            const commentList = document.getElementById('comment-list');
+            if (commentList) {
+                commentList.innerHTML = '<div class="loading error">コメントシステムエラー<br><small>再読み込みしてください</small></div>';
+            }
+        }
     }
     
     handleKeyPress(e) {
@@ -1965,29 +2014,80 @@ service cloud.firestore {
     }
     
     async loadCommentHistory() {
+        console.log('📚 コメント履歴読み込み開始');
+        const commentList = document.getElementById('comment-list');
+        
+        // 読み込み中表示
+        commentList.innerHTML = '<div class="loading">コメント履歴を読み込み中...</div>';
+        
         try {
-            const snapshot = await db.collection('comments')
-                .orderBy('timestamp', 'desc')
-                .limit(50) // 最新50件
-                .get();
+            // Firestoreの接続確認
+            if (!window.db) {
+                throw new Error('Firestore database not initialized');
+            }
             
-            const commentList = document.getElementById('comment-list');
-            commentList.innerHTML = '';
+            console.log('🔍 Firestoreからコメントを取得中...');
+            
+            // まずはorderByなしで試す（インデックスが作成されていない可能性）
+            let snapshot;
+            try {
+                snapshot = await db.collection('comments')
+                    .orderBy('timestamp', 'desc')
+                    .limit(50)
+                    .get();
+                console.log('✅ orderByクエリ成功');
+            } catch (orderByError) {
+                console.warn('⚠️ orderByクエリ失敗、シンプルクエリを試行:', orderByError);
+                // orderByが失敗した場合はシンプルなクエリで取得
+                snapshot = await db.collection('comments')
+                    .limit(50)
+                    .get();
+                console.log('✅ シンプルクエリ成功');
+            }
+            
+            console.log(`📊 取得したドキュメント数: ${snapshot.size}`);
             
             if (snapshot.empty) {
+                console.log('📝 コメントが見つかりません');
                 commentList.innerHTML = '<div class="loading">まだコメントがありません</div>';
                 return;
             }
             
+            // コメントリストをクリア
+            commentList.innerHTML = '';
+            
+            let processedCount = 0;
             snapshot.forEach((doc) => {
-                const comment = doc.data();
-                this.addCommentToHistory(comment, false); // アニメーションなしで追加
+                try {
+                    const comment = doc.data();
+                    console.log(`📄 コメント${processedCount + 1}:`, comment);
+                    this.addCommentToHistory(comment, false);
+                    processedCount++;
+                } catch (docError) {
+                    console.error('❌ ドキュメント処理エラー:', docError, doc.id);
+                }
             });
             
+            console.log(`✅ コメント履歴読み込み完了: ${processedCount}件`);
+            
         } catch (error) {
-            console.error('コメント履歴読み込みエラー:', error);
-            const commentList = document.getElementById('comment-list');
-            commentList.innerHTML = '<div class="loading">読み込みエラー</div>';
+            console.error('❌ コメント履歴読み込みエラー:', error);
+            console.error('エラーの詳細:', {
+                code: error.code,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            let errorMessage = '読み込みエラー';
+            if (error.code === 'failed-precondition') {
+                errorMessage = 'インデックスが必要です。Firebase Consoleでインデックスを作成してください。';
+            } else if (error.code === 'permission-denied') {
+                errorMessage = 'アクセス権限がありません。Firestoreのセキュリティルールを確認してください。';
+            } else if (error.message.includes('not initialized')) {
+                errorMessage = 'Firebase接続エラー。設定を確認してください。';
+            }
+            
+            commentList.innerHTML = `<div class="loading error">${errorMessage}<br><small>${error.message}</small></div>`;
         }
     }
     
