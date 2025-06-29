@@ -37,6 +37,7 @@ export class DebugManager {
         this.effectsManager.showChainEffect(chainCount);
         
         if (chainCount >= 3) {
+            console.log(`デバッグ: ${chainCount}連鎖カットイン表示`);
             this.effectsManager.showCutinEffect(chainCount);
         }
     }

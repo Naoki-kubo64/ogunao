@@ -36,9 +36,10 @@ class PuyoPuyoGame {
         // 画像を読み込み
         this.puyoImages = [];
         this.cutinImage = null;
+        this.cutin3ChainImage = null;
         this.cutin5ChainImage = null;
         this.imagesLoaded = 0;
-        this.totalImages = 7; // カットイン画像2枚を含めて7枚
+        this.totalImages = 8; // カットイン画像3枚を含めて8枚
         
         const imageFiles = [
             'images/nao11.jpg',
@@ -64,11 +65,48 @@ class PuyoPuyoGame {
             this.puyoImages[i + 1].src = imageFiles[i];
         }
         
-        // カットイン画像を読み込み
+        // 3連鎖カットイン画像を確実に読み込み
+        this.cutin3ChainImage = new Image();
+        
+        this.cutin3ChainImage.onload = () => {
+            this.imagesLoaded++;
+            console.log('✅ 3Chain cutin image loaded successfully: nao7.png');
+            console.log('3Chain image complete:', this.cutin3ChainImage.complete);
+            console.log('3Chain image dimensions:', this.cutin3ChainImage.naturalWidth, 'x', this.cutin3ChainImage.naturalHeight);
+            
+            // 即座に画像の状態を再確認
+            setTimeout(() => {
+                console.log('🔍 3Chain image delayed check:');
+                console.log('- complete:', this.cutin3ChainImage.complete);
+                console.log('- naturalWidth:', this.cutin3ChainImage.naturalWidth);
+                console.log('- src:', this.cutin3ChainImage.src);
+            }, 100);
+            
+            if (this.imagesLoaded === this.totalImages) {
+                console.log('All images loaded - Final status:');
+                console.log('- Normal cutin:', this.cutinImage?.complete);
+                console.log('- 3Chain cutin:', this.cutin3ChainImage?.complete);
+                console.log('- 5Chain cutin:', this.cutin5ChainImage?.complete);
+                this.render();
+            }
+        };
+        
+        this.cutin3ChainImage.onerror = (error) => {
+            console.error('❌ Failed to load 3chain cutin image: images/nao7.png');
+            console.error('Error details:', error);
+            console.error('Error type:', error.type);
+            this.imagesLoaded++;
+        };
+        
+        console.log('Setting 3Chain cutin image src...');
+        this.cutin3ChainImage.src = 'images/nao7.png'; // パスを簡素化
+        console.log('3Chain cutin image src set to:', this.cutin3ChainImage.src);
+        
+        // 通常のカットイン画像を読み込み
         this.cutinImage = new Image();
         this.cutinImage.onload = () => {
             this.imagesLoaded++;
-            console.log('Cutin image loaded');
+            console.log('Normal cutin image loaded: saginaoki.jpg');
             if (this.imagesLoaded === this.totalImages) {
                 console.log('All images loaded');
                 this.render();
@@ -84,14 +122,14 @@ class PuyoPuyoGame {
         this.cutin5ChainImage = new Image();
         this.cutin5ChainImage.onload = () => {
             this.imagesLoaded++;
-            console.log('5Chain cutin image loaded');
+            console.log('✅ 5Chain cutin image loaded');
             if (this.imagesLoaded === this.totalImages) {
                 console.log('All images loaded');
                 this.render();
             }
         };
         this.cutin5ChainImage.onerror = () => {
-            console.error('Failed to load 5chain cutin image: images/5rensa.png');
+            console.error('❌ Failed to load 5chain cutin image: images/5rensa.png');
             this.imagesLoaded++;
         };
         this.cutin5ChainImage.src = 'images/5rensa.png';
@@ -115,6 +153,14 @@ class PuyoPuyoGame {
         );
         this.animationTime = 0;
         
+        // 手動配置モード用の変数
+        this.manualPlaceMode = false;
+        this.selectedColor = 1; // デフォルトは赤
+        
+        // 連鎖状態管理用の変数
+        this.currentChainSequence = 0; // 現在の連鎖シーケンス数
+        this.isInChainSequence = false; // 連鎖処理中かどうか
+        
         this.setupEventListeners();
         this.generateNextPiece();
         this.spawnNewPiece();
@@ -136,6 +182,11 @@ class PuyoPuyoGame {
             this.updateFallSpeed();
         });
         
+        // 音量調整
+        document.getElementById('volume-slider').addEventListener('input', (e) => {
+            this.updateVolume(e.target.value);
+        });
+        
         // デバッグボタンのイベントリスナー
         document.getElementById('debug-2chain').addEventListener('click', () => this.debugChain(2));
         document.getElementById('debug-3chain').addEventListener('click', () => this.debugChain(3));
@@ -152,16 +203,50 @@ class PuyoPuyoGame {
         document.getElementById('debug-pattern-5').addEventListener('click', () => this.debugSetChainPattern(5));
         document.getElementById('debug-pattern-7').addEventListener('click', () => this.debugSetChainPattern(7));
         
+        // 手動配置モード関連ボタン
+        document.getElementById('debug-manual-mode').addEventListener('click', () => this.toggleManualPlaceMode());
+        document.getElementById('debug-exit-manual').addEventListener('click', () => this.exitManualPlaceMode());
+        
+        // 色選択ボタン
+        for (let i = 0; i <= 5; i++) {
+            document.getElementById(`color-${i}`).addEventListener('click', () => this.selectColor(i));
+        }
+        
+        // ゲームキャンバスのクリックイベント
+        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        
         // ランキング関連ボタン
         document.getElementById('refresh-ranking').addEventListener('click', () => this.loadRanking());
         document.getElementById('submit-score').addEventListener('click', () => this.submitScore());
         
+        // コメント機能ボタン
+        document.getElementById('send-comment').addEventListener('click', () => this.sendComment());
+        document.getElementById('comment-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation(); // イベントの伝播を停止
+                this.sendComment();
+            }
+        });
+        
         // Firebase接続テスト（開発用）
         this.testFirebaseConnection();
+        
+        // コメント監視を開始
+        this.startCommentListener();
+        
+        // コメント履歴を読み込み
+        this.loadCommentHistory();
     }
     
     handleKeyPress(e) {
         console.log('Key pressed:', e.key, 'Game running:', this.gameRunning);
+        
+        // コメント入力中はゲーム操作を無効にする
+        const commentInput = document.getElementById('comment-input');
+        if (document.activeElement === commentInput) {
+            return;
+        }
         
         if (!this.gameRunning) {
             if (e.key === 'Enter') {
@@ -205,6 +290,18 @@ class PuyoPuyoGame {
         this.timeStart = Date.now();
         this.lastFallTime = Date.now();
         this.updateFallSpeed();
+        
+        // ピースが存在しない場合は新しく生成
+        if (!this.currentPiece) {
+            console.log('No current piece, spawning new one...');
+            this.generateNextPiece();
+            this.spawnNewPiece();
+        }
+        
+        // デバッグ：現在のピース状態を確認
+        console.log('Current piece after start:', this.currentPiece);
+        console.log('Next piece:', this.nextPiece);
+        
         this.gameLoop();
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.add('hidden');
@@ -236,6 +333,12 @@ class PuyoPuyoGame {
             hard: 500
         };
         this.fallSpeed = speeds[this.difficulty];
+    }
+    
+    updateVolume(value) {
+        const volume = value / 100;
+        this.bgm.volume = volume;
+        document.getElementById('volume-display').textContent = `${value}%`;
     }
     
     generateNextPiece() {
@@ -336,10 +439,8 @@ class PuyoPuyoGame {
             this.applyGravity();
             this.render();
             
-            // 連鎖チェックを非同期で実行（現在のピースの動きを妨げない）
-            setTimeout(async () => {
-                await this.checkAndClearMatches();
-            }, 50);
+            // 連鎖チェックは削除（placePieceで一括処理するため）
+            // 部分着地時は連鎖チェックしない
             
             // 残ったピースは高速で直下
             this.lastFallTime = Date.now() - this.fallSpeed;
@@ -430,54 +531,117 @@ class PuyoPuyoGame {
     }
     
     async checkAndClearMatches() {
+        // 既に連鎖処理中の場合は処理をスキップ
+        if (this.isInChainSequence) {
+            console.log('⚠️ 連鎖処理中につき、新しい連鎖検出をスキップ');
+            return;
+        }
+        
+        this.isInChainSequence = true;
         let totalCleared = 0;
         let chainCount = 0;
         
+        console.log('🔍 === チェーン検出開始 ===');
+        console.trace('checkAndClearMatches 呼び出しスタック:');
+        this.debugPrintBoard('開始時のボード状態');
+        
         while (true) {
-            const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
-            const toClear = [];
+            // 同時に消すべき全てのグループを検出
+            const allMatches = this.findAllMatches();
+            if (allMatches.length === 0) {
+                console.log('❌ マッチするグループが見つかりません。連鎖終了。');
+                break;
+            }
             
-            for (let y = 0; y < this.BOARD_HEIGHT; y++) {
-                for (let x = 0; x < this.BOARD_WIDTH; x++) {
-                    if (this.board[y][x] !== 0 && !visited[y][x]) {
-                        const group = this.findConnectedGroup(x, y, this.board[y][x], visited);
-                        if (group.length >= 4) {
-                            toClear.push(...group);
-                        }
-                    }
+            chainCount++;
+            console.log(`🔗 === Chain ${chainCount} 開始 ===`);
+            console.log(`🎯 検出されたグループ数: ${allMatches.length}`);
+            
+            // 各グループの詳細をログ出力
+            allMatches.forEach((group, index) => {
+                const color = this.board[group[0].y][group[0].x];
+                console.log(`  グループ${index + 1}: 色${color}, ${group.length}個, 位置: ${group.map(p => `(${p.x},${p.y})`).join(', ')}`);
+            });
+            
+            // 全てのマッチしたグループを同時に処理
+            for (let group of allMatches) {
+                totalCleared += group.length;
+                this.createExplosionEffects(group);
+                
+                for (let {x, y} of group) {
+                    this.board[y][x] = 0;
                 }
             }
             
-            if (toClear.length === 0) break;
+            console.log(`💥 ${allMatches.length}グループ、合計${allMatches.reduce((sum, group) => sum + group.length, 0)}個のブロックを消去`);
+            this.debugPrintBoard('消去後のボード状態');
             
-            chainCount++;
-            totalCleared += toClear.length;
-            
-            this.createExplosionEffects(toClear);
-            
-            for (let {x, y} of toClear) {
-                this.board[y][x] = 0;
-            }
-            
+            // 重力を適用
             this.applyGravity();
             this.render();
+            console.log('⬇️ 重力適用完了');
+            this.debugPrintBoard('重力適用後のボード状態');
             
-            await this.sleep(300);
+            // 連鎖数を更新して表示
+            this.chain = Math.max(this.chain, chainCount);
+            this.updateDisplay();
+            
+            // エフェクトを表示（ゲームロジックをブロックしない）
+            this.showChainEffect(chainCount);
+            
+            // 3連鎖以上の場合はカットインを表示（ただし待機する）
+            if (chainCount >= 3) {
+                console.log(`🎬 Showing cutin for chain ${chainCount}`);
+                await this.showCutinEffectAsync(chainCount);
+                await this.sleep(300); // カットイン後の短い待機
+            } else {
+                // 通常の連鎖間隔
+                await this.sleep(400);
+            }
+            
+            console.log(`✅ Chain ${chainCount} 完了、次の連鎖をチェック中...`);
         }
         
         if (chainCount > 0) {
-            this.chain = Math.max(this.chain, chainCount);
             this.score += totalCleared * 100 * chainCount * chainCount;
             this.updateDisplay();
-            
-            if (chainCount > 1) {
-                this.showChainEffect(chainCount);
-                // 連鎖数に応じてカットインを表示
-                if (chainCount >= 3) {
-                    this.showCutinEffect(chainCount);
+            console.log(`🏆 === 連鎖シーケンス完了 ===`);
+            console.log(`🔢 最終連鎖数: ${chainCount}`);
+            console.log(`🧱 総消去ブロック数: ${totalCleared}`);
+            console.log(`💰 獲得スコア: ${totalCleared * 100 * chainCount * chainCount}`);
+        }
+        
+        // 連鎖処理完了フラグをリセット
+        this.isInChainSequence = false;
+    }
+    
+    // デバッグ用：ボードの状態を視覚的に表示
+    debugPrintBoard(title) {
+        console.log(`📋 ${title}:`);
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            const row = this.board[y].map(cell => cell === 0 ? '.' : cell).join(' ');
+            console.log(`  ${y}: ${row}`);
+        }
+    }
+    
+    // 全ての4個以上接続されたグループを検出する関数
+    findAllMatches() {
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        const matches = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (this.board[y][x] !== 0 && !visited[y][x]) {
+                    const group = this.findConnectedGroup(x, y, this.board[y][x], visited);
+                    if (group.length >= 4) {
+                        matches.push(group);
+                        console.log(`Found match group of ${group.length} blocks at color ${this.board[y][x]}`);
+                    }
                 }
             }
         }
+        
+        return matches;
     }
     
     findConnectedGroup(startX, startY, color, visited) {
@@ -554,16 +718,62 @@ class PuyoPuyoGame {
     }
     
     showCutinEffect(chainCount) {
-        // 5連鎖の場合は専用画像を使用
+        console.log(`🎬 showCutinEffect called with chainCount: ${chainCount}`);
+        console.log('📊 Image availability check:');
+        console.log('- 3Chain image (nao7.png):', this.cutin3ChainImage?.complete, this.cutin3ChainImage?.src);
+        console.log('- 5Chain image (5rensa.png):', this.cutin5ChainImage?.complete, this.cutin5ChainImage?.src);
+        console.log('- Normal cutin (saginaoki.jpg):', this.cutinImage?.complete, this.cutinImage?.src);
+        
+        // 連鎖数に応じた専用画像を使用
         let cutinImageToUse;
-        if (chainCount === 5 && this.cutin5ChainImage && this.cutin5ChainImage.complete) {
+        let imageName;
+        
+        if (chainCount === 3) {
+            console.log('🔍 Checking 3Chain condition...');
+            console.log('- this.cutin3ChainImage exists:', !!this.cutin3ChainImage);
+            console.log('- this.cutin3ChainImage.complete:', this.cutin3ChainImage?.complete);
+            console.log('- naturalWidth:', this.cutin3ChainImage?.naturalWidth);
+            console.log('- naturalHeight:', this.cutin3ChainImage?.naturalHeight);
+        }
+        
+        // 3連鎖の場合は必ずnao7.pngを使用（強制）
+        if (chainCount === 3) {
+            console.log('🎯 3連鎖検出 - nao7.pngを強制使用');
+            if (this.cutin3ChainImage && this.cutin3ChainImage.complete && this.cutin3ChainImage.naturalWidth > 0) {
+                console.log('✅ Using 3Chain cutin image: nao7.png');
+                cutinImageToUse = this.cutin3ChainImage;
+                imageName = 'nao7.png (3連鎖専用)';
+            } else {
+                console.log('❌ 3Chain画像が利用できません - デバッグ情報:');
+                console.log('- exists:', !!this.cutin3ChainImage);
+                console.log('- complete:', this.cutin3ChainImage?.complete);
+                console.log('- naturalWidth:', this.cutin3ChainImage?.naturalWidth);
+                console.log('- src:', this.cutin3ChainImage?.src);
+                
+                // フォールバック：通常のカットイン画像
+                if (this.cutinImage && this.cutinImage.complete) {
+                    console.log('⚠️ Fallback to normal cutin image for 3chain');
+                    cutinImageToUse = this.cutinImage;
+                    imageName = 'saginaoki.jpg (3連鎖フォールバック)';
+                } else {
+                    console.log('❌ No images available for 3chain');
+                    return;
+                }
+            }
+        } else if (chainCount === 5 && this.cutin5ChainImage && this.cutin5ChainImage.complete && this.cutin5ChainImage.naturalWidth > 0) {
+            console.log('✅ Using 5Chain cutin image: 5rensa.png');
             cutinImageToUse = this.cutin5ChainImage;
+            imageName = '5rensa.png (5連鎖専用)';
         } else if (this.cutinImage && this.cutinImage.complete) {
+            console.log('⚠️ Using normal cutin image: saginaoki.jpg');
             cutinImageToUse = this.cutinImage;
+            imageName = 'saginaoki.jpg (通常)';
         } else {
-            // カットイン画像が読み込まれていない場合は表示しない
+            console.log('❌ No cutin image available');
             return;
         }
+        
+        console.log(`🖼️ Selected image: ${imageName}`);
         
         // カットイン要素を作成
         const cutin = document.createElement('div');
@@ -585,6 +795,8 @@ class PuyoPuyoGame {
             text.textContent = `5連鎖！ すごいやん！`;
         } else if (chainCount >= 4) {
             text.textContent = `${chainCount}連鎖！ やるやん！`;
+        } else if (chainCount === 3) {
+            text.textContent = `3連鎖！ いいね！`;
         } else {
             text.textContent = `${chainCount}連鎖！`;
         }
@@ -601,6 +813,92 @@ class PuyoPuyoGame {
                 cutin.parentElement.removeChild(cutin);
             }
         }, 2000);
+    }
+    
+    // 非同期版のカットイン表示（アニメーション完了まで待機）
+    showCutinEffectAsync(chainCount) {
+        return new Promise((resolve) => {
+            console.log(`🎬 showCutinEffectAsync called with chainCount: ${chainCount}`);
+            
+            // 連鎖数に応じた専用画像を使用
+            let cutinImageToUse;
+            let imageName;
+            
+            // 3連鎖の場合は必ずnao7.pngを使用（強制）
+            if (chainCount === 3) {
+                console.log('🎯 3連鎖検出 - nao7.pngを強制使用');
+                if (this.cutin3ChainImage && this.cutin3ChainImage.complete && this.cutin3ChainImage.naturalWidth > 0) {
+                    console.log('✅ Using 3Chain cutin image: nao7.png');
+                    cutinImageToUse = this.cutin3ChainImage;
+                    imageName = 'nao7.png (3連鎖専用)';
+                } else {
+                    // フォールバック：通常のカットイン画像
+                    if (this.cutinImage && this.cutinImage.complete) {
+                        console.log('⚠️ Fallback to normal cutin image for 3chain');
+                        cutinImageToUse = this.cutinImage;
+                        imageName = 'saginaoki.jpg (3連鎖フォールバック)';
+                    } else {
+                        console.log('❌ No images available for 3chain');
+                        resolve();
+                        return;
+                    }
+                }
+            } else if (chainCount === 5 && this.cutin5ChainImage && this.cutin5ChainImage.complete && this.cutin5ChainImage.naturalWidth > 0) {
+                console.log('✅ Using 5Chain cutin image: 5rensa.png');
+                cutinImageToUse = this.cutin5ChainImage;
+                imageName = '5rensa.png (5連鎖専用)';
+            } else if (this.cutinImage && this.cutinImage.complete) {
+                console.log('⚠️ Using normal cutin image: saginaoki.jpg');
+                cutinImageToUse = this.cutinImage;
+                imageName = 'saginaoki.jpg (通常)';
+            } else {
+                console.log('❌ No cutin image available');
+                resolve();
+                return;
+            }
+            
+            console.log(`🖼️ Selected image: ${imageName}`);
+            
+            // カットイン要素を作成
+            const cutin = document.createElement('div');
+            cutin.className = 'cutin-effect';
+            
+            // 画像要素を作成
+            const img = document.createElement('img');
+            img.src = cutinImageToUse.src;
+            img.className = 'cutin-image';
+            
+            // テキスト要素を作成
+            const text = document.createElement('div');
+            text.className = 'cutin-text';
+            
+            // 連鎖数に応じたメッセージ
+            if (chainCount >= 7) {
+                text.textContent = `${chainCount}連鎖！ 最高や！`;
+            } else if (chainCount === 5) {
+                text.textContent = `5連鎖！ すごいやん！`;
+            } else if (chainCount >= 4) {
+                text.textContent = `${chainCount}連鎖！ やるやん！`;
+            } else if (chainCount === 3) {
+                text.textContent = `3連鎖！ いいね！`;
+            } else {
+                text.textContent = `${chainCount}連鎖！`;
+            }
+            
+            cutin.appendChild(img);
+            cutin.appendChild(text);
+            
+            // ゲーム領域に追加
+            this.canvas.parentElement.appendChild(cutin);
+            
+            // アニメーション終了後に削除してresolve
+            setTimeout(() => {
+                if (cutin.parentElement) {
+                    cutin.parentElement.removeChild(cutin);
+                }
+                resolve();
+            }, 2000);
+        });
     }
     
     sleep(ms) {
@@ -666,11 +964,20 @@ class PuyoPuyoGame {
         // アニメーションを更新
         this.updateAnimations();
         
+        // currentPieceが存在しない場合の緊急対応
+        if (!this.currentPiece) {
+            console.log('🚨 Emergency: No current piece in game loop, spawning new one...');
+            this.generateNextPiece();
+            this.spawnNewPiece();
+        }
+        
         // 切り離されたピースは高速落下（100ms間隔）
         const effectiveFallSpeed = this.isSeparatedPiece ? 100 : this.fallSpeed;
         
         if (currentTime - this.lastFallTime > effectiveFallSpeed) {
-            this.movePiece(0, 1);
+            if (this.currentPiece) {
+                this.movePiece(0, 1);
+            }
             this.lastFallTime = currentTime;
         }
         
@@ -1177,6 +1484,27 @@ class PuyoPuyoGame {
     // デバッグ機能
     debugChain(chainCount) {
         console.log(`デバッグ: ${chainCount}連鎖をシミュレート`);
+        
+        if (chainCount === 3) {
+            console.log('=== 3連鎖専用デバッグ ===');
+            console.log('3Chain画像のsrc:', this.cutin3ChainImage?.src);
+            console.log('3Chain画像のcomplete:', this.cutin3ChainImage?.complete);
+            console.log('3Chain画像のnaturalWidth:', this.cutin3ChainImage?.naturalWidth);
+            console.log('3Chain画像のnaturalHeight:', this.cutin3ChainImage?.naturalHeight);
+            
+            // 画像が正常に読み込まれているかを追加チェック
+            if (this.cutin3ChainImage && this.cutin3ChainImage.complete && this.cutin3ChainImage.naturalWidth > 0) {
+                console.log('✅ 3Chain画像は正常に読み込まれています');
+            } else {
+                console.log('❌ 3Chain画像に問題があります');
+                // 画像を再読み込みしてみる
+                console.log('🔄 3Chain画像を再読み込み中...');
+                setTimeout(() => {
+                    this.cutin3ChainImage.src = 'images/nao7.png';
+                }, 100);
+            }
+        }
+        
         this.showChainEffect(chainCount);
         if (chainCount >= 3) {
             this.showCutinEffect(chainCount);
@@ -1189,6 +1517,11 @@ class PuyoPuyoGame {
     
     debugCutin() {
         console.log('デバッグ: カットインテスト');
+        console.log('画像読み込み状況:');
+        console.log('- Normal cutin (saginaoki.jpg):', this.cutinImage?.complete, this.cutinImage?.src);
+        console.log('- 3Chain cutin (nao7.png):', this.cutin3ChainImage?.complete, this.cutin3ChainImage?.src);
+        console.log('- 5Chain cutin (5rensa.png):', this.cutin5ChainImage?.complete, this.cutin5ChainImage?.src);
+        
         // ランダムな連鎖数でカットインを表示
         const randomChain = Math.floor(Math.random() * 5) + 3; // 3-7連鎖
         this.showCutinEffect(randomChain);
@@ -1215,50 +1548,172 @@ class PuyoPuyoGame {
         
         switch(chainCount) {
             case 2:
-                // 2連鎖パターン
-                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤4個
-                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑4個（上に）
+                // 2連鎖パターン - 完全に分離した配置
+                // 第1段：赤4個で削除される
+                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1;
+                // 第2段：緑3個 + 浮遊緑1個（赤消去後に落ちて4個になる）
+                this.board[7][1] = 2; this.board[7][2] = 2; this.board[7][3] = 2;
+                this.board[6][1] = 2; // この緑が落ちて4個になる
                 break;
                 
             case 3:
-                // 3連鎖パターン
-                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤
-                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑
-                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3; // 青
+                // 3連鎖パターン - より離した配置
+                // 第1段：赤4個（まとまって削除される）
+                this.board[8][0] = 1; this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1;
+                
+                // 第2段：緑3個 + 空中に緑1個
+                this.board[7][0] = 2; this.board[7][1] = 2; this.board[7][2] = 2;
+                this.board[5][0] = 2; // 赤消去後、この緑が落ちる
+                
+                // 第3段：青3個 + 空中に青1個
+                this.board[6][0] = 3; this.board[6][1] = 3; this.board[6][2] = 3;
+                this.board[4][0] = 3; // 緑消去後、この青が落ちる
                 break;
                 
             case 4:
                 // 4連鎖パターン
-                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1; // 赤
-                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2; // 緑
-                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3; // 青
-                this.board[3][2] = 4; this.board[3][3] = 4; this.board[2][2] = 4; this.board[2][3] = 4; // 黄
+                this.board[8][0] = 1; this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; // 赤
+                
+                this.board[7][0] = 2; this.board[7][1] = 2; this.board[7][2] = 2; // 緑
+                this.board[5][0] = 2; // 落下緑
+                
+                this.board[6][0] = 3; this.board[6][1] = 3; this.board[6][2] = 3; // 青
+                this.board[4][0] = 3; // 落下青
+                
+                this.board[5][1] = 4; this.board[5][2] = 4; this.board[4][1] = 4; // 黄3個
+                this.board[3][0] = 4; // 落下黄
                 break;
                 
             case 5:
                 // 5連鎖パターン
-                this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; this.board[8][4] = 1;
-                this.board[7][2] = 2; this.board[7][3] = 2; this.board[6][2] = 2; this.board[6][3] = 2;
-                this.board[5][2] = 3; this.board[5][3] = 3; this.board[4][2] = 3; this.board[4][3] = 3;
-                this.board[3][2] = 4; this.board[3][3] = 4; this.board[2][2] = 4; this.board[2][3] = 4;
-                this.board[1][2] = 5; this.board[1][3] = 5; this.board[0][2] = 5; this.board[0][3] = 5; // 紫
+                this.board[8][0] = 1; this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1; // 赤
+                
+                this.board[7][0] = 2; this.board[7][1] = 2; this.board[7][2] = 2; // 緑
+                this.board[5][0] = 2; // 落下緑
+                
+                this.board[6][0] = 3; this.board[6][1] = 3; this.board[6][2] = 3; // 青
+                this.board[4][0] = 3; // 落下青
+                
+                this.board[5][1] = 4; this.board[5][2] = 4; this.board[4][1] = 4; // 黄
+                this.board[3][0] = 4; // 落下黄
+                
+                this.board[4][2] = 5; this.board[3][1] = 5; this.board[3][2] = 5; // 紫
+                this.board[2][0] = 5; // 落下紫
                 break;
                 
             case 7:
-                // 7連鎖パターン（より複雑）
-                this.board[8][0] = 1; this.board[8][1] = 1; this.board[8][2] = 1; this.board[8][3] = 1;
-                this.board[7][1] = 2; this.board[7][2] = 2; this.board[6][1] = 2; this.board[6][2] = 2;
-                this.board[5][1] = 3; this.board[5][2] = 3; this.board[4][1] = 3; this.board[4][2] = 3;
-                this.board[3][1] = 4; this.board[3][2] = 4; this.board[2][1] = 4; this.board[2][2] = 4;
-                this.board[1][1] = 5; this.board[1][2] = 5; this.board[0][1] = 5; this.board[0][2] = 5;
-                // 右側にも追加
-                this.board[8][4] = 1; this.board[8][5] = 1; this.board[7][4] = 1; this.board[7][5] = 1;
-                this.board[6][4] = 2; this.board[6][5] = 2; this.board[5][4] = 2; this.board[5][5] = 2;
+                // 7連鎖パターン（階段式）
+                // 右から左へ段階的に崩れるパターン
+                this.board[8][5] = 1; this.board[8][4] = 1; this.board[8][3] = 1; this.board[8][2] = 1; // 赤底
+                
+                this.board[7][5] = 2; this.board[7][4] = 2; this.board[7][3] = 2; // 緑
+                this.board[6][5] = 2; // 落下緑
+                
+                this.board[6][4] = 3; this.board[6][3] = 3; this.board[6][2] = 3; // 青
+                this.board[5][4] = 3; // 落下青
+                
+                this.board[5][3] = 4; this.board[5][2] = 4; this.board[5][1] = 4; // 黄
+                this.board[4][3] = 4; // 落下黄
+                
+                this.board[4][2] = 5; this.board[4][1] = 5; this.board[4][0] = 5; // 紫
+                this.board[3][2] = 5; // 落下紫
+                
+                this.board[3][1] = 1; this.board[3][0] = 1; this.board[2][1] = 1; // 赤2段目
+                this.board[2][0] = 1; // 落下赤
+                
+                this.board[1][0] = 2; this.board[0][0] = 2; this.board[1][1] = 2; // 緑最終
+                this.board[0][1] = 2; // 落下緑最終
                 break;
         }
         
         this.render();
-        console.log(`${chainCount}連鎖パターンを設置しました`);
+        console.log(`${chainCount}連鎖パターンを設置しました。右側のブロックから連鎖が始まります！`);
+    }
+    
+    // 手動配置モード関連のメソッド
+    toggleManualPlaceMode() {
+        this.manualPlaceMode = !this.manualPlaceMode;
+        const canvas = this.canvas;
+        const palette = document.querySelector('.color-palette');
+        const manualBtn = document.getElementById('debug-manual-mode');
+        const exitBtn = document.getElementById('debug-exit-manual');
+        
+        if (this.manualPlaceMode) {
+            console.log('🎨 手動配置モード開始');
+            canvas.classList.add('manual-mode-active', 'manual-mode-cursor');
+            palette.style.display = 'block';
+            manualBtn.textContent = '配置モード中...';
+            manualBtn.style.background = '#ffaa00';
+            exitBtn.style.display = 'inline-block';
+            
+            // ゲームを一時停止
+            this.gameRunning = false;
+            
+            // 選択中の色を表示
+            this.updateColorSelection();
+        } else {
+            this.exitManualPlaceMode();
+        }
+    }
+    
+    exitManualPlaceMode() {
+        console.log('🎨 手動配置モード終了');
+        this.manualPlaceMode = false;
+        const canvas = this.canvas;
+        const palette = document.querySelector('.color-palette');
+        const manualBtn = document.getElementById('debug-manual-mode');
+        const exitBtn = document.getElementById('debug-exit-manual');
+        
+        canvas.classList.remove('manual-mode-active', 'manual-mode-cursor');
+        palette.style.display = 'none';
+        manualBtn.textContent = '手動配置モード';
+        manualBtn.style.background = '';
+        exitBtn.style.display = 'none';
+    }
+    
+    selectColor(colorIndex) {
+        this.selectedColor = colorIndex;
+        this.updateColorSelection();
+        console.log(`🎨 選択色変更: ${colorIndex === 0 ? '消去' : `色${colorIndex}`}`);
+    }
+    
+    updateColorSelection() {
+        // 全ての色ボタンから選択状態を削除
+        for (let i = 0; i <= 5; i++) {
+            const btn = document.getElementById(`color-${i}`);
+            btn.classList.remove('selected');
+        }
+        
+        // 選択中の色ボタンにハイライト
+        const selectedBtn = document.getElementById(`color-${this.selectedColor}`);
+        selectedBtn.classList.add('selected');
+    }
+    
+    handleCanvasClick(event) {
+        if (!this.manualPlaceMode) return;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        // ピクセル座標をゲーム座標に変換
+        const gridX = Math.floor(x / this.CELL_SIZE);
+        const gridY = Math.floor(y / this.CELL_SIZE);
+        
+        // 範囲チェック
+        if (gridX >= 0 && gridX < this.BOARD_WIDTH && gridY >= 0 && gridY < this.BOARD_HEIGHT) {
+            // ブロックを配置または削除
+            this.board[gridY][gridX] = this.selectedColor;
+            this.render();
+            
+            const colorName = this.selectedColor === 0 ? '消去' : 
+                             this.selectedColor === 1 ? '赤' :
+                             this.selectedColor === 2 ? '緑' :
+                             this.selectedColor === 3 ? '青' :
+                             this.selectedColor === 4 ? '黄' : '紫';
+            
+            console.log(`🎨 ブロック配置: (${gridX}, ${gridY}) に ${colorName}`);
+        }
     }
     
     // ランキング機能
@@ -1438,6 +1893,192 @@ service cloud.firestore {
             console.error('❌ Firebase接続エラー:', error);
             console.log('Firebase設定またはFirestore設定を確認してください');
         }
+    }
+    
+    // コメント機能
+    async sendComment() {
+        const commentInput = document.getElementById('comment-input');
+        const comment = commentInput.value.trim();
+        
+        if (!comment) {
+            return;
+        }
+        
+        if (comment.length > 50) {
+            alert('コメントは50文字以内で入力してください');
+            return;
+        }
+        
+        try {
+            const commentData = {
+                text: comment,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                gameTime: this.time || 0, // ゲーム時間
+                score: this.score || 0 // 現在のスコア
+            };
+            
+            await db.collection('comments').add(commentData);
+            console.log('コメント送信成功:', comment);
+            
+            // 入力欄をクリア
+            commentInput.value = '';
+            
+            // 即座に自分のコメントを表示
+            this.displayFlyingComment(comment);
+            
+            // 履歴にも即座に追加（タイムスタンプは現在時刻を仮設定）
+            const tempComment = {
+                text: comment,
+                timestamp: new Date(),
+                score: this.score || 0
+            };
+            this.addCommentToHistory(tempComment);
+            
+        } catch (error) {
+            console.error('コメント送信エラー:', error);
+            // エラー時でも自分のコメントは表示
+            this.displayFlyingComment(comment);
+            commentInput.value = '';
+        }
+    }
+    
+    startCommentListener() {
+        // リアルタイムでコメントを監視
+        db.collection('comments')
+            .orderBy('timestamp', 'desc')
+            .limit(20) // 最新20件
+            .onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const comment = change.doc.data();
+                        // 新しいコメントのみ表示
+                        if (comment.timestamp && comment.text) {
+                            this.displayFlyingComment(comment.text);
+                            // 履歴にも追加
+                            this.addCommentToHistory(comment);
+                        }
+                    }
+                });
+            }, (error) => {
+                console.error('コメント監視エラー:', error);
+            });
+    }
+    
+    async loadCommentHistory() {
+        try {
+            const snapshot = await db.collection('comments')
+                .orderBy('timestamp', 'desc')
+                .limit(50) // 最新50件
+                .get();
+            
+            const commentList = document.getElementById('comment-list');
+            commentList.innerHTML = '';
+            
+            if (snapshot.empty) {
+                commentList.innerHTML = '<div class="loading">まだコメントがありません</div>';
+                return;
+            }
+            
+            snapshot.forEach((doc) => {
+                const comment = doc.data();
+                this.addCommentToHistory(comment, false); // アニメーションなしで追加
+            });
+            
+        } catch (error) {
+            console.error('コメント履歴読み込みエラー:', error);
+            const commentList = document.getElementById('comment-list');
+            commentList.innerHTML = '<div class="loading">読み込みエラー</div>';
+        }
+    }
+    
+    addCommentToHistory(comment, animate = true) {
+        const commentList = document.getElementById('comment-list');
+        
+        // ローディング表示を削除
+        const loading = commentList.querySelector('.loading');
+        if (loading) {
+            loading.remove();
+        }
+        
+        const commentItem = document.createElement('div');
+        commentItem.className = 'comment-item';
+        
+        const commentText = document.createElement('div');
+        commentText.className = 'comment-text';
+        commentText.textContent = comment.text;
+        
+        const commentMeta = document.createElement('div');
+        commentMeta.className = 'comment-meta';
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'comment-time';
+        if (comment.timestamp) {
+            let date;
+            if (comment.timestamp.toDate) {
+                // Firestoreのタイムスタンプ
+                date = comment.timestamp.toDate();
+            } else if (comment.timestamp instanceof Date) {
+                // 通常のDateオブジェクト
+                date = comment.timestamp;
+            } else {
+                date = new Date();
+            }
+            timeSpan.textContent = date.toLocaleTimeString('ja-JP', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else {
+            timeSpan.textContent = 'now';
+        }
+        
+        const scoreSpan = document.createElement('span');
+        scoreSpan.className = 'comment-score';
+        scoreSpan.textContent = `スコア: ${comment.score || 0}`;
+        
+        commentMeta.appendChild(timeSpan);
+        commentMeta.appendChild(scoreSpan);
+        
+        commentItem.appendChild(commentText);
+        commentItem.appendChild(commentMeta);
+        
+        // 新しいコメントは先頭に追加
+        if (animate) {
+            commentList.insertBefore(commentItem, commentList.firstChild);
+        } else {
+            commentList.appendChild(commentItem);
+        }
+        
+        // 50件を超えた場合、古いコメントを削除
+        const items = commentList.querySelectorAll('.comment-item');
+        if (items.length > 50) {
+            items[items.length - 1].remove();
+        }
+    }
+    
+    displayFlyingComment(text) {
+        const overlay = document.getElementById('comment-overlay');
+        const comment = document.createElement('div');
+        comment.className = 'flying-comment';
+        comment.textContent = text;
+        
+        // ランダムな垂直位置を設定（画面の20%〜80%の範囲）
+        const minY = overlay.clientHeight * 0.2;
+        const maxY = overlay.clientHeight * 0.8;
+        const randomY = Math.random() * (maxY - minY) + minY;
+        comment.style.top = randomY + 'px';
+        
+        // ランダムな色を設定
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FFA07A'];
+        comment.style.color = colors[Math.floor(Math.random() * colors.length)];
+        
+        overlay.appendChild(comment);
+        
+        // アニメーション終了後に削除
+        setTimeout(() => {
+            if (comment.parentNode) {
+                comment.parentNode.removeChild(comment);
+            }
+        }, 8000);
     }
 }
 

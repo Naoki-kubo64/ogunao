@@ -206,9 +206,11 @@ export class PuyoPuyoGame {
             
             // 連鎖エフェクト
             if (chainResult.totalChains > 1) {
+                console.log(`${chainResult.totalChains}連鎖発生！`);
                 this.effectsManager.showChainEffect(chainResult.totalChains);
                 
                 if (chainResult.totalChains >= 3) {
+                    console.log(`${chainResult.totalChains}連鎖カットイン表示`);
                     this.effectsManager.showCutinEffect(chainResult.totalChains);
                 }
             }
