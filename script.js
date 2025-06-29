@@ -1968,25 +1968,9 @@ class PuyoPuyoGame {
             };
             
             // 書き込みテスト（実際には追加しない、ルールチェックのみ）
-            try {
-                await db.collection('rankings').add(testData);
-                console.log('✅ Firestore書き込み権限OK');
-                // テストデータを削除したいところですが、deleteRuleが制限されている可能性があるのでそのまま
-            } catch (writeError) {
-                console.error('❌ Firestore書き込み権限エラー:', writeError);
-                console.log('Firebase Consoleでセキュリティルールを確認してください');
-                console.log('推奨ルール（開発用）:');
-                console.log(`
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /rankings/{document} {
-      allow read, write: if true;
-    }
-  }
-}
-                `);
-            }
+            // テストデータの自動追加を無効化
+            console.log('⚠️ テストデータの自動追加は無効化されています');
+            console.log('✅ Firebase接続は正常です');
             
         } catch (error) {
             console.error('❌ Firebase接続エラー:', error);
