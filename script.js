@@ -138,13 +138,20 @@ class PuyoPuyoGame {
         // BGM設定
         this.titleBgm = document.getElementById('title-bgm');
         this.bgm = document.getElementById('game-bgm');
+        this.bgm2 = document.getElementById('game-bgm-2');
         
-        if (this.titleBgm && this.bgm) {
+        if (this.titleBgm && this.bgm && this.bgm2) {
             this.titleBgm.volume = 0.4;
             this.bgm.volume = 0.5;
+            this.bgm2.volume = 0.5;
         } else {
             console.error('❌ Audio要素が見つかりません');
         }
+        
+        // BGM管理用の変数
+        this.currentBgm = null;
+        this.bgmSwitched = false; // スコア200000でのBGM切り替えフラグ
+        this.fadeInterval = null; // フェード処理用のインターバル
         
         // SE設定
         this.seGameStart = document.getElementById('se-gamestart');
@@ -536,6 +543,7 @@ class PuyoPuyoGame {
         this.bgm.play().catch(e => {
             console.log('BGM auto-play blocked:', e);
         });
+        this.currentBgm = this.bgm; // 現在のBGMを設定
         console.log('🎵 ゲームBGM開始');
     }
     
@@ -1761,6 +1769,9 @@ class PuyoPuyoGame {
         document.getElementById('score').textContent = this.score;
         document.getElementById('time').textContent = this.time;
         document.getElementById('chain').textContent = this.chain;
+        
+        // スコア更新時にBGM切り替えをチェック
+        this.checkScoreAndSwitchBgm();
     }
     
     gameOver() {
@@ -1792,6 +1803,81 @@ class PuyoPuyoGame {
         this.startTitleBgm();
     }
     
+    // BGMフェードアウト機能
+    fadeOutBgm(bgmElement, duration = 2000) {
+        return new Promise((resolve) => {
+            if (!bgmElement || bgmElement.paused) {
+                resolve();
+                return;
+            }
+            
+            const startVolume = bgmElement.volume;
+            const step = startVolume / (duration / 50);
+            
+            this.fadeInterval = setInterval(() => {
+                bgmElement.volume = Math.max(0, bgmElement.volume - step);
+                
+                if (bgmElement.volume <= 0) {
+                    clearInterval(this.fadeInterval);
+                    bgmElement.pause();
+                    bgmElement.volume = startVolume; // 音量を元に戻す
+                    console.log('🔇 BGMフェードアウト完了');
+                    resolve();
+                }
+            }, 50);
+        });
+    }
+    
+    // BGMフェードイン機能
+    fadeInBgm(bgmElement, targetVolume = 0.5, duration = 2000) {
+        return new Promise((resolve) => {
+            if (!bgmElement) {
+                resolve();
+                return;
+            }
+            
+            bgmElement.volume = 0;
+            bgmElement.play().catch(e => console.log('BGM再生エラー:', e));
+            
+            const step = targetVolume / (duration / 50);
+            
+            this.fadeInterval = setInterval(() => {
+                bgmElement.volume = Math.min(targetVolume, bgmElement.volume + step);
+                
+                if (bgmElement.volume >= targetVolume) {
+                    clearInterval(this.fadeInterval);
+                    console.log('🔊 BGMフェードイン完了');
+                    resolve();
+                }
+            }, 50);
+        });
+    }
+    
+    // BGM切り替え機能（フェード付き）
+    async switchBgm(newBgm, targetVolume = 0.5) {
+        console.log('🎵 BGM切り替え開始');
+        
+        // 現在のBGMをフェードアウト
+        if (this.currentBgm && !this.currentBgm.paused) {
+            await this.fadeOutBgm(this.currentBgm);
+        }
+        
+        // 新しいBGMをフェードイン
+        this.currentBgm = newBgm;
+        await this.fadeInBgm(newBgm, targetVolume);
+        
+        console.log('🎵 BGM切り替え完了');
+    }
+    
+    // スコアチェックとBGM切り替え
+    checkScoreAndSwitchBgm() {
+        if (this.score >= 200000 && !this.bgmSwitched) {
+            console.log('🏆 スコア200000達成！BGMを切り替えます');
+            this.bgmSwitched = true;
+            this.switchBgm(this.bgm2);
+        }
+    }
+    
     clearGameState() {
         // スコア関連をクリア
         this.score = 0;
@@ -1810,6 +1896,7 @@ class PuyoPuyoGame {
         this.isInChainSequence = false;
         this.currentChainSequence = 0;
         this.isPlacingPiece = false;
+        this.bgmSwitched = false; // BGM切り替えフラグをリセット
         
         // アニメーション状態をリセット
         this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
