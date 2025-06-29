@@ -592,7 +592,7 @@ class PuyoPuyoGame {
         if (this.nextPiece) {
             this.currentPiece = {
                 x: Math.floor(this.BOARD_WIDTH / 2) - 1,
-                y: 0,
+                y: -1,
                 colors: [...this.nextPiece.colors],
                 positions: this.nextPiece.positions.map(pos => ({...pos}))
             };
@@ -1398,8 +1398,8 @@ class PuyoPuyoGame {
     }
     
     drawPuyo(x, y, colorIndex, isConnected = null) {
-        // プレイエリア内のみ描画
-        if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT) {
+        // 横方向の境界チェックと画面下端チェック（上端は描画する）
+        if (x < 0 || x >= this.BOARD_WIDTH || y >= this.BOARD_HEIGHT) {
             return;
         }
         
@@ -1587,8 +1587,8 @@ class PuyoPuyoGame {
     }
     
     drawSeparatedPuyo(x, y, colorIndex) {
-        // プレイエリア内のみ描画
-        if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT) {
+        // 横方向の境界チェックと画面下端チェック（上端は描画する）
+        if (x < 0 || x >= this.BOARD_WIDTH || y >= this.BOARD_HEIGHT) {
             return;
         }
         
