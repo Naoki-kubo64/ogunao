@@ -150,12 +150,18 @@ class PuyoPuyoGame {
         this.seChain2 = document.getElementById('se-chain2');
         this.seChain3 = document.getElementById('se-chain3');
         this.seChain4 = document.getElementById('se-chain4');
+        this.seMove = document.getElementById('se-move');
+        this.seRotate = document.getElementById('se-rotate');
+        this.seClear = document.getElementById('se-clear');
         
         // SE音量設定
         if (this.seGameStart) this.seGameStart.volume = 0.7;
         if (this.seChain2) this.seChain2.volume = 0.8;
         if (this.seChain3) this.seChain3.volume = 0.8;
         if (this.seChain4) this.seChain4.volume = 0.8;
+        if (this.seMove) this.seMove.volume = 0.4; // 移動音は控えめに
+        if (this.seRotate) this.seRotate.volume = 0.5;
+        if (this.seClear) this.seClear.volume = 0.6;
         
         this.lastFallTime = 0;
         this.timeStart = 0;
@@ -502,6 +508,9 @@ class PuyoPuyoGame {
         if (this.seChain2) this.seChain2.volume = volume * 0.8;
         if (this.seChain3) this.seChain3.volume = volume * 0.8;
         if (this.seChain4) this.seChain4.volume = volume * 0.8;
+        if (this.seMove) this.seMove.volume = volume * 0.4;
+        if (this.seRotate) this.seRotate.volume = volume * 0.5;
+        if (this.seClear) this.seClear.volume = volume * 0.6;
         
         document.getElementById('volume-display').textContent = `${value}%`;
         console.log(`🔊 音量調整: ${value}%`);
@@ -543,6 +552,11 @@ class PuyoPuyoGame {
             this.currentPiece.x = newX;
             this.currentPiece.y = newY;
             this.render();
+            
+            // 横移動時のみSEを再生（頻繁になりすぎないように）
+            if (dx !== 0) {
+                this.playSE(this.seMove, 'ブロック移動');
+            }
         } else if (dy > 0) {
             // 下方向への移動で衝突した場合、部分的な配置をチェック
             this.handlePartialLanding();
@@ -628,6 +642,7 @@ class PuyoPuyoGame {
         if (!this.isCollision(this.currentPiece.x, this.currentPiece.y, rotatedPositions)) {
             this.currentPiece.positions = rotatedPositions;
             this.render();
+            this.playSE(this.seRotate, 'ブロック回転');
             return;
         }
         
@@ -636,6 +651,7 @@ class PuyoPuyoGame {
             this.currentPiece.x -= 1;
             this.currentPiece.positions = rotatedPositions;
             this.render();
+            this.playSE(this.seRotate, 'ブロック回転');
             return;
         }
         
@@ -644,6 +660,7 @@ class PuyoPuyoGame {
             this.currentPiece.x += 1;
             this.currentPiece.positions = rotatedPositions;
             this.render();
+            this.playSE(this.seRotate, 'ブロック回転');
             return;
         }
     }
@@ -738,6 +755,9 @@ class PuyoPuyoGame {
                     this.board[y][x] = 0;
                 }
             }
+            
+            // ブロック消去SEを再生
+            this.playSE(this.seClear, 'ブロック消去');
             
             console.log(`💥 ${allMatches.length}グループ、合計${allMatches.reduce((sum, group) => sum + group.length, 0)}個のブロックを消去`);
             this.debugPrintBoard('消去後のボード状態');
