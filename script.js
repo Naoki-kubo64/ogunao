@@ -170,6 +170,9 @@ class PuyoPuyoGame {
         // ランキングを初期読み込み
         this.loadRanking();
         
+        // デバッグモード表示制御
+        this.initDebugMode();
+        
         // ゲーム開始メッセージを表示
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
     }
@@ -2079,6 +2082,27 @@ service cloud.firestore {
                 comment.parentNode.removeChild(comment);
             }
         }, 8000);
+    }
+
+    // デバッグモード表示制御
+    initDebugMode() {
+        const debugControls = document.querySelector('.debug-controls');
+        if (debugControls) {
+            // 開発モードかどうかを判定（localhost、ファイルプロトコル、または特定のdev URLの場合は表示）
+            const isDevelopment = window.location.hostname === 'localhost' || 
+                                window.location.hostname === '127.0.0.1' || 
+                                window.location.protocol === 'file:' ||
+                                window.location.hostname.includes('dev') ||
+                                window.location.search.includes('debug=true');
+            
+            if (isDevelopment) {
+                debugControls.style.display = 'block';
+                console.log('デバッグモード: 有効');
+            } else {
+                debugControls.style.display = 'none';
+                console.log('デバッグモード: 無効 (本番環境)');
+            }
+        }
     }
 }
 
