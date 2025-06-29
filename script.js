@@ -175,6 +175,10 @@ class PuyoPuyoGame {
         this.manualPlaceMode = false;
         this.selectedColor = 1; // デフォルトは赤
         
+        // 隠しコマンド用の変数
+        this.secretKeySequence = [];
+        this.debugModeVisible = true; // 開発モードではデフォルトで表示
+        
         // 連鎖状態管理用の変数
         this.currentChainSequence = 0; // 現在の連鎖シーケンス数
         this.isInChainSequence = false; // 連鎖処理中かどうか
@@ -187,6 +191,14 @@ class PuyoPuyoGame {
         
         // ランキングを初期読み込み
         this.loadRanking();
+        
+        // ビルドモードかどうかを検出（HTMLにstyle="display: none;"があるかチェック）
+        const debugControls = document.querySelector('.debug-controls');
+        if (debugControls && debugControls.style.display === 'none') {
+            this.debugModeVisible = false;
+            console.log('🚀 本番モード: デバッグコントロールは非表示です');
+            console.log('💡 デバッグモードを表示するには "debug" と入力してください');
+        }
         
         // ゲーム開始メッセージを表示
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
@@ -391,6 +403,9 @@ class PuyoPuyoGame {
     handleKeyPress(e) {
         console.log('Key pressed:', e.key, 'Game running:', this.gameRunning);
         
+        // 隠しコマンドの処理（どの状態でも有効）
+        this.handleSecretCommand(e.key);
+        
         // コメント入力中はゲーム操作を無効にする
         const commentInput = document.getElementById('comment-input');
         if (document.activeElement === commentInput) {
@@ -430,6 +445,54 @@ class PuyoPuyoGame {
             case 'enter':
                 this.togglePause();
                 break;
+        }
+    }
+    
+    // 隠しコマンド処理
+    handleSecretCommand(key) {
+        // 隠しコマンド: "debug" でデバッグモード表示/非表示を切り替え
+        this.secretKeySequence.push(key.toLowerCase());
+        
+        // 最新の5文字のみ保持
+        if (this.secretKeySequence.length > 5) {
+            this.secretKeySequence.shift();
+        }
+        
+        // "debug" というシーケンスが入力されたかチェック
+        if (this.secretKeySequence.join('').includes('debug')) {
+            this.toggleDebugMode();
+            this.secretKeySequence = []; // リセット
+        }
+    }
+    
+    // デバッグモードの表示/非表示を切り替え
+    toggleDebugMode() {
+        const debugControls = document.querySelector('.debug-controls');
+        if (debugControls) {
+            this.debugModeVisible = !this.debugModeVisible;
+            debugControls.style.display = this.debugModeVisible ? 'block' : 'none';
+            
+            console.log(`🔧 デバッグモード: ${this.debugModeVisible ? '表示' : '非表示'}`);
+            
+            // 一時的なメッセージ表示
+            const message = document.createElement('div');
+            message.textContent = `デバッグモード: ${this.debugModeVisible ? 'ON' : 'OFF'}`;
+            message.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 1000;
+                font-family: monospace;
+            `;
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                document.body.removeChild(message);
+            }, 2000);
         }
     }
     
@@ -1561,32 +1624,32 @@ class PuyoPuyoGame {
         
         if (this.nextPiece) {
             const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 80;
+            canvas.width = 96;
+            canvas.height = 96;
             const ctx = canvas.getContext('2d');
             
             for (let i = 0; i < this.nextPiece.positions.length; i++) {
                 const pos = this.nextPiece.positions[i];
-                const x = (pos.x + 1) * 20 + 10;
-                const y = pos.y * 20 + 10;
+                const x = (pos.x + 1) * 24 + 12;
+                const y = pos.y * 24 + 12;
                 
                 const colorIndex = this.nextPiece.colors[i];
                 
                 // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
                 if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 18, 18);
+                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
                 } else {
                     // フォールバック：色での描画
                     ctx.fillStyle = this.colors[colorIndex];
-                    ctx.fillRect(x, y, 36, 36);
+                    ctx.fillRect(x, y, 28, 28);
                     
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(x + 4, y + 4, 28, 28);
+                    ctx.fillRect(x + 3, y + 3, 22, 22);
                 }
                 
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, 18, 18);
+                ctx.strokeRect(x, y, 28, 28);
             }
             
             nextDisplay.appendChild(canvas);

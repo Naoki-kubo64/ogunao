@@ -188,29 +188,29 @@ export class Renderer {
         if (!piece) return;
         
         const canvas = document.createElement('canvas');
-        canvas.width = 80;
-        canvas.height = 80;
+        canvas.width = 96;
+        canvas.height = 96;
         const ctx = canvas.getContext('2d');
         
         for (let i = 0; i < piece.positions.length; i++) {
             const pos = piece.positions[i];
-            const x = (pos.x + 1) * 20 + 10;
-            const y = pos.y * 20 + 10;
+            const x = (pos.x + 1) * 24 + 12;
+            const y = pos.y * 24 + 12;
             const colorIndex = piece.colors[i];
             
             if (this.imageManager.isImageReady(colorIndex)) {
-                ctx.drawImage(this.imageManager.getPuyoImage(colorIndex), x, y, 18, 18);
+                ctx.drawImage(this.imageManager.getPuyoImage(colorIndex), x, y, 28, 28);
             } else {
                 ctx.fillStyle = GAME_CONFIG.COLORS[colorIndex];
-                ctx.fillRect(x, y, 18, 18);
+                ctx.fillRect(x, y, 28, 28);
                 
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.fillRect(x + 2, y + 2, 14, 14);
+                ctx.fillRect(x + 3, y + 3, 22, 22);
             }
             
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, 18, 18);
+            ctx.strokeRect(x, y, 28, 28);
         }
         
         nextDisplay.appendChild(canvas);

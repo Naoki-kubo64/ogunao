@@ -54,8 +54,15 @@ indexContent = indexContent.replace(
     '<script src="firebase-config.example.js"></script>'
 );
 
+// デバッグコントロールを非表示にする
+indexContent = indexContent.replace(
+    /<div class="debug-controls">[\s\S]*?<\/div>\s*<\/div>/,
+    '<div class="debug-controls" style="display: none;">$&</div>'
+);
+
 fs.writeFileSync(indexPath, indexContent);
 console.log('✅ index.htmlのFirebase設定を修正しました');
+console.log('✅ デバッグモードを非表示にしました');
 
 // firebase-config.example.jsを編集してページ用の設定にする
 const configPath = path.join(buildDir, 'firebase-config.example.js');
