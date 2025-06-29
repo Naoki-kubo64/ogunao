@@ -1524,32 +1524,32 @@ class PuyoPuyoGame {
         
         if (this.nextPiece) {
             const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 80;
+            canvas.width = 96;
+            canvas.height = 96;
             const ctx = canvas.getContext('2d');
             
             for (let i = 0; i < this.nextPiece.positions.length; i++) {
                 const pos = this.nextPiece.positions[i];
-                const x = (pos.x + 1) * 20 + 10;
-                const y = pos.y * 20 + 10;
+                const x = (pos.x + 1) * 24 + 12;
+                const y = pos.y * 24 + 12;
                 
                 const colorIndex = this.nextPiece.colors[i];
                 
                 // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
                 if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 18, 18);
+                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
                 } else {
                     // フォールバック：色での描画
                     ctx.fillStyle = this.colors[colorIndex];
-                    ctx.fillRect(x, y, 36, 36);
+                    ctx.fillRect(x, y, 28, 28);
                     
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(x + 4, y + 4, 28, 28);
+                    ctx.fillRect(x + 3, y + 3, 22, 22);
                 }
                 
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(x, y, 18, 18);
+                ctx.strokeRect(x, y, 28, 28);
             }
             
             nextDisplay.appendChild(canvas);

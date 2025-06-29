@@ -84,13 +84,29 @@ body::before {
     margin-left: 10px;
 }
 
+.next-puyo-section {
+    text-align: start;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 2px solid #ff4500;
+}
+
+.next-puyo-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff4500;
+    margin-bottom: 10px;
+}
+
 .next-display {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
     background: rgba(0, 0, 0, 0.5);
     border: 2px solid #ff4500;
     border-radius: 8px;
-    margin-top: 10px;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
