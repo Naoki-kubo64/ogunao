@@ -17,10 +17,8 @@
   ],
   "author": "Your Name",
   "license": "MIT",
+  "devDependencies": {},
   "engines": {
     "node": ">=14.0.0"
-  },
-  "dependencies": {
-    "firebase": "^11.9.1"
   }
 }
