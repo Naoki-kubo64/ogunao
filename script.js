@@ -772,6 +772,8 @@ class PuyoPuyoGame {
         this.isPlacingPiece = true; // ピース配置開始
         console.log('🔴 placePiece started');
         
+        try {
+        
         // 残っているピースをすべて配置
         for (let i = 0; i < this.currentPiece.positions.length; i++) {
             const pos = this.currentPiece.positions[i];
@@ -796,7 +798,17 @@ class PuyoPuyoGame {
         this.spawnNewPiece();
         
         console.log('🔴 placePiece completed');
-        this.isPlacingPiece = false; // ピース配置完了
+        
+        } catch (error) {
+            console.error('❌ ピース配置中にエラーが発生しました:', error);
+            console.error('Error stack:', error.stack);
+            // エラーが発生した場合でも、盤面を安全な状態に戻す
+            this.render();
+        } finally {
+            // ピース配置完了フラグをリセット（エラーの有無に関わらず実行）
+            this.isPlacingPiece = false;
+            console.log('🔒 ピース配置フラグをリセットしました');
+        }
     }
     
     async checkAndClearMatches() {
@@ -809,6 +821,8 @@ class PuyoPuyoGame {
         this.isInChainSequence = true;
         let totalCleared = 0;
         let chainCount = 0;
+        
+        try {
         
         console.log('🔍 === チェーン検出開始 ===');
         console.trace('checkAndClearMatches 呼び出しスタック:');
@@ -838,9 +852,18 @@ class PuyoPuyoGame {
                 this.createExplosionEffects(group);
                 
                 for (let {x, y} of group) {
-                    this.board[y][x] = 0;
+                    // 境界チェックを追加して安全性を向上
+                    if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+                        console.log(`🗑️ ブロック削除: (${x}, ${y}) color: ${this.board[y][x]}`);
+                        this.board[y][x] = 0;
+                    } else {
+                        console.warn(`⚠️ 無効な座標でブロック削除を試行: (${x}, ${y})`);
+                    }
                 }
             }
+            
+            // 削除後の盤面検証
+            this.validateBoardState();
             
             // ブロック消去SEを再生
             this.playSE(this.seClear, 'ブロック消去');
@@ -899,8 +922,16 @@ class PuyoPuyoGame {
             console.log(`💰 獲得スコア: ${totalCleared * 100 * chainCount * chainCount}`);
         }
         
-        // 連鎖処理完了フラグをリセット
-        this.isInChainSequence = false;
+        } catch (error) {
+            console.error('❌ 連鎖処理中にエラーが発生しました:', error);
+            console.error('Error stack:', error.stack);
+            // エラーが発生した場合でも、盤面を安全な状態に戻す
+            this.render();
+        } finally {
+            // 連鎖処理完了フラグをリセット（エラーの有無に関わらず実行）
+            this.isInChainSequence = false;
+            console.log('🔒 連鎖処理フラグをリセットしました');
+        }
     }
     
     // デバッグ用：ボードの状態を視覚的に表示
@@ -910,6 +941,34 @@ class PuyoPuyoGame {
             const row = this.board[y].map(cell => cell === 0 ? '.' : cell).join(' ');
             console.log(`  ${y}: ${row}`);
         }
+    }
+    
+    // 盤面の整合性を検証
+    validateBoardState() {
+        let invalidBlocks = 0;
+        let totalBlocks = 0;
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                const cell = this.board[y][x];
+                if (cell !== 0) {
+                    totalBlocks++;
+                    // ブロックの値が有効な範囲内かチェック
+                    if (cell < 1 || cell > 5) {
+                        invalidBlocks++;
+                        console.warn(`⚠️ 無効なブロック値: (${x}, ${y}) = ${cell}`);
+                        this.board[y][x] = 0; // 無効なブロックは削除
+                    }
+                }
+            }
+        }
+        
+        if (invalidBlocks > 0) {
+            console.warn(`⚠️ ${invalidBlocks}個の無効なブロックを修正しました`);
+            this.render(); // 修正後に再描画
+        }
+        
+        console.log(`✅ 盤面検証完了: 総ブロック数 ${totalBlocks}, 修正数 ${invalidBlocks}`);
     }
     
     // 全ての4個以上接続されたグループを検出する関数
