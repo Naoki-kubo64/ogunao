@@ -1398,3 +1398,16 @@ body::before {
     border-radius: 6px;
     margin: 10px 0;
 }
+
+/* ヘルプモーダル内のぷよアイコン */
+.help-puyo-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid #ffa500;
+    vertical-align: middle;
+    margin: 0 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    display: inline-block;
+}
