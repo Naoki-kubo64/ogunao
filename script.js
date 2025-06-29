@@ -42,7 +42,7 @@ class PuyoPuyoGame {
         this.totalImages = 8; // カットイン画像3枚を含めて8枚
         
         const imageFiles = [
-            'images/nao11.jpg',
+            'images/otafuku.png',
             'images/nao12.jpg', 
             'images/nao4.png',
             'images/raw.png',
