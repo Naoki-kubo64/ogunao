@@ -42,6 +42,7 @@ export const GAME_CONFIG = {
             'images/ホラーなお.png'
         ],
         CUTIN_FILE: 'images/saginaoki.jpg',
+        CUTIN_3CHAIN_FILE: 'images/nao7.png?v=' + Date.now(),
         CUTIN_5CHAIN_FILE: 'images/5rensa.png'
     },
     

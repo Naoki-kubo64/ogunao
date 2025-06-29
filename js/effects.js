@@ -38,14 +38,17 @@ export class EffectsManager {
     
     showCutinEffect(chainCount) {
         if (!this.imageManager.isCutinImageReady(chainCount)) {
+            console.log(`${chainCount}連鎖カットイン画像が準備できていません`);
             return;
         }
         
         const cutin = Utils.createDOMElement('div', 'cutin-effect');
         
         const img = document.createElement('img');
-        img.src = this.imageManager.getCutinImage(chainCount).src;
+        const cutinImage = this.imageManager.getCutinImage(chainCount);
+        img.src = cutinImage.src;
         img.className = 'cutin-image';
+        console.log(`${chainCount}連鎖カットイン画像使用: ${img.src}`);
         
         const text = Utils.createDOMElement('div', 'cutin-text');
         text.textContent = this.getCutinMessage(chainCount);

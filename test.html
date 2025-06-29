@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cutin Image Test</title>
+</head>
+<body>
+    <h1>Testing Cutin Images</h1>
+    <div>
+        <h2>3Chain Image (nao7.png):</h2>
+        <img id="nao7" src="./images/nao7.png" style="max-width: 200px;">
+        <p id="nao7-status">Loading...</p>
+    </div>
+    
+    <div>
+        <h2>5Chain Image (5rensa.png):</h2>
+        <img id="5rensa" src="./images/5rensa.png" style="max-width: 200px;">
+        <p id="5rensa-status">Loading...</p>
+    </div>
+    
+    <div>
+        <h2>Default Cutin (saginaoki.jpg):</h2>
+        <img id="saginaoki" src="./images/saginaoki.jpg" style="max-width: 200px;">
+        <p id="saginaoki-status">Loading...</p>
+    </div>
+    
+    <button onclick="testCutin()">Test 3-Chain Cutin Effect</button>
+    
+    <script>
+        const nao7 = document.getElementById('nao7');
+        const rensa5 = document.getElementById('5rensa');
+        const saginaoki = document.getElementById('saginaoki');
+        
+        nao7.onload = () => {
+            document.getElementById('nao7-status').textContent = 'Loaded successfully!';
+            console.log('nao7.png loaded:', nao7.complete, nao7.naturalWidth, nao7.naturalHeight);
+        };
+        
+        nao7.onerror = () => {
+            document.getElementById('nao7-status').textContent = 'Failed to load!';
+        };
+        
+        rensa5.onload = () => {
+            document.getElementById('5rensa-status').textContent = 'Loaded successfully!';
+        };
+        
+        rensa5.onerror = () => {
+            document.getElementById('5rensa-status').textContent = 'Failed to load!';
+        };
+        
+        saginaoki.onload = () => {
+            document.getElementById('saginaoki-status').textContent = 'Loaded successfully!';
+        };
+        
+        saginaoki.onerror = () => {
+            document.getElementById('saginaoki-status').textContent = 'Failed to load!';
+        };
+        
+        function testCutin() {
+            console.log('Testing cutin with nao7.png...');
+            console.log('Image complete:', nao7.complete);
+            console.log('Natural dimensions:', nao7.naturalWidth, 'x', nao7.naturalHeight);
+            console.log('Image src:', nao7.src);
+        }
+    </script>
+</body>
+</html>

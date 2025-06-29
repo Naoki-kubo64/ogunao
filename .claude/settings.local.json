@@ -1,16 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3:*)",
-      "Bash(echo:*)",
-      "Bash(find:*)",
-      "Bash(mv:*)",
       "Bash(ls:*)",
+      "Bash(rg:*)",
       "Bash(grep:*)",
-      "Bash(node:*)",
-      "Bash(git check-ignore:*)",
-      "Bash(node:*)"
-      "Bash(rg:*)"
+      "Bash(python3:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }
