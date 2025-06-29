@@ -14,6 +14,8 @@
 <body>
     <div class="container">
         <div class="game-area">
+            <!-- ニコニコ動画風コメント表示領域 -->
+            <div id="comment-overlay" class="comment-overlay"></div>
             <div class="game-info">
                 <div class="score">スコア: <span id="score">0</span></div>
                 <div class="time">時間: <span id="time">0</span>秒</div>
@@ -25,6 +27,11 @@
                         <option value="normal" selected>普通</option>
                         <option value="hard">難しい</option>
                     </select>
+                </div>
+                <div class="volume-control">
+                    <label for="volume-slider">BGM音量:</label>
+                    <input type="range" id="volume-slider" min="0" max="100" value="50">
+                    <span id="volume-display">50%</span>
                 </div>
                 <div class="next-puyo">
                     <div>次のぷよ</div>
@@ -41,7 +48,7 @@
                 </div>
             </div>
             <div class="game-board">
-                <canvas id="game-canvas" width="240" height="360"></canvas>
+                <canvas id="game-canvas" width="480" height="720"></canvas>
             </div>
             <div class="controls">
                 <div class="control-info">
@@ -52,35 +59,35 @@
                     <p>Space : 回転</p>
                     <p>Enter : ゲーム開始/一時停止</p>
                 </div>
-                <div class="debug-controls">
-                    <p>デバッグモード:</p>
-                    <div class="debug-row">
-                        <button id="debug-2chain">2連鎖テスト</button>
-                        <button id="debug-3chain">3連鎖テスト</button>
-                        <button id="debug-4chain">4連鎖テスト</button>
+                <div class="comment-section">
+                    <h4>コメント投稿</h4>
+                    <div class="comment-input-area">
+                        <input type="text" id="comment-input" placeholder="コメントを入力..." maxlength="50">
+                        <button id="send-comment">送信</button>
                     </div>
-                    <div class="debug-row">
-                        <button id="debug-5chain">5連鎖テスト</button>
-                        <button id="debug-7chain">7連鎖テスト</button>
-                        <button id="debug-cutin">カットインテスト</button>
+                    <div class="comment-history">
+                        <h5>コメント履歴</h5>
+                        <div id="comment-list" class="comment-list">
+                            <div class="loading">コメント読み込み中...</div>
+                        </div>
                     </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-2">2連鎖設置</button>
-                        <button id="debug-pattern-3">3連鎖設置</button>
-                        <button id="debug-pattern-4">4連鎖設置</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-5">5連鎖設置</button>
-                        <button id="debug-pattern-7">7連鎖設置</button>
-                        <button id="debug-clear">ボードクリア</button>
-                    </div>
+                </div>
+                
                 </div>
             </div>
         </div>
         <div class="game-status">
             <div id="start-screen" class="start-screen">
-                <h2>おぐなお</h2>
-                <p>Enterキーを押してゲーム開始!</p>
+                <div class="title-content">
+                    <img src="images/puyopuyo.jpg" alt="ぷよぷよタイトル" class="title-image">
+                    <h2 class="game-title">おぐなお</h2>
+                    <p class="start-instruction">Enterキーを押してゲーム開始!</p>
+                    <div class="title-effects">
+                        <div class="sparkle sparkle-1">✨</div>
+                        <div class="sparkle sparkle-2">⭐</div>
+                        <div class="sparkle sparkle-3">💫</div>
+                    </div>
+                </div>
             </div>
             <div id="game-over" class="game-over hidden">
                 <h2>ゲームオーバー</h2>
