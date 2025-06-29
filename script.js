@@ -23,6 +23,7 @@ class PuyoPuyoGame {
         this.fallSpeed = 1000;
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
         this.scoreSubmitted = false; // スコアが登録済みかどうか
+        this.isPlacingPiece = false; // ピース配置中かどうか
         
         this.colors = [
             null,
@@ -590,6 +591,7 @@ class PuyoPuyoGame {
     
     spawnNewPiece() {
         if (this.nextPiece) {
+            console.log('🟢 spawnNewPiece: NEW PIECE COLORS =', [...this.nextPiece.colors]);
             this.currentPiece = {
                 x: Math.floor(this.BOARD_WIDTH / 2) - 1,
                 y: -1,
@@ -621,8 +623,8 @@ class PuyoPuyoGame {
                 this.playSE(this.seMove, 'ブロック移動');
             }
         } else if (dy > 0) {
-            // 下方向への移動で衝突した場合、部分的な配置をチェック
-            this.handlePartialLanding();
+            // 下方向への移動で衝突した場合、ピースを配置
+            this.placePiece();
         }
         // 左右への移動で衝突した場合は、単に移動しない
     }
@@ -666,11 +668,20 @@ class PuyoPuyoGame {
             
             // 浮いているピースで新しいcurrentPieceを作成
             const newColors = floatingPieces.map(i => this.currentPiece.colors[i]);
-            const newPositions = floatingPieces.map(i => this.currentPiece.positions[i]);
+            const newPositions = floatingPieces.map(i => ({...this.currentPiece.positions[i]}));
+            
+            // 新しいポジション配列を正規化（最初のピースを基準にする）
+            if (newPositions.length > 0) {
+                const basePos = newPositions[0];
+                for (let i = 0; i < newPositions.length; i++) {
+                    newPositions[i].x -= basePos.x;
+                    newPositions[i].y -= basePos.y;
+                }
+            }
             
             this.currentPiece = {
-                x: this.currentPiece.x,
-                y: this.currentPiece.y,
+                x: this.currentPiece.x + (floatingPieces.length > 0 ? this.currentPiece.positions[floatingPieces[0]].x : 0),
+                y: this.currentPiece.y + (floatingPieces.length > 0 ? this.currentPiece.positions[floatingPieces[0]].y : 0),
                 colors: newColors,
                 positions: newPositions
             };
@@ -752,6 +763,15 @@ class PuyoPuyoGame {
     }
     
     async placePiece() {
+        // 既に配置処理中の場合は重複実行を防ぐ
+        if (this.isPlacingPiece) {
+            console.log('🚫 placePiece already in progress, skipping');
+            return;
+        }
+        
+        this.isPlacingPiece = true; // ピース配置開始
+        console.log('🔴 placePiece started');
+        
         // 残っているピースをすべて配置
         for (let i = 0; i < this.currentPiece.positions.length; i++) {
             const pos = this.currentPiece.positions[i];
@@ -774,6 +794,9 @@ class PuyoPuyoGame {
         
         await this.checkAndClearMatches();
         this.spawnNewPiece();
+        
+        console.log('🔴 placePiece completed');
+        this.isPlacingPiece = false; // ピース配置完了
     }
     
     async checkAndClearMatches() {
@@ -1229,12 +1252,11 @@ class PuyoPuyoGame {
         // アニメーションを更新
         this.updateAnimations();
         
-        // currentPieceが存在しない場合の緊急対応
-        if (!this.currentPiece) {
-            console.log('🚨 Emergency: No current piece in game loop, spawning new one...');
-            this.generateNextPiece();
-            this.spawnNewPiece();
-        }
+        // 緊急スポーンを一時的に無効化（デバッグ用）
+        // if (!this.currentPiece && !this.isInChainSequence && !this.isPlacingPiece) {
+        //     this.generateNextPiece();
+        //     this.spawnNewPiece();
+        // }
         
         // 切り離されたピースは高速落下（100ms間隔）
         const effectiveFallSpeed = this.isSeparatedPiece ? 100 : this.fallSpeed;
@@ -1728,6 +1750,7 @@ class PuyoPuyoGame {
         this.isSeparatedPiece = false;
         this.isInChainSequence = false;
         this.currentChainSequence = 0;
+        this.isPlacingPiece = false;
         
         // アニメーション状態をリセット
         this.puyoAnimations = Array(this.BOARD_HEIGHT).fill().map(() => 
