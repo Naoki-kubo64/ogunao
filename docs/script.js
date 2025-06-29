@@ -10,7 +10,7 @@ class PuyoPuyoGame {
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
         this.BOARD_HEIGHT = 9;
-        this.CELL_SIZE = 40;
+        this.CELL_SIZE = 80;
         
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
         this.currentPiece = null;
@@ -714,7 +714,7 @@ class PuyoPuyoGame {
     
     drawGrid() {
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 2;
         
         // 縦線
         for (let x = 0; x <= this.BOARD_WIDTH; x++) {
@@ -787,7 +787,7 @@ class PuyoPuyoGame {
             this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
             
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
+            this.ctx.fillRect(puyoX + 4, puyoY + 4, puyoSize - 8, puyoSize - 8);
         }
         
         this.ctx.restore();
@@ -812,7 +812,7 @@ class PuyoPuyoGame {
         }
         
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         
         if (isConnected) {
@@ -867,7 +867,7 @@ class PuyoPuyoGame {
             this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
             
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
+            this.ctx.fillRect(puyoX + 4, puyoY + 4, puyoSize - 8, puyoSize - 8);
         }
         
         this.ctx.restore();
@@ -879,7 +879,7 @@ class PuyoPuyoGame {
         
         // 境界線の描画
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         
         if (isConnected) {
@@ -982,7 +982,7 @@ class PuyoPuyoGame {
         const puyoSize = this.CELL_SIZE - 4;
         
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 2;
         
         // 接続されていない方向にのみ境界線を描画
         this.ctx.beginPath();
@@ -1051,14 +1051,14 @@ class PuyoPuyoGame {
             this.ctx.fillRect(puyoX, puyoY, puyoSize, puyoSize);
             
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            this.ctx.fillRect(puyoX + 2, puyoY + 2, puyoSize - 4, puyoSize - 4);
+            this.ctx.fillRect(puyoX + 4, puyoY + 4, puyoSize - 8, puyoSize - 8);
         }
         
         this.ctx.restore();
         
         // 境界線
         this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 4;
         this.ctx.beginPath();
         this.roundRect(puyoX, puyoY, puyoSize, puyoSize, radius);
         this.ctx.stroke();
@@ -1089,14 +1089,14 @@ class PuyoPuyoGame {
                 } else {
                     // フォールバック：色での描画
                     ctx.fillStyle = this.colors[colorIndex];
-                    ctx.fillRect(x, y, 18, 18);
+                    ctx.fillRect(x, y, 36, 36);
                     
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.fillRect(x + 2, y + 2, 14, 14);
+                    ctx.fillRect(x + 4, y + 4, 28, 28);
                 }
                 
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = 2;
                 ctx.strokeRect(x, y, 18, 18);
             }
             
