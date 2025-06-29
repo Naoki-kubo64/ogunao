@@ -16,7 +16,7 @@ const filesToCopy = [
     'index.html',
     'style.css',
     'script.js',
-    'firebase-config.js'
+    'firebase-config.example.js'
 ];
 
 filesToCopy.forEach(file => {
@@ -42,13 +42,51 @@ if (fs.existsSync('music')) {
 const indexPath = path.join(buildDir, 'index.html');
 let indexContent = fs.readFileSync(indexPath, 'utf8');
 
-// Firebase設定ファイルの参照はそのまま維持
+// Firebase設定ファイルの参照を変更
+indexContent = indexContent.replace(
+    '<script src="firebase-config.js"></script>',
+    '<script src="firebase-config.example.js"></script>'
+);
 
 fs.writeFileSync(indexPath, indexContent);
 console.log('✅ index.htmlのFirebase設定を修正しました');
 
-// Firebase設定ファイルはそのまま使用（設定済みのためコピーのみ）
-console.log('✅ Firebase設定ファイルをコピーしました');
+// firebase-config.example.jsを編集してページ用の設定にする
+const configPath = path.join(buildDir, 'firebase-config.example.js');
+let configContent = fs.readFileSync(configPath, 'utf8');
+
+// 実際の設定値に置換
+configContent = configContent.replace(
+    /apiKey: "YOUR_API_KEY_HERE"/,
+    'apiKey: "AIzaSyA53kNq2dy8KAlDOreacplG2ddA8GTjhT8"'
+);
+configContent = configContent.replace(
+    /authDomain: "your-project\.firebaseapp\.com"/,
+    'authDomain: "ogunaogames.firebaseapp.com"'
+);
+configContent = configContent.replace(
+    /projectId: "your-project-id"/,
+    'projectId: "ogunaogames"'
+);
+configContent = configContent.replace(
+    /storageBucket: "your-project\.firebasestorage\.app"/,
+    'storageBucket: "ogunaogames.firebasestorage.app"'
+);
+configContent = configContent.replace(
+    /messagingSenderId: "123456789012"/,
+    'messagingSenderId: "737503471226"'
+);
+configContent = configContent.replace(
+    /appId: "1:123456789012:web:abcdef123456789"/,
+    'appId: "1:737503471226:web:166745d7ac81f141683dc3"'
+);
+configContent = configContent.replace(
+    /measurementId: "G-XXXXXXXXXX"/,
+    'measurementId: "G-77Z4H2HZM6"'
+);
+
+fs.writeFileSync(configPath, configContent);
+console.log('✅ Firebase設定ファイルを更新しました');
 
 // READMEをコピー（GitHub Pages用に更新）
 if (fs.existsSync('README.md')) {
