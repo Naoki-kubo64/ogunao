@@ -157,6 +157,10 @@ class PuyoPuyoGame {
         this.manualPlaceMode = false;
         this.selectedColor = 1; // デフォルトは赤
         
+        // 隠しコマンド用の変数
+        this.secretKeySequence = [];
+        this.debugModeVisible = true; // 開発モードではデフォルトで表示
+        
         // 連鎖状態管理用の変数
         this.currentChainSequence = 0; // 現在の連鎖シーケンス数
         this.isInChainSequence = false; // 連鎖処理中かどうか
@@ -169,6 +173,14 @@ class PuyoPuyoGame {
         
         // ランキングを初期読み込み
         this.loadRanking();
+        
+        // ビルドモードかどうかを検出（HTMLにstyle="display: none;"があるかチェック）
+        const debugControls = document.querySelector('.debug-controls');
+        if (debugControls && debugControls.style.display === 'none') {
+            this.debugModeVisible = false;
+            console.log('🚀 本番モード: デバッグコントロールは非表示です');
+            console.log('💡 デバッグモードを表示するには "debug" と入力してください');
+        }
         
         // ゲーム開始メッセージを表示
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
@@ -324,6 +336,9 @@ class PuyoPuyoGame {
     handleKeyPress(e) {
         console.log('Key pressed:', e.key, 'Game running:', this.gameRunning);
         
+        // 隠しコマンドの処理（どの状態でも有効）
+        this.handleSecretCommand(e.key);
+        
         // コメント入力中はゲーム操作を無効にする
         const commentInput = document.getElementById('comment-input');
         if (document.activeElement === commentInput) {
@@ -363,6 +378,54 @@ class PuyoPuyoGame {
             case 'enter':
                 this.togglePause();
                 break;
+        }
+    }
+    
+    // 隠しコマンド処理
+    handleSecretCommand(key) {
+        // 隠しコマンド: "debug" でデバッグモード表示/非表示を切り替え
+        this.secretKeySequence.push(key.toLowerCase());
+        
+        // 最新の5文字のみ保持
+        if (this.secretKeySequence.length > 5) {
+            this.secretKeySequence.shift();
+        }
+        
+        // "debug" というシーケンスが入力されたかチェック
+        if (this.secretKeySequence.join('').includes('debug')) {
+            this.toggleDebugMode();
+            this.secretKeySequence = []; // リセット
+        }
+    }
+    
+    // デバッグモードの表示/非表示を切り替え
+    toggleDebugMode() {
+        const debugControls = document.querySelector('.debug-controls');
+        if (debugControls) {
+            this.debugModeVisible = !this.debugModeVisible;
+            debugControls.style.display = this.debugModeVisible ? 'block' : 'none';
+            
+            console.log(`🔧 デバッグモード: ${this.debugModeVisible ? '表示' : '非表示'}`);
+            
+            // 一時的なメッセージ表示
+            const message = document.createElement('div');
+            message.textContent = `デバッグモード: ${this.debugModeVisible ? 'ON' : 'OFF'}`;
+            message.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 1000;
+                font-family: monospace;
+            `;
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                document.body.removeChild(message);
+            }, 2000);
         }
     }
     
