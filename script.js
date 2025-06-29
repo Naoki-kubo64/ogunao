@@ -135,9 +135,15 @@ class PuyoPuyoGame {
         this.cutin5ChainImage.src = 'images/5rensa.png';
         
         // BGM設定
-        this.bgm = new Audio('music/ぷよぷよっと始まる毎日.mp3');
-        this.bgm.loop = true;
-        this.bgm.volume = 0.5;
+        this.titleBgm = document.getElementById('title-bgm');
+        this.bgm = document.getElementById('game-bgm');
+        
+        if (this.titleBgm && this.bgm) {
+            this.titleBgm.volume = 0.4;
+            this.bgm.volume = 0.5;
+        } else {
+            console.error('❌ Audio要素が見つかりません');
+        }
         
         this.lastFallTime = 0;
         this.timeStart = 0;
@@ -234,6 +240,43 @@ class PuyoPuyoGame {
         
         // Firebase初期化後にコメント機能を開始
         this.initializeCommentSystem();
+        
+        // ユーザー操作でタイトルBGMを開始
+        this.setupTitleBgmTrigger();
+    }
+    
+    startTitleBgm() {
+        if (this.titleBgm) {
+            this.titleBgm.play().catch(e => {
+                console.log('タイトルBGM再生に失敗:', e.message);
+            });
+        }
+    }
+    
+    stopTitleBgm() {
+        if (this.titleBgm) {
+            this.titleBgm.pause();
+            this.titleBgm.currentTime = 0;
+        }
+    }
+    
+    setupTitleBgmTrigger() {
+        // ユーザーの最初の操作でタイトルBGMを開始
+        const startTitleMusic = () => {
+            console.log('ユーザー操作検出 - タイトルBGM開始');
+            this.startTitleBgm();
+            // イベントリスナーを削除（一度だけ実行）
+            document.removeEventListener('click', startTitleMusic);
+            document.removeEventListener('keydown', startTitleMusic);
+            document.removeEventListener('touchstart', startTitleMusic);
+        };
+        
+        // 様々なユーザー操作をリスン
+        document.addEventListener('click', startTitleMusic, { once: true });
+        document.addEventListener('keydown', startTitleMusic, { once: true });
+        document.addEventListener('touchstart', startTitleMusic, { once: true });
+        
+        console.log('タイトルBGMトリガー設定完了');
     }
     
     async initializeCommentSystem() {
@@ -388,10 +431,14 @@ class PuyoPuyoGame {
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.add('hidden');
         
-        // BGM再生開始
+        // タイトルBGMを停止
+        this.stopTitleBgm();
+        
+        // ゲームBGM開始
         this.bgm.play().catch(e => {
             console.log('BGM auto-play blocked:', e);
         });
+        console.log('🎵 ゲームBGM開始');
     }
     
     togglePause() {
@@ -420,7 +467,9 @@ class PuyoPuyoGame {
     updateVolume(value) {
         const volume = value / 100;
         this.bgm.volume = volume;
+        this.titleBgm.volume = volume * 0.8; // タイトルBGMは少し静か目
         document.getElementById('volume-display').textContent = `${value}%`;
+        console.log(`🔊 音量調整: ${value}%`);
     }
     
     generateNextPiece() {
@@ -1517,9 +1566,12 @@ class PuyoPuyoGame {
         
         document.getElementById('game-over').classList.remove('hidden');
         
-        // BGM停止
+        // ゲームBGM停止
         this.bgm.pause();
         this.bgm.currentTime = 0;
+        
+        // タイトルBGMを再開
+        this.startTitleBgm();
     }
     
     restart() {
@@ -1558,9 +1610,12 @@ class PuyoPuyoGame {
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('start-screen').classList.remove('hidden');
         
-        // BGM停止
+        // ゲームBGM停止
         this.bgm.pause();
         this.bgm.currentTime = 0;
+        
+        // タイトルBGMを再開
+        this.startTitleBgm();
     }
     
     // デバッグ機能

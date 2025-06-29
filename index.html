@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="autoplay-policy" content="auto">
     <title>おぐなお</title>
     <link rel="stylesheet" href="style.css">
     <!-- Firebase SDK -->
@@ -12,6 +13,13 @@
     <script src="firebase-config.js"></script>
 </head>
 <body>
+    <!-- BGM用のaudio要素 -->
+    <audio id="title-bgm" preload="auto" loop>
+        <source src="music/instrumental.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="game-bgm" preload="auto" loop>
+        <source src="music/ぷよぷよっと始まる毎日.mp3" type="audio/mpeg">
+    </audio>
     <div class="container">
         <div class="game-area">
             <!-- ニコニコ動画風コメント表示領域 -->
