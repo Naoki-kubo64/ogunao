@@ -6,7 +6,10 @@
       "Bash(grep:*)",
       "Bash(python3:*)",
       "Bash(curl:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

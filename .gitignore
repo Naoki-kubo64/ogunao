@@ -48,6 +48,17 @@ out/
 # GitHub Pages用のdocsディレクトリは管理対象とする
 # docs/
 
+# ビルド関連ファイル（自動生成）
+docs/build-info.json
+script-legacy.js
+script-organized.js
+
+# 古いモジュールファイル（未使用）
+js/audioManager.js
+js/firebaseManager.js
+js/naochanSystem.js
+js/uiManager.js
+
 # テスト関連
 coverage/
 .nyc_output

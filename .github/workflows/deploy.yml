@@ -29,9 +29,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
           
-      - name: Build
-        run: node build.js
+      - name: Install dependencies
+        run: npm ci --only=production || npm install --only=production
+          
+      - name: Build for production
+        run: |
+          echo "🚀 Starting GitHub Pages build..."
+          npm run build
+          echo "📊 Build info:"
+          cat docs/build-info.json
+          echo "✅ Build completed successfully!"
         
       - name: Setup Pages
         uses: actions/configure-pages@v4
