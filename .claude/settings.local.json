@@ -5,7 +5,8 @@
       "Bash(rg:*)",
       "Bash(grep:*)",
       "Bash(python3:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }
