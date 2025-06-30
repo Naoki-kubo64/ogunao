@@ -15,7 +15,9 @@
       "Bash(git push:*)",
       "Bash(pkill:*)",
       "Bash(true)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }
