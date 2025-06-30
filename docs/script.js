@@ -3952,3 +3952,2697 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ================================================
+// ゲームモード管理システム
+// ================================================
+
+class GameModeManager {
+    constructor() {
+        this.currentMode = 'title'; // 'title', 'solo', 'battle'
+        this.game = null; // ソロゲームインスタンス
+        this.battleGame = null; // 対戦ゲームインスタンス
+        
+        this.initializeElements();
+        this.setupModeEventListeners();
+    }
+    
+    initializeElements() {
+        // スクリーン要素
+        this.startScreen = document.getElementById('start-screen');
+        this.gameArea = document.querySelector('.game-area');
+        this.battleScreen = document.getElementById('battle-screen');
+        
+        // モード選択ボタン
+        this.soloModeBtn = document.getElementById('solo-mode-btn');
+        this.battleModeBtn = document.getElementById('battle-mode-btn');
+        this.backToTitleBtn = document.getElementById('back-to-title');
+        
+        // Press Enter Key 表示要素
+        this.pressEnterInstruction = document.getElementById('press-enter-instruction');
+        this.startInstruction = document.querySelector('.start-instruction');
+        
+        console.log('🎮 ゲームモード管理システムを初期化しました');
+    }
+    
+    setupModeEventListeners() {
+        // ソロモードボタン
+        if (this.soloModeBtn) {
+            this.soloModeBtn.addEventListener('click', () => {
+                this.showPressEnterInstruction();
+            });
+        }
+        
+        // 対戦モードボタン
+        if (this.battleModeBtn) {
+            this.battleModeBtn.addEventListener('click', () => {
+                this.switchToBattleMode();
+            });
+        }
+        
+        // タイトルに戻るボタン
+        if (this.backToTitleBtn) {
+            this.backToTitleBtn.addEventListener('click', () => {
+                this.switchToTitleMode();
+            });
+        }
+        
+        // Enterキーによるソロモード開始（既存の動作との互換性）
+        // 既存のキーハンドラーと競合しないよう、より優先度の高いイベントリスナーとして追加
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (this.currentMode === 'title' || this.currentMode === 'solo-waiting')) {
+                // タイトル画面またはソロ待機画面でEnterが押された場合、ソロモードに切り替え
+                e.preventDefault();
+                e.stopPropagation();
+                this.switchToSoloMode();
+            }
+        }, true); // キャプチャフェーズで実行
+    }
+    
+    showPressEnterInstruction() {
+        console.log('🎮 ソロプレイが選択されました - Press Enter Key表示');
+        
+        // モード選択の説明文を非表示
+        if (this.startInstruction) {
+            this.startInstruction.style.display = 'none';
+        }
+        
+        // Press Enter Key表示を表示
+        if (this.pressEnterInstruction) {
+            this.pressEnterInstruction.classList.remove('hidden');
+        }
+        
+        // モードを"solo-waiting"に設定（Enterキー待ち状態）
+        this.currentMode = 'solo-waiting';
+    }
+    
+    switchToTitleMode() {
+        console.log('📱 タイトル画面に切り替え');
+        this.currentMode = 'title';
+        
+        // bodyのflexboxを元に戻す
+        document.body.style.display = 'flex';
+        document.body.style.justifyContent = 'center';
+        document.body.style.alignItems = 'center';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // タイトル画面を表示
+        if (this.startScreen) {
+            this.startScreen.classList.remove('hidden');
+        }
+        
+        // Press Enter Key表示を非表示にして、元の説明文を表示
+        if (this.pressEnterInstruction) {
+            this.pressEnterInstruction.classList.add('hidden');
+        }
+        if (this.startInstruction) {
+            this.startInstruction.style.display = 'block';
+        }
+        
+        // コンテナの表示を確認
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'flex';
+        }
+        
+        // ゲームを停止
+        if (this.game) {
+            this.game.resetGame();
+            // ゲームの状態をリセット
+            if (this.game.gameRunning) {
+                this.game.gameRunning = false;
+            }
+        }
+        if (this.battleGame) {
+            this.battleGame.cleanup();
+            this.battleGame = null;
+        }
+    }
+    
+    switchToSoloMode() {
+        console.log('🎮 ソロモードに切り替え');
+        this.currentMode = 'solo';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // ソロゲーム画面を表示
+        if (this.gameArea) {
+            this.gameArea.style.display = 'flex';
+            this.gameArea.style.visibility = 'visible';
+        }
+        
+        // コンテナの表示を確認
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'flex';
+        }
+        
+        // 従来のEnterキー処理と同じロジックを実行
+        setTimeout(() => {
+            if (this.game) {
+                console.log('🎯 従来のEnterキー処理でソロゲームを開始します');
+                
+                // コメント入力フィールドからフォーカスを外す（従来の処理と同じ）
+                const commentInput = document.getElementById('comment-input');
+                if (document.activeElement === commentInput) {
+                    console.log('📝 Removing focus from comment input');
+                    commentInput.blur();
+                }
+                
+                // 従来のstartGame()メソッドを直接呼び出し
+                this.game.startGame();
+                console.log('✅ 従来のstartGame()メソッドを実行しました');
+                
+            } else {
+                console.log('⚠️ ゲームインスタンスが見つかりません');
+                // ゲームインスタンスが見つからない場合、window.gameを試行
+                if (window.game) {
+                    console.log('🔄 window.gameを使用してゲームを開始します');
+                    // コメント入力フィールドからフォーカスを外す
+                    const commentInput = document.getElementById('comment-input');
+                    if (document.activeElement === commentInput) {
+                        commentInput.blur();
+                    }
+                    window.game.startGame();
+                }
+            }
+        }, 150);
+    }
+    
+    switchToBattleMode() {
+        console.log('⚔️ 対戦モードに切り替え');
+        this.currentMode = 'battle';
+        
+        // bodyのflexboxを一時的に無効化
+        document.body.style.display = 'block';
+        document.body.style.justifyContent = 'initial';
+        document.body.style.alignItems = 'initial';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // 対戦画面を表示
+        if (this.battleScreen) {
+            this.battleScreen.classList.remove('hidden');
+            this.battleScreen.style.display = 'block';
+            this.battleScreen.style.visibility = 'visible';
+            
+            // 位置を強制的に修正
+            this.battleScreen.style.position = 'fixed';
+            this.battleScreen.style.top = '0px';
+            this.battleScreen.style.left = '0px';
+            this.battleScreen.style.width = '100vw';
+            this.battleScreen.style.height = '100vh';
+            this.battleScreen.style.zIndex = '9999';
+            this.battleScreen.style.margin = '0';
+            this.battleScreen.style.padding = '0';
+            this.battleScreen.style.transform = 'none';
+            
+            console.log('✅ 対戦画面を表示しました');
+        } else {
+            console.error('❌ 対戦画面要素が見つかりません');
+        }
+        
+        // 少し遅延してから対戦ゲームを初期化
+        setTimeout(() => {
+            if (!this.battleGame) {
+                this.battleGame = new BattleGame();
+                console.log('✅ 新しい対戦ゲームを作成しました');
+            } else {
+                console.log('✅ 既存の対戦ゲームを使用します');
+            }
+        }, 100);
+    }
+    
+    hideAllScreens() {
+        // タイトル画面を非表示
+        if (this.startScreen) {
+            this.startScreen.classList.add('hidden');
+        }
+        
+        // ゲームエリアを非表示（ソロモード用）
+        if (this.gameArea) {
+            this.gameArea.style.display = 'none';
+        }
+        
+        // 対戦画面を非表示
+        if (this.battleScreen) {
+            this.battleScreen.classList.add('hidden');
+            this.battleScreen.style.display = 'none';
+            this.battleScreen.style.visibility = 'hidden';
+        }
+        
+        // ゲームオーバー画面も非表示
+        const gameOverScreen = document.getElementById('game-over');
+        if (gameOverScreen) {
+            gameOverScreen.classList.add('hidden');
+        }
+    }
+    
+    setGameInstance(gameInstance) {
+        this.game = gameInstance;
+        console.log('🎯 ゲームインスタンスを設定しました');
+    }
+}
+
+// ================================================
+// 対戦ゲームプロトタイプクラス
+// ================================================
+
+class BattleGame {
+    constructor() {
+        console.log('⚔️ 対戦ゲーム本格版を初期化中...');
+        
+        this.playerCanvas = null;
+        this.cpuCanvas = null;
+        this.playerCtx = null;
+        this.cpuCtx = null;
+        this.gameRunning = false;
+        this.timeLeft = 180; // 3分
+        this.timer = null;
+        
+        this.playerScore = 0;
+        this.cpuScore = 0;
+        this.cpuLevel = 'normal';
+        
+        // ゲームボード設定
+        this.BOARD_WIDTH = 6;
+        this.BOARD_HEIGHT = 9;
+        this.CELL_SIZE = 50; // 300px / 6 = 50px (横基準)
+        this.GARBAGE_PUYO = 6; // おじゃまぷよの色番号
+        
+        // プレイヤーとCPUのゲームボード
+        this.playerBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        this.cpuBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        
+        // 現在のピース
+        this.playerCurrentPiece = null;
+        this.cpuCurrentPiece = null;
+        this.playerNextPiece = null;
+        this.cpuNextPiece = null;
+        
+        // ゲーム状態
+        this.playerGameOver = false;
+        this.cpuGameOver = false;
+        this.playerLastMoveTime = 0;
+        this.cpuLastMoveTime = 0;
+        this.fallSpeed = 800; // 0.8秒（高速化）
+        
+        // 連鎖とおじゃまぷよ
+        this.playerChainCount = 0;
+        this.cpuChainCount = 0;
+        this.playerPendingGarbage = 0; // 送られる予定のおじゃまぷよ
+        this.cpuPendingGarbage = 0;
+        
+        // ぷよ画像（既存のゲームから使用）
+        this.puyoImages = [];
+        
+        this.initializeElements();
+        this.setupEventListeners();
+        
+        // 少し遅延を入れてからキャンバス初期化
+        setTimeout(() => {
+            this.initializeCanvas();
+            this.showPrototypeMessage();
+            
+            // 初期描画
+            setTimeout(() => {
+                this.drawGameBoard('player');
+                this.drawGameBoard('cpu');
+                console.log('🎨 初期ゲームボード描画完了');
+            }, 100);
+        }, 200);
+    }
+    
+    initializeElements() {
+        // キャンバス要素
+        this.playerCanvas = document.getElementById('player-canvas');
+        this.cpuCanvas = document.getElementById('cpu-canvas');
+        
+        // UI要素
+        this.battleStartBtn = document.getElementById('battle-start');
+        this.battlePauseBtn = document.getElementById('battle-pause');
+        this.timeLeftDisplay = document.getElementById('time-left');
+        this.playerScoreDisplay = document.getElementById('player-score');
+        this.cpuScoreDisplay = document.getElementById('cpu-score');
+        this.cpuLevelSelect = document.getElementById('cpu-level');
+        
+        console.log('🎯 対戦モード要素を初期化しました');
+    }
+    
+    setupEventListeners() {
+        // 対戦開始ボタン
+        if (this.battleStartBtn) {
+            this.battleStartBtn.addEventListener('click', () => {
+                this.startBattle();
+            });
+        }
+        
+        // 一時停止ボタン
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.addEventListener('click', () => {
+                this.pauseBattle();
+            });
+        }
+        
+        // CPU難易度変更
+        if (this.cpuLevelSelect) {
+            this.cpuLevelSelect.addEventListener('change', (e) => {
+                this.cpuLevel = e.target.value;
+                this.adjustAIDifficulty();
+                console.log(`🤖 CPU難易度を${this.cpuLevel}に変更`);
+            });
+        }
+        
+        // 音量調整スライダー
+        this.setupVolumeControls();
+        
+        // プレイヤーのキーボード操作
+        this.boundKeyHandler = (e) => this.handlePlayerInput(e);
+        document.addEventListener('keydown', this.boundKeyHandler);
+    }
+    
+    setupVolumeControls() {
+        // BGM音量スライダー
+        const bgmVolumeSlider = document.getElementById('battle-bgm-volume');
+        const bgmVolumeDisplay = document.getElementById('battle-bgm-volume-display');
+        
+        if (bgmVolumeSlider && bgmVolumeDisplay) {
+            bgmVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value;
+                bgmVolumeDisplay.textContent = `${volume}%`;
+                this.updateBgmVolume(volume);
+                console.log(`🎵 対戦モード BGM音量: ${volume}%`);
+            });
+            
+            // 初期値を設定
+            bgmVolumeDisplay.textContent = `${bgmVolumeSlider.value}%`;
+        }
+        
+        // SE音量スライダー
+        const seVolumeSlider = document.getElementById('battle-se-volume');
+        const seVolumeDisplay = document.getElementById('battle-se-volume-display');
+        
+        if (seVolumeSlider && seVolumeDisplay) {
+            seVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value;
+                seVolumeDisplay.textContent = `${volume}%`;
+                this.updateSeVolume(volume);
+                console.log(`🔊 対戦モード SE音量: ${volume}%`);
+            });
+            
+            // 初期値を設定
+            seVolumeDisplay.textContent = `${seVolumeSlider.value}%`;
+        }
+        
+        console.log('🎛️ 対戦モード音量コントロールを初期化しました');
+    }
+    
+    updateBgmVolume(volume) {
+        const volumeValue = Math.max(0.3, volume / 100); // 最低30%保証
+        
+        // 対戦モード専用BGMがある場合は調整
+        const battleBgm = document.getElementById('battle-bgm');
+        if (battleBgm) {
+            battleBgm.volume = volumeValue;
+        }
+        
+        // 既存のBGMも調整
+        const gameBgm = document.getElementById('game-bgm');
+        const gameBgm2 = document.getElementById('game-bgm-2');
+        const naochanBgm = document.getElementById('naochan-bgm');
+        
+        if (gameBgm) gameBgm.volume = volumeValue;
+        if (gameBgm2) gameBgm2.volume = volumeValue;
+        if (naochanBgm) naochanBgm.volume = volumeValue;
+    }
+    
+    updateSeVolume(volume) {
+        const volumeValue = Math.max(0.3, volume / 100); // 最低30%保証
+        
+        // 全てのSE要素の音量を調整
+        const seElements = [
+            'se-move', 'se-rotate', 'se-clear', 'se-chain2', 'se-chain3', 'se-chain4'
+        ];
+        
+        seElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.volume = volumeValue;
+            }
+        });
+    }
+    
+    startBattleBgm() {
+        // 他のBGMを停止
+        this.stopAllBgm();
+        
+        // 対戦モード専用BGMを開始
+        const battleBgm = document.getElementById('battle-bgm');
+        if (battleBgm) {
+            battleBgm.currentTime = 0;
+            
+            // 音量設定を適用
+            const bgmVolumeSlider = document.getElementById('battle-bgm-volume');
+            if (bgmVolumeSlider) {
+                const volume = Math.max(0.3, bgmVolumeSlider.value / 100);
+                battleBgm.volume = volume;
+            } else {
+                battleBgm.volume = 0.5; // デフォルト50%
+            }
+            
+            battleBgm.play().then(() => {
+                console.log('🎵 対戦モードBGM開始');
+            }).catch(e => {
+                console.error('❌ 対戦モードBGM再生に失敗:', e);
+            });
+        }
+    }
+    
+    stopAllBgm() {
+        const bgmElements = [
+            'title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'
+        ];
+        
+        bgmElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.pause();
+                element.currentTime = 0;
+            }
+        });
+        
+        console.log('🔇 全てのBGMを停止しました');
+    }
+    
+    stopBattleBgm() {
+        const battleBgm = document.getElementById('battle-bgm');
+        if (battleBgm) {
+            battleBgm.pause();
+            battleBgm.currentTime = 0;
+            console.log('🔇 対戦モードBGMを停止');
+        }
+    }
+    
+    handlePlayerInput(e) {
+        // 対戦モードでない場合は処理しない
+        if (!this.gameRunning || !this.playerCurrentPiece || this.playerGameOver) {
+            return;
+        }
+        
+        // 対戦画面が表示されている場合のみ処理
+        const battleScreen = document.getElementById('battle-screen');
+        if (!battleScreen || battleScreen.classList.contains('hidden')) {
+            return;
+        }
+        
+        console.log(`🎮 対戦モード キー入力: ${e.key}`);
+        
+        switch(e.key.toLowerCase()) {
+            case 'a':
+            case 'arrowleft':
+                this.movePlayerPiece(-1, 0);
+                e.preventDefault();
+                e.stopPropagation();
+                break;
+            case 'd':
+            case 'arrowright':
+                this.movePlayerPiece(1, 0);
+                e.preventDefault();
+                e.stopPropagation();
+                break;
+            case 's':
+            case 'arrowdown':
+                this.movePlayerPiece(0, 1);
+                e.preventDefault();
+                e.stopPropagation();
+                break;
+            case ' ':
+                this.rotatePlayerPiece();
+                e.preventDefault();
+                e.stopPropagation();
+                break;
+        }
+    }
+    
+    movePlayerPiece(dx, dy) {
+        if (!this.playerCurrentPiece || this.playerCurrentPiece.isSeparated) return;
+        
+        const newX = this.playerCurrentPiece.x + dx;
+        const newY = this.playerCurrentPiece.y + dy;
+        
+        if (this.isValidPosition('player', newX, newY, this.playerCurrentPiece.positions)) {
+            this.playerCurrentPiece.x = newX;
+            this.playerCurrentPiece.y = newY;
+            this.drawGameBoard('player');
+            
+            // 左右移動の場合のみ移動音を再生
+            if (dx !== 0) {
+                this.playSound('move');
+            }
+        } else if (dy > 0) {
+            // 下移動で衝突した場合、部分着地をチェック
+            this.handlePlayerPieceLanding();
+        }
+    }
+    
+    handlePlayerPieceLanding() {
+        if (!this.playerCurrentPiece) return;
+        
+        // 各ピースが個別に着地できるかチェック
+        const piece = this.playerCurrentPiece;
+        const landablePositions = [];
+        const floatingPositions = [];
+        
+        for (let i = 0; i < piece.positions.length; i++) {
+            const pos = piece.positions[i];
+            const worldX = piece.x + pos.x;
+            const worldY = piece.y + pos.y + 1; // 一つ下をチェック
+            
+            // 下に移動できない（着地する）かチェック
+            if (worldY >= this.BOARD_HEIGHT || 
+                (worldY >= 0 && this.playerBoard[worldY][worldX] !== 0)) {
+                landablePositions.push(i);
+            } else {
+                floatingPositions.push(i);
+            }
+        }
+        
+        if (landablePositions.length > 0 && floatingPositions.length > 0) {
+            // 部分着地 - ピースを分離
+            this.separatePlayerPiece(landablePositions, floatingPositions);
+        } else {
+            // 全て同時に着地
+            this.landPlayerPiece();
+        }
+    }
+    
+    separatePlayerPiece(landableIndices, floatingIndices) {
+        if (!this.playerCurrentPiece) return;
+        
+        console.log('✂️ プレイヤーピースを分離します');
+        
+        const piece = this.playerCurrentPiece;
+        
+        // 着地するピースをボードに配置
+        for (const i of landableIndices) {
+            const pos = piece.positions[i];
+            const x = piece.x + pos.x;
+            const y = piece.y + pos.y;
+            
+            if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+                this.playerBoard[y][x] = piece.colors[i];
+            }
+        }
+        
+        // 浮いているピースを新しい落下ピースとして作成
+        const floatingPieces = [];
+        for (const i of floatingIndices) {
+            const pos = piece.positions[i];
+            floatingPieces.push({
+                x: piece.x + pos.x,
+                y: piece.y + pos.y,
+                color: piece.colors[i],
+                fallSpeed: 100 // 高速落下
+            });
+        }
+        
+        // 現在のピースをクリア
+        this.playerCurrentPiece = null;
+        
+        // 分離されたピースを順次落下させる
+        this.dropSeparatedPieces('player', floatingPieces);
+    }
+    
+    dropSeparatedPieces(player, pieces) {
+        if (pieces.length === 0) {
+            // 全て落下完了 - 連鎖チェックして新しいピース生成
+            if (player === 'player') {
+                this.checkPlayerChains();
+                
+                if (!this.checkGameOver('player')) {
+                    this.spawnNewPiece('player');
+                }
+            } else {
+                this.checkCpuChains();
+                
+                if (!this.checkGameOver('cpu')) {
+                    this.spawnNewPiece('cpu');
+                }
+            }
+            return;
+        }
+        
+        console.log(`⬇️ ${pieces.length}個の分離ピースを落下中...`);
+        
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        let allLanded = true;
+        
+        // 各分離ピースを1マス下に移動
+        for (const piece of pieces) {
+            const newY = piece.y + 1;
+            
+            if (newY < this.BOARD_HEIGHT && board[newY][piece.x] === 0) {
+                // まだ落下可能
+                piece.y = newY;
+                allLanded = false;
+            } else {
+                // 着地
+                if (piece.y >= 0 && piece.y < this.BOARD_HEIGHT) {
+                    board[piece.y][piece.x] = piece.color;
+                }
+                
+                // 落下完了したピースを配列から除去
+                const index = pieces.indexOf(piece);
+                pieces.splice(index, 1);
+            }
+        }
+        
+        this.drawGameBoard(player);
+        
+        // まだ落下中のピースがある場合は継続
+        if (pieces.length > 0) {
+            setTimeout(() => {
+                this.dropSeparatedPieces(player, pieces);
+            }, 100);
+        } else {
+            // 全て着地完了
+            console.log(`🎯 ${player} 分離ピース落下完了 - チェーンと新しいピース生成開始`);
+            
+            if (player === 'player') {
+                this.checkPlayerChains();
+                
+                if (!this.checkGameOver('player')) {
+                    this.spawnNewPiece('player');
+                    console.log(`✅ ${player} 分離完了後に新しいピース生成`);
+                } else {
+                    console.log(`🚫 ${player} ゲームオーバーのため分離完了後のピース生成をスキップ`);
+                }
+            } else {
+                this.checkCpuChains();
+                
+                if (!this.checkGameOver('cpu')) {
+                    this.spawnNewPiece('cpu');
+                    console.log(`✅ ${player} 分離完了後に新しいピース生成`);
+                } else {
+                    console.log(`🚫 ${player} ゲームオーバーのため分離完了後のピース生成をスキップ`);
+                }
+            }
+            
+            console.log(`🔄 ${player} 分離ピース処理完全終了`);
+        }
+    }
+    
+    rotatePlayerPiece() {
+        if (!this.playerCurrentPiece) return;
+        
+        const positions = this.playerCurrentPiece.positions;
+        if (positions.length === 2) {
+            // 元の位置を保存
+            const originalPositions = positions.map(pos => ({...pos}));
+            
+            // 90度回転: (x, y) -> (-y, x)
+            // ただし、基準点（positions[0]）を中心に回転
+            const basePos = positions[0];
+            for (let i = 1; i < positions.length; i++) {
+                const relativeX = positions[i].x - basePos.x;
+                const relativeY = positions[i].y - basePos.y;
+                
+                // 90度回転
+                positions[i].x = basePos.x - relativeY;
+                positions[i].y = basePos.y + relativeX;
+            }
+            
+            // 回転後の位置が有効かチェック（壁キック付き）
+            let rotationSuccessful = false;
+            
+            // まず元の位置で試行
+            if (this.isValidPosition('player', this.playerCurrentPiece.x, this.playerCurrentPiece.y, positions)) {
+                rotationSuccessful = true;
+            } else {
+                // 壁キック：左右に1マス移動して試行
+                const kickOffsets = [-1, 1, -2, 2]; // 左右の移動オフセット
+                
+                for (const offset of kickOffsets) {
+                    const newX = this.playerCurrentPiece.x + offset;
+                    if (this.isValidPosition('player', newX, this.playerCurrentPiece.y, positions)) {
+                        this.playerCurrentPiece.x = newX;
+                        rotationSuccessful = true;
+                        console.log(`🔄 壁キック成功: ${offset > 0 ? '右' : '左'}に${Math.abs(offset)}マス移動`);
+                        break;
+                    }
+                }
+            }
+            
+            if (rotationSuccessful) {
+                this.drawGameBoard('player');
+                this.playSound('rotate');
+                console.log('🔄 プレイヤーピースを回転しました');
+            } else {
+                // 元に戻す
+                for (let i = 0; i < positions.length; i++) {
+                    positions[i] = originalPositions[i];
+                }
+                console.log('⚠️ 回転できませんでした（壁キックも失敗）');
+            }
+        }
+    }
+    
+    isValidPosition(player, x, y, positions) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        
+        for (const pos of positions) {
+            const checkX = x + pos.x;
+            const checkY = y + pos.y;
+            
+            // 境界チェック
+            if (checkX < 0 || checkX >= this.BOARD_WIDTH || checkY >= this.BOARD_HEIGHT) {
+                return false;
+            }
+            
+            // ボード上の衝突チェック（y < 0は画面外なのでOK）
+            if (checkY >= 0 && board[checkY][checkX] !== 0) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    landPlayerPiece() {
+        if (!this.playerCurrentPiece) return;
+        
+        // ピースをボードに固定
+        for (let i = 0; i < this.playerCurrentPiece.positions.length; i++) {
+            const pos = this.playerCurrentPiece.positions[i];
+            const x = this.playerCurrentPiece.x + pos.x;
+            const y = this.playerCurrentPiece.y + pos.y;
+            
+            if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+                this.playerBoard[y][x] = this.playerCurrentPiece.colors[i];
+            }
+        }
+        
+        // 連鎖チェック
+        this.checkPlayerChains();
+        
+        // ゲームオーバーチェック
+        if (this.checkGameOver('player')) {
+            this.endGame('cpu');
+            return;
+        }
+        
+        // 新しいピースをスポーン
+        this.spawnNewPiece('player');
+        this.drawGameBoard('player');
+        
+        console.log('🔒 プレイヤーのピースが着地しました');
+    }
+    
+    initializeCanvas() {
+        console.log('🎨 対戦モードキャンバスを初期化中...');
+        
+        if (this.playerCanvas) {
+            this.playerCtx = this.playerCanvas.getContext('2d');
+            console.log('✅ プレイヤーキャンバス初期化完了');
+        } else {
+            console.error('❌ プレイヤーキャンバスが見つかりません');
+        }
+        
+        if (this.cpuCanvas) {
+            this.cpuCtx = this.cpuCanvas.getContext('2d');
+            console.log('✅ CPUキャンバス初期化完了');
+        } else {
+            console.error('❌ CPUキャンバスが見つかりません');
+        }
+        
+        // キャンバスのサイズとスタイルを確認
+        if (this.playerCanvas) {
+            console.log(`📐 プレイヤーキャンバス: ${this.playerCanvas.width}x${this.playerCanvas.height}`);
+        }
+        if (this.cpuCanvas) {
+            console.log(`📐 CPUキャンバス: ${this.cpuCanvas.width}x${this.cpuCanvas.height}`);
+        }
+        
+        // 画像を既存のゲームから取得
+        this.initializePuyoImages();
+        
+        // CPU AIシステムを初期化
+        this.initializeCpuAI();
+        
+        // 初期ピースを生成
+        this.generateNextPiece('player');
+        this.generateNextPiece('cpu');
+        this.spawnNewPiece('player');
+        this.spawnNewPiece('cpu');
+        
+        // 次のぷよ表示を初期化
+        setTimeout(() => {
+            this.renderBattleNextPuyo();
+        }, 300);
+    }
+    
+    initializePuyoImages() {
+        // 既存のゲームから画像を取得
+        if (window.game && window.game.puyoImages) {
+            this.puyoImages = window.game.puyoImages;
+            console.log('✅ ぷよ画像を既存ゲームから取得しました');
+        } else {
+            console.warn('⚠️ 既存ゲームの画像が見つかりません。色のみで描画します。');
+        }
+    }
+    
+    generateNextPiece(player) {
+        const color1 = Math.floor(Math.random() * 5) + 1;
+        const color2 = Math.floor(Math.random() * 5) + 1;
+        
+        const piece = {
+            colors: [color1, color2],
+            positions: [{x: 0, y: 0}, {x: 0, y: 1}]
+        };
+        
+        if (player === 'player') {
+            this.playerNextPiece = piece;
+        } else {
+            this.cpuNextPiece = piece;
+        }
+        
+        console.log(`🎲 ${player} の次のピース生成: [${color1}, ${color2}]`);
+    }
+    
+    spawnNewPiece(player) {
+        const isPlayer = player === 'player';
+        const nextPiece = isPlayer ? this.playerNextPiece : this.cpuNextPiece;
+        
+        if (nextPiece) {
+            const newPiece = {
+                x: Math.floor(this.BOARD_WIDTH / 2) - 1,
+                y: -1,
+                colors: [...nextPiece.colors],
+                positions: nextPiece.positions.map(pos => ({...pos}))
+            };
+            
+            if (isPlayer) {
+                this.playerCurrentPiece = newPiece;
+            } else {
+                this.cpuCurrentPiece = newPiece;
+            }
+            
+            console.log(`🟡 ${player} に新しいピースをスポーン: [${newPiece.colors.join(', ')}]`);
+        }
+        
+        this.generateNextPiece(player);
+        this.renderBattleNextPuyo();
+    }
+    
+    drawGameBoard(player) {
+        const isPlayer = player === 'player';
+        const ctx = isPlayer ? this.playerCtx : this.cpuCtx;
+        const board = isPlayer ? this.playerBoard : this.cpuBoard;
+        const currentPiece = isPlayer ? this.playerCurrentPiece : this.cpuCurrentPiece;
+        
+        if (!ctx) return;
+        
+        // 背景をクリア
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // グリッド線を描画
+        this.drawGrid(ctx);
+        
+        // ボード上のぷよを描画
+        this.drawBoardPuyos(ctx, board);
+        
+        // 現在落下中のピースを描画
+        if (currentPiece) {
+            this.drawCurrentPiece(ctx, currentPiece);
+        }
+    }
+    
+    drawGrid(ctx) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        
+        // 縦線
+        for (let x = 0; x <= this.BOARD_WIDTH; x++) {
+            const xPos = x * this.CELL_SIZE;
+            ctx.beginPath();
+            ctx.moveTo(xPos, 0);
+            ctx.lineTo(xPos, this.BOARD_HEIGHT * this.CELL_SIZE);
+            ctx.stroke();
+        }
+        
+        // 横線
+        for (let y = 0; y <= this.BOARD_HEIGHT; y++) {
+            const yPos = y * this.CELL_SIZE;
+            ctx.beginPath();
+            ctx.moveTo(0, yPos);
+            ctx.lineTo(this.BOARD_WIDTH * this.CELL_SIZE, yPos);
+            ctx.stroke();
+        }
+    }
+    
+    drawBoardPuyos(ctx, board) {
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                const color = board[y][x];
+                if (color > 0) {
+                    this.drawPuyo(ctx, x, y, color);
+                }
+            }
+        }
+    }
+    
+    drawCurrentPiece(ctx, piece) {
+        if (!piece) return;
+        
+        for (let i = 0; i < piece.positions.length; i++) {
+            const pos = piece.positions[i];
+            const x = piece.x + pos.x;
+            const y = piece.y + pos.y;
+            const color = piece.colors[i];
+            
+            if (y >= 0) { // 画面内のみ描画
+                this.drawPuyo(ctx, x, y, color);
+            }
+        }
+    }
+    
+    drawPuyo(ctx, x, y, color) {
+        const xPos = x * this.CELL_SIZE;
+        const yPos = y * this.CELL_SIZE;
+        
+        // 画像がある場合は画像を使用、なければ色で描画
+        if (this.puyoImages && this.puyoImages[color]) {
+            ctx.drawImage(this.puyoImages[color], xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
+        } else {
+            // フォールバック：色で描画
+            const colors = ['', '#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF', '#888888']; // 6番目はおじゃまぷよ（灰色）
+            ctx.fillStyle = colors[color] || '#FFFFFF';
+            ctx.fillRect(xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
+            
+            // おじゃまぷよの特別な描画
+            if (color === this.GARBAGE_PUYO) {
+                // X印を描画
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(xPos + 10, yPos + 10);
+                ctx.lineTo(xPos + this.CELL_SIZE - 10, yPos + this.CELL_SIZE - 10);
+                ctx.moveTo(xPos + this.CELL_SIZE - 10, yPos + 10);
+                ctx.lineTo(xPos + 10, yPos + this.CELL_SIZE - 10);
+                ctx.stroke();
+            }
+            
+            // 枠線
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
+        }
+    }
+    
+    renderBattleNextPuyo() {
+        // プレイヤー側の次のぷよ表示
+        this.renderNextPuyoForPlayer('player');
+        
+        // CPU側の次のぷよ表示
+        this.renderNextPuyoForPlayer('cpu');
+    }
+    
+    renderNextPuyoForPlayer(player) {
+        const isPlayer = player === 'player';
+        const nextPiece = isPlayer ? this.playerNextPiece : this.cpuNextPiece;
+        const displayId = isPlayer ? 'player-next-puyo' : 'cpu-next-puyo';
+        
+        const nextDisplay = document.getElementById(displayId);
+        if (!nextDisplay) {
+            console.warn(`⚠️ ${player}の次のぷよ表示エリアが見つかりません`);
+            return;
+        }
+        
+        nextDisplay.innerHTML = '';
+        
+        if (nextPiece) {
+            // 次のピース表示用のキャンバスを作成
+            const canvas = document.createElement('canvas');
+            canvas.width = 80;
+            canvas.height = 80;
+            const ctx = canvas.getContext('2d');
+            
+            // キャンバスのスタイル設定
+            canvas.style.border = '2px solid #ffa500';
+            canvas.style.borderRadius = '8px';
+            canvas.style.backgroundColor = '#222';
+            
+            for (let i = 0; i < nextPiece.positions.length; i++) {
+                const pos = nextPiece.positions[i];
+                const x = (pos.x + 1) * 20 + 10; // 小さめのサイズで中央配置
+                const y = pos.y * 20 + 10;
+                
+                const colorIndex = nextPiece.colors[i];
+                
+                // 画像がある場合は画像を描画、なければ色で描画
+                if (this.puyoImages && this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
+                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 20, 20);
+                } else {
+                    // フォールバック：色での描画
+                    const colors = ['', '#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF', '#888888'];
+                    ctx.fillStyle = colors[colorIndex] || '#FFFFFF';
+                    ctx.fillRect(x, y, 20, 20);
+                    
+                    // 枠線
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, 20, 20);
+                }
+            }
+            
+            nextDisplay.appendChild(canvas);
+            console.log(`✅ ${player}の次のぷよを表示しました`);
+        } else {
+            // 次のピースがない場合のプレースホルダー
+            const placeholder = document.createElement('div');
+            placeholder.style.width = '80px';
+            placeholder.style.height = '80px';
+            placeholder.style.border = '2px solid #555';
+            placeholder.style.borderRadius = '8px';
+            placeholder.style.backgroundColor = '#222';
+            placeholder.style.display = 'flex';
+            placeholder.style.alignItems = 'center';
+            placeholder.style.justifyContent = 'center';
+            placeholder.style.color = '#777';
+            placeholder.style.fontSize = '12px';
+            placeholder.textContent = '---';
+            
+            nextDisplay.appendChild(placeholder);
+        }
+    }
+    
+    showPrototypeMessage() {
+        // 実装状況メッセージを表示
+        const battleTitle = document.querySelector('.battle-title');
+        if (battleTitle) {
+            battleTitle.innerHTML = '⚔️ CPU対戦モード <span style="color: #00ff00; font-size: 18px;">[基本機能実装済み]</span>';
+        }
+        
+        // 実装状況メッセージ
+        console.log(`
+🎮 対戦モード基本機能実装完了 🎮
+
+実装済み機能:
+✅ プレイヤー側ゲームロジック
+✅ キーボード操作 (A/D: 移動, S: 下移動, Space: 回転)
+✅ ピース生成・配置システム
+✅ 衝突判定
+✅ ゲームボード描画
+✅ CPU AI システム（基本）
+✅ 自動落下システム
+
+操作方法:
+🎮 A/D: 左右移動
+🎮 S: 下移動
+🎮 Space: 回転
+        `);
+    }
+    
+    startBattle() {
+        console.log('⚔️ 対戦開始！');
+        console.log('📊 初期状態チェック:');
+        console.log('- プレイヤーキャンバス:', this.playerCanvas ? 'OK' : 'NG');
+        console.log('- CPUキャンバス:', this.cpuCanvas ? 'OK' : 'NG');
+        console.log('- プレイヤーコンテキスト:', this.playerCtx ? 'OK' : 'NG');
+        console.log('- CPUコンテキスト:', this.cpuCtx ? 'OK' : 'NG');
+        console.log('- プレイヤー現在ピース:', this.playerCurrentPiece ? 'OK' : 'NG');
+        console.log('- CPU現在ピース:', this.cpuCurrentPiece ? 'OK' : 'NG');
+        
+        this.gameRunning = true;
+        this.playerGameOver = false;
+        this.cpuGameOver = false;
+        
+        // ボタンの切り替え
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.add('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.remove('hidden');
+        }
+        
+        // タイマー開始
+        this.startTimer();
+        
+        // BGM開始
+        this.startBattleBgm();
+        
+        // ゲームループ開始
+        this.startGameLoop();
+    }
+    
+    pauseBattle() {
+        console.log('⏸️ 対戦一時停止');
+        this.gameRunning = false;
+        
+        // ボタンの切り替え
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+        
+        // タイマー停止
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // BGM一時停止
+        this.stopBattleBgm();
+    }
+    
+    startTimer() {
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            if (this.timeLeftDisplay) {
+                this.timeLeftDisplay.textContent = this.timeLeft;
+            }
+            
+            if (this.timeLeft <= 0) {
+                this.endGameByTime();
+            }
+        }, 1000);
+    }
+    
+    startGameLoop() {
+        console.log('🔄 ゲームループを開始');
+        
+        const gameLoop = () => {
+            if (!this.gameRunning) return;
+            
+            const currentTime = Date.now();
+            
+            // フェイルセーフ: CPUピースの存在チェック
+            if (!this.cpuGameOver && !this.cpuCurrentPiece && this.cpuChainCount === 0) {
+                console.log('🆘 フェイルセーフ: CPUピースが不足 - 強制生成');
+                this.spawnNewPiece('cpu');
+                this.renderBattleNextPuyo();
+            }
+            
+            // プレイヤーのピース自動落下
+            if (currentTime - this.playerLastMoveTime > this.fallSpeed) {
+                this.updatePlayerPiece();
+                this.playerLastMoveTime = currentTime;
+            }
+            
+            // CPUのピース自動落下（プレイヤーより高速）
+            const cpuSpeed = this.fallSpeed * 0.6; // CPUは40%高速
+            if (currentTime - this.cpuLastMoveTime > cpuSpeed) {
+                this.updateCpuPiece();
+                this.cpuLastMoveTime = currentTime;
+            }
+            
+            // 画面描画
+            this.drawGameBoard('player');
+            this.drawGameBoard('cpu');
+            
+            if (this.gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        };
+        
+        this.playerLastMoveTime = Date.now();
+        this.cpuLastMoveTime = Date.now();
+        gameLoop();
+    }
+    
+    updatePlayerPiece() {
+        if (!this.playerCurrentPiece || this.playerGameOver || this.playerCurrentPiece.isSeparated) return;
+        
+        // ピースを1つ下に移動
+        if (this.isValidPosition('player', this.playerCurrentPiece.x, this.playerCurrentPiece.y + 1, this.playerCurrentPiece.positions)) {
+            this.playerCurrentPiece.y++;
+        } else {
+            // 着地した場合、部分着地をチェック
+            this.handlePlayerPieceLanding();
+        }
+    }
+    
+    updateCpuPiece() {
+        if (!this.cpuCurrentPiece || this.cpuGameOver || this.cpuCurrentPiece.isSeparated) return;
+        
+        // CPUが新しいピースを受け取った時にAIで最適手を計算
+        if (!this.cpuCurrentPiece.aiTarget) {
+            const startTime = Date.now();
+            const bestMove = this.calculateBestMove();
+            const thinkTime = Date.now() - startTime;
+            
+            if (bestMove) {
+                this.cpuCurrentPiece.aiTarget = {
+                    targetX: bestMove.x,
+                    targetRotation: bestMove.rotation,
+                    currentRotation: 0,
+                    rotationComplete: bestMove.rotation === 0, // 回転不要なら即完了
+                    strategy: bestMove.strategy
+                };
+                
+                console.log(`🤖 CPU AI決定 (${thinkTime}ms): X=${bestMove.x}, 回転=${bestMove.rotation}, 戦略=${bestMove.strategy}, スコア=${bestMove.score.toFixed(1)}`);
+            } else {
+                // フォールバック：中央配置
+                this.cpuCurrentPiece.aiTarget = {
+                    targetX: Math.floor(this.BOARD_WIDTH / 2),
+                    targetRotation: 0,
+                    currentRotation: 0,
+                    rotationComplete: true,
+                    strategy: 'fallback'
+                };
+                console.log('⚠️ CPU AI計算失敗 - フォールバックモード');
+            }
+        }
+        
+        const aiTarget = this.cpuCurrentPiece.aiTarget;
+        
+        // まず回転を完了
+        if (!aiTarget.rotationComplete && aiTarget.currentRotation < aiTarget.targetRotation) {
+            this.rotateCpuPiece();
+            aiTarget.currentRotation++;
+            
+            if (aiTarget.currentRotation >= aiTarget.targetRotation) {
+                aiTarget.rotationComplete = true;
+            }
+            return;
+        }
+        
+        // 横移動と下移動を同時実行（高速化）
+        let horizontalMoveComplete = false;
+        let shouldFastDrop = false;
+        
+        // 目標位置への横移動
+        if (aiTarget.rotationComplete && this.cpuCurrentPiece.x !== aiTarget.targetX) {
+            const direction = this.cpuCurrentPiece.x < aiTarget.targetX ? 1 : -1;
+            
+            if (this.isValidPosition('cpu', this.cpuCurrentPiece.x + direction, this.cpuCurrentPiece.y, this.cpuCurrentPiece.positions)) {
+                this.cpuCurrentPiece.x += direction;
+                
+                // 横移動中でも下移動を同時実行
+                if (this.isValidPosition('cpu', this.cpuCurrentPiece.x, this.cpuCurrentPiece.y + 1, this.cpuCurrentPiece.positions)) {
+                    this.cpuCurrentPiece.y++;
+                }
+            } else {
+                // 移動できない場合は諦めて落下
+                aiTarget.targetX = this.cpuCurrentPiece.x;
+                horizontalMoveComplete = true;
+            }
+        } else {
+            horizontalMoveComplete = true;
+        }
+        
+        // 目標位置に到達したら高速落下モード
+        if (horizontalMoveComplete && aiTarget.rotationComplete) {
+            shouldFastDrop = true;
+        }
+        
+        // 高速落下または通常落下
+        if (shouldFastDrop) {
+            // 高速落下：一度に複数マス落下
+            let dropCount = 0;
+            const maxDropPerFrame = this.cpuLevel === 'hard' ? 3 : 
+                                   this.cpuLevel === 'normal' ? 2 : 1;
+            
+            while (dropCount < maxDropPerFrame && 
+                   this.isValidPosition('cpu', this.cpuCurrentPiece.x, this.cpuCurrentPiece.y + 1, this.cpuCurrentPiece.positions)) {
+                this.cpuCurrentPiece.y++;
+                dropCount++;
+            }
+            
+            // 着地チェック
+            if (!this.isValidPosition('cpu', this.cpuCurrentPiece.x, this.cpuCurrentPiece.y + 1, this.cpuCurrentPiece.positions)) {
+                this.handleCpuPieceLanding();
+            }
+        } else {
+            // 通常落下（横移動中でない場合）
+            if (horizontalMoveComplete && 
+                this.isValidPosition('cpu', this.cpuCurrentPiece.x, this.cpuCurrentPiece.y + 1, this.cpuCurrentPiece.positions)) {
+                this.cpuCurrentPiece.y++;
+            } else if (horizontalMoveComplete) {
+                // 着地した場合、部分着地をチェック
+                this.handleCpuPieceLanding();
+            }
+        }
+    }
+    
+    rotateCpuPiece() {
+        if (!this.cpuCurrentPiece) return;
+        
+        const positions = this.cpuCurrentPiece.positions;
+        if (positions.length === 2) {
+            // 元の位置を保存
+            const originalPositions = positions.map(pos => ({...pos}));
+            
+            // 90度回転
+            const basePos = positions[0];
+            for (let i = 1; i < positions.length; i++) {
+                const relativeX = positions[i].x - basePos.x;
+                const relativeY = positions[i].y - basePos.y;
+                
+                positions[i].x = basePos.x - relativeY;
+                positions[i].y = basePos.y + relativeX;
+            }
+            
+            // 回転後の位置が有効かチェック（壁キック付き）
+            let rotationSuccessful = false;
+            
+            if (this.isValidPosition('cpu', this.cpuCurrentPiece.x, this.cpuCurrentPiece.y, positions)) {
+                rotationSuccessful = true;
+            } else {
+                // 壁キック：左右に移動して試行
+                const kickOffsets = [-1, 1, -2, 2];
+                
+                for (const offset of kickOffsets) {
+                    const newX = this.cpuCurrentPiece.x + offset;
+                    if (this.isValidPosition('cpu', newX, this.cpuCurrentPiece.y, positions)) {
+                        this.cpuCurrentPiece.x = newX;
+                        rotationSuccessful = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!rotationSuccessful) {
+                // 元に戻す
+                for (let i = 0; i < positions.length; i++) {
+                    positions[i] = originalPositions[i];
+                }
+                console.log('⚠️ CPU回転できませんでした');
+            } else {
+                console.log('🔄 CPUピースを回転しました');
+            }
+        }
+    }
+    
+    landCpuPiece() {
+        if (!this.cpuCurrentPiece) return;
+        
+        // ピースをボードに固定
+        for (let i = 0; i < this.cpuCurrentPiece.positions.length; i++) {
+            const pos = this.cpuCurrentPiece.positions[i];
+            const x = this.cpuCurrentPiece.x + pos.x;
+            const y = this.cpuCurrentPiece.y + pos.y;
+            
+            if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+                this.cpuBoard[y][x] = this.cpuCurrentPiece.colors[i];
+            }
+        }
+        
+        // 連鎖チェック
+        this.checkCpuChains();
+        
+        // ゲームオーバーチェック
+        if (this.checkGameOver('cpu')) {
+            this.endGame('player');
+            return;
+        }
+        
+        // 連鎖チェック
+        this.checkCpuChains();
+        
+        // ゲームオーバーでない場合、新しいピースをスポーン
+        if (!this.checkGameOver('cpu')) {
+            this.spawnNewPiece('cpu');
+            this.renderBattleNextPuyo();
+            console.log('🤖 CPUのピースが着地しました - 新しいピース生成完了');
+        } else {
+            console.log('🚫 CPU ゲームオーバーのため新しいピース生成をスキップ');
+        }
+    }
+    
+    handleCpuPieceLanding() {
+        if (!this.cpuCurrentPiece) return;
+        
+        // 各ピースが個別に着地できるかチェック
+        const piece = this.cpuCurrentPiece;
+        const landablePositions = [];
+        const floatingPositions = [];
+        
+        for (let i = 0; i < piece.positions.length; i++) {
+            const pos = piece.positions[i];
+            const worldX = piece.x + pos.x;
+            const worldY = piece.y + pos.y + 1; // 一つ下をチェック
+            
+            // 下に移動できない（着地する）かチェック
+            if (worldY >= this.BOARD_HEIGHT || 
+                (worldY >= 0 && this.cpuBoard[worldY][worldX] !== 0)) {
+                landablePositions.push(i);
+            } else {
+                floatingPositions.push(i);
+            }
+        }
+        
+        if (landablePositions.length > 0 && floatingPositions.length > 0) {
+            // 部分着地 - ピースを分離
+            this.separateCpuPiece(landablePositions, floatingPositions);
+        } else {
+            // 全て同時に着地
+            this.landCpuPiece();
+        }
+    }
+    
+    separateCpuPiece(landableIndices, floatingIndices) {
+        if (!this.cpuCurrentPiece) return;
+        
+        console.log('✂️ CPUピースを分離します');
+        
+        const piece = this.cpuCurrentPiece;
+        
+        // 着地するピースをボードに配置
+        for (const i of landableIndices) {
+            const pos = piece.positions[i];
+            const x = piece.x + pos.x;
+            const y = piece.y + pos.y;
+            
+            if (y >= 0 && y < this.BOARD_HEIGHT && x >= 0 && x < this.BOARD_WIDTH) {
+                this.cpuBoard[y][x] = piece.colors[i];
+            }
+        }
+        
+        // 浮いているピースを新しい落下ピースとして作成
+        const floatingPieces = [];
+        for (const i of floatingIndices) {
+            const pos = piece.positions[i];
+            floatingPieces.push({
+                x: piece.x + pos.x,
+                y: piece.y + pos.y,
+                color: piece.colors[i],
+                fallSpeed: 100 // 高速落下
+            });
+        }
+        
+        // 現在のピースをクリア
+        this.cpuCurrentPiece = null;
+        
+        // 分離されたピースを順次落下させる
+        this.dropSeparatedPieces('cpu', floatingPieces);
+    }
+    
+    // ================================================
+    // CPU AI システム
+    // ================================================
+    
+    initializeCpuAI() {
+        // AI設定
+        this.aiConfig = {
+            thinkingDepth: 3, // 先読み深度
+            chainWeight: 100, // 連鎖の重み
+            heightPenalty: 10, // 高さペナルティ
+            garbageWeight: 50, // おじゃまぷよ重み
+            defenseWeight: 30  // 防御重み
+        };
+        
+        // 難易度に応じてAI設定を調整
+        this.adjustAIDifficulty();
+        
+        console.log('🤖 CPU AI システムを初期化しました');
+    }
+    
+    adjustAIDifficulty() {
+        switch (this.cpuLevel) {
+            case 'easy':
+                this.aiConfig.thinkingDepth = 1;
+                this.aiConfig.chainWeight = 50;
+                this.aiConfig.heightPenalty = 5;
+                break;
+            case 'normal':
+                this.aiConfig.thinkingDepth = 2;
+                this.aiConfig.chainWeight = 100;
+                this.aiConfig.heightPenalty = 10;
+                break;
+            case 'hard':
+                this.aiConfig.thinkingDepth = 3;
+                this.aiConfig.chainWeight = 150;
+                this.aiConfig.heightPenalty = 15;
+                break;
+        }
+        
+        console.log(`🎯 CPU AI難易度: ${this.cpuLevel}`, this.aiConfig);
+    }
+    
+    // CPUの最適な手を計算
+    calculateBestMove() {
+        if (!this.cpuCurrentPiece) return null;
+        
+        const piece = this.cpuCurrentPiece;
+        let bestMove = null;
+        let bestScore = -Infinity;
+        
+        // 現在のボード状況を分析
+        const boardAnalysis = this.analyzeBoardSituation();
+        
+        // 全ての可能な配置位置を評価
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            for (let rotation = 0; rotation < 4; rotation++) {
+                const testPiece = this.rotatePiece(piece, rotation);
+                
+                // その位置に配置可能かチェック
+                const dropY = this.findDropPosition('cpu', x, testPiece.positions);
+                if (dropY === null) continue;
+                
+                // ボードに仮配置してスコア評価
+                const testBoard = this.simulateMove('cpu', x, dropY, testPiece);
+                let score = this.evaluateBoard(testBoard, 'cpu');
+                
+                // 状況に応じてスコア調整
+                score = this.adjustScoreForSituation(score, testBoard, boardAnalysis);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = {
+                        x: x,
+                        y: dropY,
+                        rotation: rotation,
+                        score: score,
+                        strategy: boardAnalysis.recommendedStrategy
+                    };
+                }
+            }
+        }
+        
+        return bestMove;
+    }
+    
+    // ボード状況を分析して戦略を決定
+    analyzeBoardSituation() {
+        const cpuBoard = this.cpuBoard;
+        const playerBoard = this.playerBoard;
+        
+        const analysis = {
+            garbageCount: this.countGarbagePuyos(cpuBoard),
+            averageHeight: this.evaluateHeight(cpuBoard),
+            emergencyLevel: 0,
+            recommendedStrategy: 'balanced',
+            playerThreat: this.evaluatePlayerThreat(playerBoard)
+        };
+        
+        // 緊急度を計算
+        if (analysis.averageHeight > 7) {
+            analysis.emergencyLevel = 3; // 非常に危険
+            analysis.recommendedStrategy = 'defensive';
+        } else if (analysis.averageHeight > 5) {
+            analysis.emergencyLevel = 2; // 危険
+            analysis.recommendedStrategy = 'cleanup';
+        } else if (analysis.garbageCount > 10) {
+            analysis.emergencyLevel = 1; // 注意
+            analysis.recommendedStrategy = 'garbage_clear';
+        } else if (analysis.playerThreat > 50) {
+            analysis.recommendedStrategy = 'aggressive';
+        }
+        
+        return analysis;
+    }
+    
+    // プレイヤーの脅威度を評価
+    evaluatePlayerThreat(playerBoard) {
+        const chainAnalysis = this.analyzeAdvancedChainPatterns(playerBoard);
+        let threatLevel = 0;
+        
+        // 即座に発動可能な連鎖
+        threatLevel += chainAnalysis.immediateChains * 30;
+        
+        // 潜在的な長い連鎖
+        threatLevel += chainAnalysis.maxChainLength * 10;
+        
+        // 連鎖の引き金が多い
+        threatLevel += chainAnalysis.triggerPositions.length * 5;
+        
+        return threatLevel;
+    }
+    
+    // 状況に応じてスコアを調整
+    adjustScoreForSituation(baseScore, testBoard, boardAnalysis) {
+        let adjustedScore = baseScore;
+        
+        switch (boardAnalysis.recommendedStrategy) {
+            case 'defensive':
+                // 防御的：高さを下げることを最優先
+                const heightReduction = this.evaluateHeight(this.cpuBoard) - this.evaluateHeight(testBoard);
+                adjustedScore += heightReduction * 200;
+                
+                // おじゃまぷよ削除を優先
+                const garbageReduction = this.countGarbagePuyos(this.cpuBoard) - this.countGarbagePuyos(testBoard);
+                adjustedScore += garbageReduction * 100;
+                break;
+                
+            case 'cleanup':
+                // 整理：おじゃまぷよとちょっとした連鎖を狙う
+                const garbageClear = this.countGarbagePuyos(this.cpuBoard) - this.countGarbagePuyos(testBoard);
+                adjustedScore += garbageClear * 80;
+                
+                // 小さな連鎖も評価
+                const chainAnalysis = this.analyzeAdvancedChainPatterns(testBoard);
+                if (chainAnalysis.immediateChains > 0) {
+                    adjustedScore += 150;
+                }
+                break;
+                
+            case 'garbage_clear':
+                // おじゃまぷよ削除特化
+                const directGarbageClear = this.evaluateGarbageClearPotential(testBoard);
+                adjustedScore += directGarbageClear * 150;
+                break;
+                
+            case 'aggressive':
+                // 攻撃的：長い連鎖を狙う
+                const offensivePower = this.evaluateOffensivePotential(this.analyzeAdvancedChainPatterns(testBoard));
+                adjustedScore += offensivePower * 2;
+                break;
+                
+            case 'balanced':
+            default:
+                // バランス型：基本スコアを使用
+                break;
+        }
+        
+        return adjustedScore;
+    }
+    
+    // おじゃまぷよ削除の可能性を評価
+    evaluateGarbageClearPotential(board) {
+        let clearPotential = 0;
+        
+        // おじゃまぷよの隣接に連鎖可能なぷよがあるかチェック
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === this.GARBAGE_PUYO) {
+                    // 隣接する4方向をチェック
+                    const directions = [{x: 0, y: 1}, {x: 0, y: -1}, {x: 1, y: 0}, {x: -1, y: 0}];
+                    
+                    for (const dir of directions) {
+                        const checkX = x + dir.x;
+                        const checkY = y + dir.y;
+                        
+                        if (checkX >= 0 && checkX < this.BOARD_WIDTH &&
+                            checkY >= 0 && checkY < this.BOARD_HEIGHT &&
+                            board[checkY][checkX] > 0 && board[checkY][checkX] !== this.GARBAGE_PUYO) {
+                            
+                            // この色でつながりを確認
+                            const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+                            const connected = this.findConnectedPuyos(board, checkX, checkY, board[checkY][checkX], visited);
+                            
+                            if (connected.length >= 4) {
+                                clearPotential += 50; // 連鎖でおじゃまぷよを削除可能
+                            } else if (connected.length === 3) {
+                                clearPotential += 20; // あと1個で削除可能
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return clearPotential;
+    }
+    
+    // ピースを指定回数回転
+    rotatePiece(piece, rotations) {
+        let rotatedPiece = {
+            colors: [...piece.colors],
+            positions: piece.positions.map(pos => ({...pos}))
+        };
+        
+        for (let i = 0; i < rotations; i++) {
+            // 90度回転
+            const basePos = rotatedPiece.positions[0];
+            for (let j = 1; j < rotatedPiece.positions.length; j++) {
+                const relativeX = rotatedPiece.positions[j].x - basePos.x;
+                const relativeY = rotatedPiece.positions[j].y - basePos.y;
+                
+                rotatedPiece.positions[j].x = basePos.x - relativeY;
+                rotatedPiece.positions[j].y = basePos.y + relativeX;
+            }
+        }
+        
+        return rotatedPiece;
+    }
+    
+    // 指定位置への落下位置を計算
+    findDropPosition(player, x, positions) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            // その位置に配置可能かチェック
+            let canPlace = true;
+            for (const pos of positions) {
+                const checkX = x + pos.x;
+                const checkY = y + pos.y;
+                
+                if (checkX < 0 || checkX >= this.BOARD_WIDTH || 
+                    checkY >= this.BOARD_HEIGHT ||
+                    (checkY >= 0 && board[checkY][checkX] !== 0)) {
+                    canPlace = false;
+                    break;
+                }
+            }
+            
+            if (!canPlace) {
+                return y - 1 >= 0 ? y - 1 : null;
+            }
+        }
+        
+        return this.BOARD_HEIGHT - 1;
+    }
+    
+    // 手を仮実行してボード状態をシミュレート
+    simulateMove(player, x, y, piece) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        const testBoard = board.map(row => [...row]);
+        
+        // ピースを配置
+        for (let i = 0; i < piece.positions.length; i++) {
+            const pos = piece.positions[i];
+            const placeX = x + pos.x;
+            const placeY = y + pos.y;
+            
+            if (placeY >= 0 && placeY < this.BOARD_HEIGHT && 
+                placeX >= 0 && placeX < this.BOARD_WIDTH) {
+                testBoard[placeY][placeX] = piece.colors[i];
+            }
+        }
+        
+        return testBoard;
+    }
+    
+    // ボード状態を評価
+    evaluateBoard(board, player) {
+        let score = 0;
+        
+        // 高度な連鎖分析
+        const chainAnalysis = this.analyzeAdvancedChainPatterns(board);
+        
+        // 即座に発生する連鎖の評価（最重要）
+        score += chainAnalysis.immediateChains * this.aiConfig.chainWeight * 3;
+        
+        // 潜在的連鎖の評価
+        score += chainAnalysis.potentialChains * this.aiConfig.chainWeight * 1.5;
+        
+        // 最大連鎖長の評価
+        score += chainAnalysis.maxChainLength * this.aiConfig.chainWeight * 2;
+        
+        // 連鎖の引き金位置の評価
+        score += chainAnalysis.triggerPositions.length * 20;
+        
+        // 基本的な連鎖可能性の評価
+        score += this.evaluateChainPotential(board) * this.aiConfig.chainWeight;
+        
+        // ボードの高さペナルティ
+        score -= this.evaluateHeight(board) * this.aiConfig.heightPenalty;
+        
+        // おじゃまぷよの評価
+        score -= this.evaluateGarbage(board) * this.aiConfig.garbageWeight;
+        
+        // 色のまとまり評価
+        score += this.evaluateColorGroups(board) * 20;
+        
+        // 相手への攻撃性評価
+        score += this.evaluateOffensivePotential(chainAnalysis) * 50;
+        
+        // 防御性評価
+        score += this.evaluateDefensivePotential(board) * this.aiConfig.defenseWeight;
+        
+        return score;
+    }
+    
+    // 攻撃性能の評価
+    evaluateOffensivePotential(chainAnalysis) {
+        let offensiveScore = 0;
+        
+        // 長い連鎖ほど攻撃力が高い
+        if (chainAnalysis.maxChainLength >= 4) {
+            offensiveScore += chainAnalysis.maxChainLength * 30;
+        }
+        
+        // 即座に発動可能な連鎖は攻撃性が高い
+        offensiveScore += chainAnalysis.immediateChains * 20;
+        
+        // 高優先度の引き金位置があると攻撃力アップ
+        const highPriorityTriggers = chainAnalysis.triggerPositions.filter(t => t.priority === 'high');
+        offensiveScore += highPriorityTriggers.length * 15;
+        
+        return offensiveScore;
+    }
+    
+    // 防御性能の評価
+    evaluateDefensivePotential(board) {
+        let defensiveScore = 0;
+        
+        // 低い高さは防御的に良い
+        const avgHeight = this.evaluateHeight(board);
+        if (avgHeight < 4) {
+            defensiveScore += 30;
+        } else if (avgHeight > 7) {
+            defensiveScore -= 50; // 危険な高さ
+        }
+        
+        // おじゃまぷよが少ないほど防御的に良い
+        const garbageCount = this.countGarbagePuyos(board);
+        defensiveScore -= garbageCount * 5;
+        
+        // 均等な高さ分布は安定性が高い
+        defensiveScore += this.evaluateHeightDistribution(board) * 10;
+        
+        return defensiveScore;
+    }
+    
+    countGarbagePuyos(board) {
+        let count = 0;
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === this.GARBAGE_PUYO) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    
+    evaluateHeightDistribution(board) {
+        const heights = [];
+        
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            let height = 0;
+            for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+                if (board[y][x] !== 0) {
+                    height = this.BOARD_HEIGHT - y;
+                    break;
+                }
+            }
+            heights.push(height);
+        }
+        
+        // 高さの分散を計算（小さいほど良い）
+        const avgHeight = heights.reduce((a, b) => a + b, 0) / heights.length;
+        const variance = heights.reduce((sum, h) => sum + Math.pow(h - avgHeight, 2), 0) / heights.length;
+        
+        return Math.max(0, 10 - variance); // 分散が小さいほど高スコア
+    }
+    
+    // 連鎖可能性を評価
+    evaluateChainPotential(board) {
+        let chainScore = 0;
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO && !visited[y][x]) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], visited);
+                    
+                    if (connected.length === 3) {
+                        chainScore += 30; // 3個つながり（あと1個で連鎖）
+                    } else if (connected.length >= 4) {
+                        chainScore += 100; // 即座に連鎖可能
+                    } else if (connected.length === 2) {
+                        chainScore += 10; // 2個つながり
+                    }
+                }
+            }
+        }
+        
+        return chainScore;
+    }
+    
+    // ボードの高さを評価
+    evaluateHeight(board) {
+        let totalHeight = 0;
+        let maxHeight = 0;
+        
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            let height = 0;
+            for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+                if (board[y][x] !== 0) {
+                    height = this.BOARD_HEIGHT - y;
+                    break;
+                }
+            }
+            totalHeight += height;
+            maxHeight = Math.max(maxHeight, height);
+        }
+        
+        // 平均の高さ + 最大高さのペナルティ
+        return totalHeight / this.BOARD_WIDTH + maxHeight * 2;
+    }
+    
+    // おじゃまぷよの影響を評価
+    evaluateGarbage(board) {
+        let garbageCount = 0;
+        let garbageHeight = 0;
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === this.GARBAGE_PUYO) {
+                    garbageCount++;
+                    garbageHeight = Math.max(garbageHeight, this.BOARD_HEIGHT - y);
+                }
+            }
+        }
+        
+        return garbageCount + garbageHeight * 5;
+    }
+    
+    // 色のまとまりを評価
+    evaluateColorGroups(board) {
+        let groupScore = 0;
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO && !visited[y][x]) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], visited);
+                    
+                    // 2個以上つながっている場合にスコア
+                    if (connected.length >= 2) {
+                        groupScore += connected.length * connected.length;
+                    }
+                }
+            }
+        }
+        
+        return groupScore;
+    }
+    
+    // 高度な連鎖パターン認識システム
+    analyzeAdvancedChainPatterns(board) {
+        let chainAnalysis = {
+            immediateChains: 0,
+            potentialChains: 0,
+            triggerPositions: [],
+            maxChainLength: 0,
+            chainSetups: []
+        };
+        
+        // 即座に発生する連鎖を検出
+        chainAnalysis.immediateChains = this.countImmediateChains(board);
+        
+        // 1手で発生可能な連鎖を検出
+        chainAnalysis.potentialChains = this.findPotentialChains(board);
+        
+        // 連鎖の引き金となる位置を特定
+        chainAnalysis.triggerPositions = this.findChainTriggers(board);
+        
+        // 最大連鎖長を計算
+        chainAnalysis.maxChainLength = this.calculateMaxChainLength(board);
+        
+        return chainAnalysis;
+    }
+    
+    countImmediateChains(board) {
+        let chainCount = 0;
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO && !visited[y][x]) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], visited);
+                    
+                    if (connected.length >= 4) {
+                        chainCount++;
+                    }
+                }
+            }
+        }
+        
+        return chainCount;
+    }
+    
+    findPotentialChains(board) {
+        let potentialChains = 0;
+        
+        // 各空きマスに各色のぷよを仮配置して連鎖可能性をチェック
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === 0) {
+                    // 各色を試す
+                    for (let color = 1; color <= 5; color++) {
+                        const testBoard = board.map(row => [...row]);
+                        testBoard[y][x] = color;
+                        
+                        if (this.countImmediateChains(testBoard) > 0) {
+                            potentialChains++;
+                            break; // この位置では1つ見つかれば十分
+                        }
+                    }
+                }
+            }
+        }
+        
+        return potentialChains;
+    }
+    
+    findChainTriggers(board) {
+        const triggers = [];
+        
+        // 3個つながりの上や隣に同色を置くことで連鎖が発生する位置を探す
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO && !visited[y][x]) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], visited);
+                    
+                    if (connected.length === 3) {
+                        // 3個つながりの周囲をチェック
+                        const adjacentPositions = this.getAdjacentEmptyPositions(board, connected);
+                        
+                        for (const pos of adjacentPositions) {
+                            triggers.push({
+                                x: pos.x,
+                                y: pos.y,
+                                color: board[y][x],
+                                priority: 'high' // 3個つながりは高優先度
+                            });
+                        }
+                    } else if (connected.length === 2) {
+                        // 2個つながりの周囲も低優先度でチェック
+                        const adjacentPositions = this.getAdjacentEmptyPositions(board, connected);
+                        
+                        for (const pos of adjacentPositions) {
+                            triggers.push({
+                                x: pos.x,
+                                y: pos.y,
+                                color: board[y][x],
+                                priority: 'medium'
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        return triggers;
+    }
+    
+    getAdjacentEmptyPositions(board, connectedGroup) {
+        const emptyPositions = [];
+        const checked = new Set();
+        
+        for (const pos of connectedGroup) {
+            const directions = [{x: 0, y: 1}, {x: 0, y: -1}, {x: 1, y: 0}, {x: -1, y: 0}];
+            
+            for (const dir of directions) {
+                const checkX = pos.x + dir.x;
+                const checkY = pos.y + dir.y;
+                const key = `${checkX},${checkY}`;
+                
+                if (checkX >= 0 && checkX < this.BOARD_WIDTH &&
+                    checkY >= 0 && checkY < this.BOARD_HEIGHT &&
+                    !checked.has(key) && board[checkY][checkX] === 0) {
+                    
+                    checked.add(key);
+                    emptyPositions.push({x: checkX, y: checkY});
+                }
+            }
+        }
+        
+        return emptyPositions;
+    }
+    
+    calculateMaxChainLength(board) {
+        // シミュレーションによる最大連鎖長計算（簡易版）
+        let maxChain = 0;
+        
+        // 各色を各位置に配置して最大連鎖を計算
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === 0) {
+                    for (let color = 1; color <= 5; color++) {
+                        const chainLength = this.simulateChainLength(board, x, y, color);
+                        maxChain = Math.max(maxChain, chainLength);
+                    }
+                }
+            }
+        }
+        
+        return maxChain;
+    }
+    
+    simulateChainLength(board, x, y, color) {
+        const testBoard = board.map(row => [...row]);
+        testBoard[y][x] = color;
+        
+        let chainLength = 0;
+        let hasChain = true;
+        
+        // 連鎖をシミュレート（最大5回まで）
+        while (hasChain && chainLength < 5) {
+            hasChain = false;
+            const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+            
+            for (let by = 0; by < this.BOARD_HEIGHT; by++) {
+                for (let bx = 0; bx < this.BOARD_WIDTH; bx++) {
+                    if (testBoard[by][bx] > 0 && testBoard[by][bx] !== this.GARBAGE_PUYO && !visited[by][bx]) {
+                        const connected = this.findConnectedPuyos(testBoard, bx, by, testBoard[by][bx], visited);
+                        
+                        if (connected.length >= 4) {
+                            hasChain = true;
+                            chainLength++;
+                            
+                            // 連鎖したぷよを削除
+                            for (const pos of connected) {
+                                testBoard[pos.y][pos.x] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (hasChain) {
+                // 重力適用
+                this.applySimulatedGravity(testBoard);
+            }
+        }
+        
+        return chainLength;
+    }
+    
+    applySimulatedGravity(board) {
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            let writeIndex = this.BOARD_HEIGHT - 1;
+            
+            for (let y = this.BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y][x] > 0) {
+                    if (y !== writeIndex) {
+                        board[writeIndex][x] = board[y][x];
+                        board[y][x] = 0;
+                    }
+                    writeIndex--;
+                }
+            }
+        }
+    }
+    
+    updateScore(player, points) {
+        if (player === 'player') {
+            this.playerScore += points;
+            if (this.playerScoreDisplay) {
+                this.playerScoreDisplay.textContent = this.playerScore;
+            }
+        } else {
+            this.cpuScore += points;
+            if (this.cpuScoreDisplay) {
+                this.cpuScoreDisplay.textContent = this.cpuScore;
+            }
+        }
+    }
+    
+    endBattle() {
+        console.log('🏁 対戦終了！');
+        this.gameRunning = false;
+        
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // 勝敗判定
+        const winner = this.playerScore > this.cpuScore ? 'プレイヤー' : 'CPU';
+        
+        alert(`対戦終了！\n\nプレイヤー: ${this.playerScore}点\nCPU: ${this.cpuScore}点\n\n勝者: ${winner}`);
+        
+        // リセット
+        this.resetBattle();
+    }
+    
+    resetBattle() {
+        this.timeLeft = 180;
+        this.playerScore = 0;
+        this.cpuScore = 0;
+        
+        if (this.timeLeftDisplay) {
+            this.timeLeftDisplay.textContent = this.timeLeft;
+        }
+        if (this.playerScoreDisplay) {
+            this.playerScoreDisplay.textContent = this.playerScore;
+        }
+        if (this.cpuScoreDisplay) {
+            this.cpuScoreDisplay.textContent = this.cpuScore;
+        }
+        
+        // ボタンをリセット
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+        
+        // キャンバスをリセット
+        this.initializeCanvas();
+    }
+    
+    playSound(soundType) {
+        try {
+            let audioElement = null;
+            
+            switch(soundType) {
+                case 'move':
+                    audioElement = document.getElementById('se-move');
+                    break;
+                case 'rotate':
+                    audioElement = document.getElementById('se-rotate');
+                    break;
+                case 'clear':
+                    audioElement = document.getElementById('se-clear');
+                    break;
+                default:
+                    console.warn(`🔊 未知の効果音タイプ: ${soundType}`);
+                    return;
+            }
+            
+            if (audioElement) {
+                // 対戦モード専用の音量設定（既存ゲームの音量が小さすぎるため）
+                let volume = 0.7; // デフォルト音量
+                if (window.game && window.game.seVolume !== undefined) {
+                    volume = Math.max(0.3, window.game.seVolume / 100); // 最低音量30%を保証
+                }
+                
+                audioElement.volume = volume;
+                audioElement.currentTime = 0; // 巻き戻し
+                
+                audioElement.play().then(() => {
+                    console.log(`🔊 ${soundType}音再生 (音量: ${Math.round(volume * 100)}%)`);
+                }).catch(e => {
+                    console.warn('🔊 効果音再生エラー:', e.message);
+                });
+            } else {
+                console.warn(`🔊 効果音要素が見つかりません: ${soundType}`);
+            }
+        } catch (error) {
+            console.warn('🔊 効果音再生中にエラー:', error.message);
+        }
+    }
+    
+    checkPlayerChains() {
+        this.checkChains('player');
+    }
+    
+    checkCpuChains() {
+        this.checkChains('cpu');
+    }
+    
+    checkChains(player) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        let chainFound = false;
+        
+        // 4つ以上つながったぷよを探す（おじゃまぷよは除外）
+        const toRemove = [];
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO && !visited[y][x]) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], visited);
+                    if (connected.length >= 4) {
+                        toRemove.push(...connected);
+                        chainFound = true;
+                    }
+                }
+            }
+        }
+        
+        // ぷよを削除
+        if (chainFound) {
+            // 連鎖数を増加
+            if (player === 'player') {
+                this.playerChainCount++;
+            } else {
+                this.cpuChainCount++;
+            }
+            
+            const chainCount = player === 'player' ? this.playerChainCount : this.cpuChainCount;
+            console.log(`💥 ${player} で${chainCount}連鎖発生！削除数: ${toRemove.length}`);
+            
+            // おじゃまぷよの隣接削除チェック
+            const garbagesToRemove = this.findAdjacentGarbage(board, toRemove);
+            toRemove.push(...garbagesToRemove);
+            
+            for (const pos of toRemove) {
+                board[pos.y][pos.x] = 0;
+            }
+            
+            this.playSound('clear');
+            
+            // おじゃまぷよを相手に送る
+            const garbageToSend = this.calculateGarbagePuyos(chainCount, toRemove.length);
+            this.sendGarbagePuyos(player, garbageToSend);
+            
+            // 重力を適用
+            this.applyGravity(player);
+            
+            // 再帰的に連鎖をチェック
+            setTimeout(() => {
+                this.checkChains(player);
+            }, 300);
+        } else {
+            // 連鎖終了時にリセット
+            if (player === 'player') {
+                this.playerChainCount = 0;
+            } else {
+                this.cpuChainCount = 0;
+            }
+            
+            // 連鎖終了後、現在のピースがない場合は新しいピースを生成
+            const currentPiece = player === 'player' ? this.playerCurrentPiece : this.cpuCurrentPiece;
+            if (!currentPiece) {
+                console.log(`🔄 ${player} 連鎖終了 - 新しいピースを生成`);
+                
+                // ゲームオーバーチェック
+                if (!this.checkGameOver(player)) {
+                    this.spawnNewPiece(player);
+                    this.renderBattleNextPuyo();
+                    console.log(`✅ ${player} 新しいピース生成完了`);
+                } else {
+                    console.log(`🚫 ${player} ゲームオーバーのため新しいピース生成をスキップ`);
+                }
+            } else {
+                console.log(`⚠️ ${player} 連鎖終了時に既にピースが存在: ${currentPiece ? 'あり' : 'なし'}`);
+            }
+        }
+    }
+    
+    findConnectedPuyos(board, startX, startY, color, visited) {
+        const connected = [];
+        const stack = [{x: startX, y: startY}];
+        
+        while (stack.length > 0) {
+            const {x, y} = stack.pop();
+            
+            if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT) {
+                continue;
+            }
+            
+            if (visited[y][x] || board[y][x] !== color) {
+                continue;
+            }
+            
+            visited[y][x] = true;
+            connected.push({x, y});
+            
+            // 4方向をチェック
+            stack.push({x: x + 1, y});
+            stack.push({x: x - 1, y});
+            stack.push({x, y: y + 1});
+            stack.push({x, y: y - 1});
+        }
+        
+        return connected;
+    }
+    
+    applyGravity(player) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            // 下から詰める
+            let writeIndex = this.BOARD_HEIGHT - 1;
+            
+            for (let y = this.BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y][x] > 0) {
+                    if (y !== writeIndex) {
+                        board[writeIndex][x] = board[y][x];
+                        board[y][x] = 0;
+                    }
+                    writeIndex--;
+                }
+            }
+        }
+        
+        this.drawGameBoard(player);
+        console.log(`⬇️ ${player} に重力を適用しました`);
+    }
+    
+    findAdjacentGarbage(board, removedPositions) {
+        const garbageToRemove = [];
+        const visited = new Set();
+        
+        for (const pos of removedPositions) {
+            // 4方向をチェック
+            const directions = [{x: 0, y: 1}, {x: 0, y: -1}, {x: 1, y: 0}, {x: -1, y: 0}];
+            
+            for (const dir of directions) {
+                const x = pos.x + dir.x;
+                const y = pos.y + dir.y;
+                const key = `${x},${y}`;
+                
+                if (x >= 0 && x < this.BOARD_WIDTH && y >= 0 && y < this.BOARD_HEIGHT &&
+                    !visited.has(key) && board[y][x] === this.GARBAGE_PUYO) {
+                    visited.add(key);
+                    garbageToRemove.push({x, y});
+                }
+            }
+        }
+        
+        return garbageToRemove;
+    }
+    
+    calculateGarbagePuyos(chainCount, removedCount) {
+        // 連鎖数とぷよ数に応じておじゃまぷよの数を計算
+        let garbageCount = 0;
+        
+        if (chainCount >= 2) {
+            garbageCount = chainCount * 2; // 基本: 連鎖数 × 2
+            
+            if (removedCount >= 8) {
+                garbageCount += Math.floor(removedCount / 4); // 大量消去ボーナス
+            }
+            
+            if (chainCount >= 4) {
+                garbageCount += chainCount; // 4連鎖以上ボーナス
+            }
+        }
+        
+        return Math.min(garbageCount, 30); // 最大30個
+    }
+    
+    sendGarbagePuyos(sender, amount) {
+        if (amount <= 0) return;
+        
+        const target = sender === 'player' ? 'cpu' : 'player';
+        
+        if (target === 'player') {
+            this.playerPendingGarbage += amount;
+        } else {
+            this.cpuPendingGarbage += amount;
+        }
+        
+        console.log(`📨 ${sender} から ${target} に おじゃまぷよ ${amount}個送信`);
+        
+        // 少し遅延してからおじゃまぷよを配置
+        setTimeout(() => {
+            this.dropGarbagePuyos(target);
+        }, 500);
+    }
+    
+    dropGarbagePuyos(player) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        const pendingAmount = player === 'player' ? this.playerPendingGarbage : this.cpuPendingGarbage;
+        
+        if (pendingAmount <= 0) return;
+        
+        console.log(`💩 ${player} におじゃまぷよ ${pendingAmount}個落下`);
+        
+        // 上から詰めて配置
+        let remainingGarbage = pendingAmount;
+        
+        for (let row = 0; row < this.BOARD_HEIGHT && remainingGarbage > 0; row++) {
+            for (let col = 0; col < this.BOARD_WIDTH && remainingGarbage > 0; col++) {
+                if (board[row][col] === 0) {
+                    board[row][col] = this.GARBAGE_PUYO;
+                    remainingGarbage--;
+                }
+            }
+        }
+        
+        // ペンディング数をリセット
+        if (player === 'player') {
+            this.playerPendingGarbage = 0;
+        } else {
+            this.cpuPendingGarbage = 0;
+        }
+        
+        this.drawGameBoard(player);
+    }
+    
+    checkGameOver(player) {
+        const board = player === 'player' ? this.playerBoard : this.cpuBoard;
+        
+        // 上端2行にぷよがあるかチェック
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            if (board[0][x] !== 0 || board[1][x] !== 0) {
+                console.log(`💀 ${player} のゲームオーバー（天井到達）`);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    endGame(winner) {
+        console.log(`🏆 ゲーム終了！勝者: ${winner}`);
+        this.gameRunning = false;
+        
+        // タイマー停止
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // BGM停止
+        this.stopBattleBgm();
+        
+        // 勝者の決定とメッセージ表示
+        const winnerText = winner === 'player' ? 'あなたの勝利！' : 'CPUの勝利！';
+        const loser = winner === 'player' ? 'cpu' : 'player';
+        
+        // 画面にリザルト表示
+        setTimeout(() => {
+            alert(`🎉 対戦終了！\n\n${winnerText}\n\nもう一度プレイしますか？`);
+            this.resetBattle();
+        }, 1000);
+        
+        // ボタンを元に戻す
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+    }
+    
+    endGameByTime() {
+        console.log('⏰ 時間切れ！');
+        this.gameRunning = false;
+        
+        // タイマー停止
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // BGM停止
+        this.stopBattleBgm();
+        
+        // スコアで勝敗を決定
+        let winner;
+        if (this.playerScore > this.cpuScore) {
+            winner = 'player';
+        } else if (this.cpuScore > this.playerScore) {
+            winner = 'cpu';
+        } else {
+            winner = 'draw';
+        }
+        
+        const winnerText = winner === 'player' ? 'あなたの勝利！' : 
+                          winner === 'cpu' ? 'CPUの勝利！' : '引き分け！';
+        
+        // 画面にリザルト表示
+        setTimeout(() => {
+            alert(`⏰ 時間切れ！\n\n${winnerText}\n\nプレイヤー: ${this.playerScore}点\nCPU: ${this.cpuScore}点\n\nもう一度プレイしますか？`);
+            this.resetBattle();
+        }, 1000);
+        
+        // ボタンを元に戻す
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+    }
+    
+    resetBattle() {
+        console.log('🔄 対戦をリセット');
+        
+        // ゲーム状態をリセット
+        this.gameRunning = false;
+        this.playerGameOver = false;
+        this.cpuGameOver = false;
+        this.timeLeft = 180;
+        
+        // ボードをクリア
+        this.playerBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        this.cpuBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        
+        // 連鎖・おじゃまぷよ状態をリセット
+        this.playerChainCount = 0;
+        this.cpuChainCount = 0;
+        this.playerPendingGarbage = 0;
+        this.cpuPendingGarbage = 0;
+        
+        // スコアをリセット
+        this.playerScore = 0;
+        this.cpuScore = 0;
+        
+        // UI表示を更新
+        if (this.timeLeftDisplay) {
+            this.timeLeftDisplay.textContent = this.timeLeft;
+        }
+        if (this.playerScoreDisplay) {
+            this.playerScoreDisplay.textContent = this.playerScore;
+        }
+        if (this.cpuScoreDisplay) {
+            this.cpuScoreDisplay.textContent = this.cpuScore;
+        }
+        
+        // ピースを再生成
+        this.generateNextPiece('player');
+        this.generateNextPiece('cpu');
+        this.spawnNewPiece('player');
+        this.spawnNewPiece('cpu');
+        
+        // 画面を再描画
+        this.drawGameBoard('player');
+        this.drawGameBoard('cpu');
+        
+        console.log('✅ 対戦リセット完了');
+    }
+    
+    destroy() {
+        console.log('🧹 対戦ゲームをクリーンアップ');
+        this.gameRunning = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // イベントリスナーを削除
+        if (this.boundKeyHandler) {
+            document.removeEventListener('keydown', this.boundKeyHandler);
+        }
+        
+        // ゲーム状態をリセット
+        this.playerBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        this.cpuBoard = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+        this.playerCurrentPiece = null;
+        this.cpuCurrentPiece = null;
+        this.playerGameOver = false;
+        this.cpuGameOver = false;
+    }
+}
+
+// ================================================
+// ゲーム初期化時にモード管理システムを追加
+// ================================================
+
+// DOMが読み込まれた後にゲームを初期化
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎮 おぐなお - ゲーム初期化開始');
+    
+    // まずゲームインスタンスを作成
+    window.game = new PuyoPuyoGame();
+    console.log('✅ ゲームインスタンス作成完了');
+    
+    // 少し遅延させてモード管理システムを初期化
+    setTimeout(() => {
+        window.gameModeManager = new GameModeManager();
+        
+        // ゲームインスタンスをモード管理システムに登録
+        if (window.game) {
+            window.gameModeManager.setGameInstance(window.game);
+            console.log('✅ ゲームインスタンスを正常に登録しました');
+        } else {
+            console.log('⚠️ ゲームインスタンスが見つかりません');
+        }
+    }, 100);
+});

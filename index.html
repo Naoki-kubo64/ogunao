@@ -216,7 +216,26 @@
                 <div class="title-content">
                     <img src="images/puyopuyo.jpg" alt="ぷよぷよタイトル" class="title-image">
                     <h2 class="game-title">おぐなお</h2>
-                    <p class="start-instruction">Enterキーを押してゲーム開始!</p>
+                    <div class="mode-selection">
+                        <h3 class="mode-title">ゲームモード選択</h3>
+                        <div class="mode-buttons">
+                            <button id="solo-mode-btn" class="mode-button solo-button">
+                                <span class="mode-icon">🎮</span>
+                                <span class="mode-name">ソロプレイ</span>
+                                <span class="mode-desc">一人でプレイ</span>
+                            </button>
+                            <button id="battle-mode-btn" class="mode-button battle-button">
+                                <span class="mode-icon">⚔️</span>
+                                <span class="mode-name">対戦モード</span>
+                                <span class="mode-desc">CPUと対戦</span>
+                            </button>
+                        </div>
+                        <p class="start-instruction">モードを選択してください</p>
+                        <div id="press-enter-instruction" class="press-enter-instruction hidden">
+                            <p class="press-enter-text">🎮 Press Enter Key to Start!</p>
+                            <p class="press-enter-subtext">Enterキーを押してゲーム開始</p>
+                        </div>
+                    </div>
                     <div class="title-effects">
                         <div class="sparkle sparkle-1">✨</div>
                         <div class="sparkle sparkle-2">⭐</div>
@@ -232,6 +251,78 @@
                     <button id="submit-score">スコアを登録</button>
                 </div>
                 <button id="restart-btn">もう一度プレイ</button>
+            </div>
+            
+            <!-- 対戦モード画面 -->
+            <div id="battle-screen" class="battle-screen hidden">
+                <div class="battle-content">
+                    <div class="battle-header">
+                        <h2 class="battle-title">⚔️ CPU対戦モード</h2>
+                        <button id="back-to-title" class="back-button">タイトルに戻る</button>
+                    </div>
+                    
+                    <div class="battle-arena">
+                        <!-- プレイヤー側 -->
+                        <div class="player-side">
+                            <div class="player-info">
+                                <h3 class="player-name">あなた</h3>
+                                <div class="player-score">スコア: <span id="player-score">0</span></div>
+                            </div>
+                            <div class="player-board">
+                                <canvas id="player-canvas" width="300" height="450"></canvas>
+                            </div>
+                            <div class="player-next">
+                                <div class="next-label">次のぷよ</div>
+                                <div id="player-next-puyo"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- VS表示 -->
+                        <div class="vs-display">
+                            <div class="vs-text">VS</div>
+                            <div class="battle-status">
+                                <div id="battle-timer">残り時間: <span id="time-left">180</span>秒</div>
+                                <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                            </div>
+                        </div>
+                        
+                        <!-- CPU側 -->
+                        <div class="cpu-side">
+                            <div class="cpu-info">
+                                <h3 class="cpu-name">CPU</h3>
+                                <div class="cpu-score">スコア: <span id="cpu-score">0</span></div>
+                            </div>
+                            <div class="cpu-board">
+                                <canvas id="cpu-canvas" width="300" height="450"></canvas>
+                            </div>
+                            <div class="cpu-next">
+                                <div class="next-label">次のぷよ</div>
+                                <div id="cpu-next-puyo"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="battle-controls">
+                        <div class="control-info">
+                            <h4>操作方法</h4>
+                            <div class="controls-grid">
+                                <span>A: 左移動</span>
+                                <span>D: 右移動</span>
+                                <span>S: 下移動</span>
+                                <span>Space: 回転</span>
+                            </div>
+                        </div>
+                        <div class="battle-settings">
+                            <label for="cpu-level">CPU難易度:</label>
+                            <select id="cpu-level">
+                                <option value="easy">簡単</option>
+                                <option value="normal" selected>普通</option>
+                                <option value="hard">難しい</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
