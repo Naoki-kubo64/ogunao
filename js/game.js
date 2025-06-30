@@ -8,6 +8,9 @@ import { Renderer } from './renderer.js';
 import { EffectsManager } from './effects.js';
 import { GameLogic } from './gameLogic.js';
 import { DebugManager } from './debugManager.js';
+import { AudioManager } from './audioManager.js';
+import { FirebaseManager } from './firebaseManager.js';
+import { NaochanSystem } from './naochanSystem.js';
 
 export class PuyoPuyoGame {
     constructor() {
@@ -40,6 +43,9 @@ export class PuyoPuyoGame {
     
     initializeManagers() {
         this.imageManager = new ImageManager();
+        this.audioManager = new AudioManager();
+        this.firebaseManager = new FirebaseManager();
+        this.naochanSystem = new NaochanSystem(this.audioManager);
         this.renderer = new Renderer(this.canvas, this.imageManager);
         this.effectsManager = new EffectsManager(this.gameContainer, this.imageManager);
         this.gameLogic = new GameLogic(this.gameBoard);
