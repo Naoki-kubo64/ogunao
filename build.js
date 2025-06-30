@@ -20,7 +20,9 @@ const filesToCopy = [
     'index.html',
     'style.css', 
     'script.js',
-    'firebase-config.example.js'
+    'firebase-config.example.js',
+    'package.json',
+    'package-lock.json'
 ];
 
 console.log('📄 コアファイルをコピー中...');
@@ -174,9 +176,17 @@ if (fs.existsSync('README.md')) {
 }
 
 // ビルド情報を生成
+let version = '1.0.0';
+try {
+    const packageJson = require('./package.json');
+    version = packageJson.version || '1.0.0';
+} catch (e) {
+    console.log('⚠️ package.json が読み込めません、バージョンを1.0.0に設定');
+}
+
 const buildInfo = {
     buildTime: new Date().toISOString(),
-    version: require('./package.json').version || '1.0.0',
+    version: version,
     files: fs.readdirSync(buildDir).length,
     totalSize: getDirectorySize(buildDir)
 };

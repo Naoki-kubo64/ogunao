@@ -1,0 +1,31 @@
+{
+  "name": "ogunao",
+  "version": "1.0.0",
+  "description": "ぷよぷよ風パズルゲーム with Firebase ランキング",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.js",
+    "build:clean": "rm -rf docs && npm run build",
+    "serve": "python -m http.server 8000",
+    "serve:build": "cd docs && python -m http.server 8001",
+    "dev": "npm run serve",
+    "preview": "npm run build && npm run serve:build",
+    "lint": "echo 'No linter configured'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "game",
+    "puzzle",
+    "puyo",
+    "firebase",
+    "javascript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "firebase": "^11.9.1"
+  }
+}
