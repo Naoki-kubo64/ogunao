@@ -1,0 +1,16 @@
+{
+  "browser": "chromium",
+  "headless": true,
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "launchOptions": {
+    "args": [
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-web-security",
+      "--disable-features=VizDisplayCompositor"
+    ]
+  }
+}

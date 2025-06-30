@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/playwright:v1.40.0-focal
+
+WORKDIR /app
+
+# Node.jsの依存関係をコピー
+COPY package*.json ./
+RUN npm ci
+
+# テストファイルをコピー
+COPY e2e/ ./e2e/
+COPY playwright.config.js ./
+COPY test-garbage.html ./
+
+# HTTPサーバーとテストを同時実行するスクリプト
+COPY docker-test.sh ./
+RUN chmod +x docker-test.sh
+
+EXPOSE 3000
+
+CMD ["./docker-test.sh"]

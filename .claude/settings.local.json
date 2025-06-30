@@ -17,8 +17,20 @@
       "Bash(true)",
       "Bash(git commit:*)",
       "Bash(npm run dev:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_install",
+      "Bash(npx playwright install:*)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test --headed --browser=chromium)",
+      "Bash(npx playwright test:*)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test garbage-puyo.spec.js --project=chromium --timeout=30000)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-test.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test garbage-puyo.spec.js --project=chromium)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

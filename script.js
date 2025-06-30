@@ -5451,39 +5451,79 @@ class BattleGame {
     initializeCpuAI() {
         // AI設定
         this.aiConfig = {
-            thinkingDepth: 3, // 先読み深度
-            chainWeight: 100, // 連鎖の重み
-            heightPenalty: 10, // 高さペナルティ
+            thinkingDepth: 4, // 先読み深度を増加
+            chainWeight: 200, // 連鎖の重みを倍増
+            heightPenalty: 8, // 高さペナルティを軽減
             garbageWeight: 50, // おじゃまぷよ重み
-            defenseWeight: 30  // 防御重み
+            defenseWeight: 25,  // 防御重み
+            chainSetupWeight: 150, // 連鎖セットアップの重み（新追加）
+            connectedPuyoWeight: 80, // 連結ぷよの重み（新追加）
+            chainTriggerWeight: 300, // 連鎖発火の重み（新追加）
+            setupCompleteWeight: 250 // 連鎖準備完了の重み（新追加）
         };
+        
+        // 連鎖構築パターンを初期化
+        this.initializeChainPatterns();
         
         // 難易度に応じてAI設定を調整
         this.adjustAIDifficulty();
         
-        console.log('🤖 CPU AI システムを初期化しました');
+        console.log('🤖 CPU AI システム（強化版）を初期化しました');
     }
     
     adjustAIDifficulty() {
         switch (this.cpuLevel) {
             case 'easy':
-                this.aiConfig.thinkingDepth = 1;
-                this.aiConfig.chainWeight = 50;
-                this.aiConfig.heightPenalty = 5;
-                break;
-            case 'normal':
                 this.aiConfig.thinkingDepth = 2;
                 this.aiConfig.chainWeight = 100;
-                this.aiConfig.heightPenalty = 10;
+                this.aiConfig.chainSetupWeight = 80;
+                this.aiConfig.chainTriggerWeight = 150;
+                this.aiConfig.heightPenalty = 6;
+                break;
+            case 'normal':
+                this.aiConfig.thinkingDepth = 3;
+                this.aiConfig.chainWeight = 200;
+                this.aiConfig.chainSetupWeight = 150;
+                this.aiConfig.chainTriggerWeight = 300;
+                this.aiConfig.heightPenalty = 8;
                 break;
             case 'hard':
-                this.aiConfig.thinkingDepth = 3;
-                this.aiConfig.chainWeight = 150;
-                this.aiConfig.heightPenalty = 15;
+                this.aiConfig.thinkingDepth = 4;
+                this.aiConfig.chainWeight = 300;
+                this.aiConfig.chainSetupWeight = 250;
+                this.aiConfig.chainTriggerWeight = 500;
+                this.aiConfig.setupCompleteWeight = 400;
+                this.aiConfig.heightPenalty = 10;
                 break;
         }
         
         console.log(`🎯 CPU AI難易度: ${this.cpuLevel}`, this.aiConfig);
+    }
+    
+    // 連鎖構築パターンを初期化
+    initializeChainPatterns() {
+        // 基本的な連鎖パターン（階段積み、鍵積み、GTRなど）
+        this.chainPatterns = {
+            // 階段積み（基本パターン）
+            stairs: [
+                {x: 0, y: 0, color: 1}, {x: 1, y: 0, color: 1}, 
+                {x: 1, y: 1, color: 2}, {x: 2, y: 1, color: 2},
+                {x: 2, y: 2, color: 3}, {x: 3, y: 2, color: 3}
+            ],
+            // 鍵積み（挟み込みパターン）
+            sandwich: [
+                {x: 0, y: 0, color: 1}, {x: 2, y: 0, color: 1},
+                {x: 1, y: 0, color: 2}, {x: 1, y: 1, color: 2}
+            ],
+            // GTR（Great Tanaka Rensa）
+            gtr: [
+                {x: 2, y: 0, color: 1}, {x: 3, y: 0, color: 2},
+                {x: 2, y: 1, color: 3}, {x: 3, y: 1, color: 1},
+                {x: 2, y: 2, color: 2}, {x: 3, y: 2, color: 3}
+            ]
+        };
+        
+        console.log('🧩 連鎖パターンを初期化しました');
     }
     
     // CPUの最適な手を計算
@@ -5730,7 +5770,7 @@ class BattleGame {
         return testBoard;
     }
     
-    // ボード状態を評価
+    // ボード状態を評価（強化版）
     evaluateBoard(board, player) {
         let score = 0;
         
@@ -5738,31 +5778,46 @@ class BattleGame {
         const chainAnalysis = this.analyzeAdvancedChainPatterns(board);
         
         // 即座に発生する連鎖の評価（最重要）
-        score += chainAnalysis.immediateChains * this.aiConfig.chainWeight * 3;
+        score += chainAnalysis.immediateChains * this.aiConfig.chainWeight * 4;
         
-        // 潜在的連鎖の評価
-        score += chainAnalysis.potentialChains * this.aiConfig.chainWeight * 1.5;
+        // 潜在的連鎖の評価（強化）
+        score += chainAnalysis.potentialChains * this.aiConfig.chainWeight * 2.5;
         
-        // 最大連鎖長の評価
-        score += chainAnalysis.maxChainLength * this.aiConfig.chainWeight * 2;
+        // 最大連鎖長の評価（大幅強化）
+        score += Math.pow(chainAnalysis.maxChainLength, 2) * this.aiConfig.chainWeight * 3;
         
-        // 連鎖の引き金位置の評価
-        score += chainAnalysis.triggerPositions.length * 20;
+        // 連鎖の引き金位置の評価（強化）
+        score += chainAnalysis.triggerPositions.length * this.aiConfig.chainTriggerWeight || 50;
+        
+        // 連鎖セットアップの評価（新追加）
+        score += this.evaluateChainSetup(board) * (this.aiConfig.chainSetupWeight || 150);
+        
+        // 連鎖構築パターンマッチングの評価（新追加）
+        score += this.evaluateChainPatterns(board) * 100;
+        
+        // 多段連鎖の可能性評価（新追加）
+        score += this.evaluateMultiStageChains(board) * 200;
         
         // 基本的な連鎖可能性の評価
         score += this.evaluateChainPotential(board) * this.aiConfig.chainWeight;
         
-        // ボードの高さペナルティ
-        score -= this.evaluateHeight(board) * this.aiConfig.heightPenalty;
+        // 色の連結性評価（強化）
+        score += this.evaluateColorConnectivity(board) * (this.aiConfig.connectedPuyoWeight || 80);
+        
+        // ボードの安定性評価（新追加）
+        score += this.evaluateBoardStability(board) * 60;
+        
+        // ボードの高さペナルティ（調整）
+        score -= this.evaluateHeight(board) * this.aiConfig.heightPenalty * 0.8;
         
         // おじゃまぷよの評価
         score -= this.evaluateGarbage(board) * this.aiConfig.garbageWeight;
         
         // 色のまとまり評価
-        score += this.evaluateColorGroups(board) * 20;
+        score += this.evaluateColorGroups(board) * 25;
         
-        // 相手への攻撃性評価
-        score += this.evaluateOffensivePotential(chainAnalysis) * 50;
+        // 相手への攻撃性評価（強化）
+        score += this.evaluateOffensivePotential(chainAnalysis) * 80;
         
         // 防御性評価
         score += this.evaluateDefensivePotential(board) * this.aiConfig.defenseWeight;
@@ -5809,6 +5864,147 @@ class BattleGame {
         defensiveScore += this.evaluateHeightDistribution(board) * 10;
         
         return defensiveScore;
+    }
+    
+    // 連鎖セットアップの評価（新メソッド）
+    evaluateChainSetup(board) {
+        let setupScore = 0;
+        
+        // 3個連結のぷよ（あと1個で連鎖）を高く評価
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false)));
+                    
+                    if (connected.length === 3) {
+                        setupScore += 50; // 3個連結は高評価
+                        
+                        // 周辺に同色ぷよがあるかチェック
+                        const adjacentSameColor = this.countAdjacentSameColor(board, connected, board[y][x]);
+                        setupScore += adjacentSameColor * 30;
+                    } else if (connected.length === 2) {
+                        setupScore += 20; // 2個連結も評価
+                    }
+                }
+            }
+        }
+        
+        return setupScore;
+    }
+    
+    // 連鎖構築パターンマッチングの評価（新メソッド）
+    evaluateChainPatterns(board) {
+        let patternScore = 0;
+        
+        // 基本的な階段積みパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 3; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 2; y++) {
+                if (this.matchesStairPattern(board, x, y)) {
+                    patternScore += 100;
+                }
+            }
+        }
+        
+        // 鍵積みパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 2; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 1; y++) {
+                if (this.matchesSandwichPattern(board, x, y)) {
+                    patternScore += 80;
+                }
+            }
+        }
+        
+        // GTRパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 1; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 2; y++) {
+                if (this.matchesGTRPattern(board, x, y)) {
+                    patternScore += 120;
+                }
+            }
+        }
+        
+        return patternScore;
+    }
+    
+    // 多段連鎖の可能性評価（新メソッド）
+    evaluateMultiStageChains(board) {
+        let multiStageScore = 0;
+        
+        // 複数の連鎖の種を検出
+        const chainSeeds = this.findChainSeeds(board);
+        
+        if (chainSeeds.length >= 2) {
+            multiStageScore += chainSeeds.length * 60;
+            
+            // 連鎖の種が近い位置にあるほど高評価
+            for (let i = 0; i < chainSeeds.length - 1; i++) {
+                for (let j = i + 1; j < chainSeeds.length; j++) {
+                    const distance = Math.abs(chainSeeds[i].x - chainSeeds[j].x) + Math.abs(chainSeeds[i].y - chainSeeds[j].y);
+                    if (distance <= 3) {
+                        multiStageScore += 40;
+                    }
+                }
+            }
+        }
+        
+        return multiStageScore;
+    }
+    
+    // 色の連結性評価（新メソッド）
+    evaluateColorConnectivity(board) {
+        let connectivityScore = 0;
+        
+        for (let color = 1; color <= 5; color++) {
+            const colorPositions = this.findColorPositions(board, color);
+            
+            if (colorPositions.length >= 2) {
+                // 同色ぷよ同士の距離を評価
+                let totalDistance = 0;
+                let pairCount = 0;
+                
+                for (let i = 0; i < colorPositions.length - 1; i++) {
+                    for (let j = i + 1; j < colorPositions.length; j++) {
+                        const distance = Math.abs(colorPositions[i].x - colorPositions[j].x) + 
+                                       Math.abs(colorPositions[i].y - colorPositions[j].y);
+                        totalDistance += distance;
+                        pairCount++;
+                    }
+                }
+                
+                if (pairCount > 0) {
+                    const avgDistance = totalDistance / pairCount;
+                    // 距離が近いほど高評価
+                    connectivityScore += Math.max(0, (10 - avgDistance) * colorPositions.length);
+                }
+            }
+        }
+        
+        return connectivityScore;
+    }
+    
+    // ボードの安定性評価（新メソッド）
+    evaluateBoardStability(board) {
+        let stabilityScore = 0;
+        
+        // 下の方のぷよが多いほど安定
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0) {
+                    stabilityScore += (this.BOARD_HEIGHT - y) * 2;
+                }
+            }
+        }
+        
+        // 空中に浮いているぷよを検出（不安定）
+        for (let y = 1; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y-1][x] === 0) {
+                    stabilityScore -= 20; // 浮いているぷよは不安定
+                }
+            }
+        }
+        
+        return stabilityScore;
     }
     
     countGarbagePuyos(board) {
@@ -6404,14 +6600,22 @@ class BattleGame {
         let garbageCount = 0;
         
         if (chainCount >= 2) {
-            garbageCount = chainCount * 2; // 基本: 連鎖数 × 2
-            
-            if (removedCount >= 8) {
-                garbageCount += Math.floor(removedCount / 4); // 大量消去ボーナス
+            // 連鎖数に応じた適切な量の調整
+            if (chainCount === 2) {
+                garbageCount = Math.floor(Math.random() * 2) + 1; // 1-2個
+            } else if (chainCount === 3) {
+                garbageCount = Math.floor(Math.random() * 2) + 2; // 2-3個
+            } else if (chainCount === 4) {
+                garbageCount = Math.floor(Math.random() * 3) + 3; // 3-5個
+            } else if (chainCount === 5) {
+                garbageCount = Math.floor(Math.random() * 3) + 5; // 5-7個
+            } else if (chainCount >= 6) {
+                garbageCount = Math.floor(Math.random() * 4) + 6 + (chainCount - 6) * 2; // 6個以上+連鎖ボーナス
             }
             
-            if (chainCount >= 4) {
-                garbageCount += chainCount; // 4連鎖以上ボーナス
+            // 大量消去ボーナス
+            if (removedCount >= 8) {
+                garbageCount += Math.floor(removedCount / 6);
             }
         }
         
@@ -6445,10 +6649,10 @@ class BattleGame {
         
         console.log(`💩 ${player} におじゃまぷよ ${pendingAmount}個落下`);
         
-        // 上から詰めて配置
+        // 下から上に向かって配置（重力に従って落下するように）
         let remainingGarbage = pendingAmount;
         
-        for (let row = 0; row < this.BOARD_HEIGHT && remainingGarbage > 0; row++) {
+        for (let row = this.BOARD_HEIGHT - 1; row >= 0 && remainingGarbage > 0; row--) {
             for (let col = 0; col < this.BOARD_WIDTH && remainingGarbage > 0; col++) {
                 if (board[row][col] === 0) {
                     board[row][col] = this.GARBAGE_PUYO;
@@ -6464,6 +6668,8 @@ class BattleGame {
             this.cpuPendingGarbage = 0;
         }
         
+        // 重力を適用しておじゃまぷよを正しく落下させる
+        this.applyGravity(player);
         this.drawGameBoard(player);
     }
     
@@ -6618,6 +6824,131 @@ class BattleGame {
         this.cpuCurrentPiece = null;
         this.playerGameOver = false;
         this.cpuGameOver = false;
+    }
+    
+    // ================================================
+    // 強化されたAI評価用ヘルパーメソッド
+    // ================================================
+    
+    // 周辺の同色ぷよをカウント
+    countAdjacentSameColor(board, connected, color) {
+        let count = 0;
+        const directions = [{x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}];
+        
+        for (const pos of connected) {
+            for (const dir of directions) {
+                const newX = pos.x + dir.x;
+                const newY = pos.y + dir.y;
+                
+                if (newX >= 0 && newX < this.BOARD_WIDTH && newY >= 0 && newY < this.BOARD_HEIGHT) {
+                    if (board[newY][newX] === color && !connected.some(p => p.x === newX && p.y === newY)) {
+                        count++;
+                    }
+                }
+            }
+        }
+        
+        return count;
+    }
+    
+    // 階段積みパターンマッチング
+    matchesStairPattern(board, startX, startY) {
+        if (startX + 3 >= this.BOARD_WIDTH || startY + 2 >= this.BOARD_HEIGHT) return false;
+        
+        // 基本の階段パターンをチェック
+        const pattern = [
+            {x: 0, y: 0}, {x: 1, y: 0},
+            {x: 1, y: 1}, {x: 2, y: 1},
+            {x: 2, y: 2}, {x: 3, y: 2}
+        ];
+        
+        const colors = new Map();
+        for (const pos of pattern) {
+            const x = startX + pos.x;
+            const y = startY + pos.y;
+            const color = board[y][x];
+            
+            if (color === 0 || color === this.GARBAGE_PUYO) return false;
+            
+            const key = `${pos.x}_${pos.y}`;
+            if (!colors.has(key)) {
+                colors.set(key, color);
+            }
+        }
+        
+        // 同じ高さのペアが同色かチェック
+        return (colors.get('0_0') === colors.get('1_0') &&
+                colors.get('1_1') === colors.get('2_1') &&
+                colors.get('2_2') === colors.get('3_2'));
+    }
+    
+    // 鍵積みパターンマッチング
+    matchesSandwichPattern(board, startX, startY) {
+        if (startX + 2 >= this.BOARD_WIDTH || startY + 1 >= this.BOARD_HEIGHT) return false;
+        
+        const leftColor = board[startY][startX];
+        const centerColor = board[startY][startX + 1];
+        const rightColor = board[startY][startX + 2];
+        const topColor = board[startY + 1][startX + 1];
+        
+        if (leftColor === 0 || centerColor === 0 || rightColor === 0 || topColor === 0) return false;
+        if (leftColor === this.GARBAGE_PUYO || centerColor === this.GARBAGE_PUYO || 
+            rightColor === this.GARBAGE_PUYO || topColor === this.GARBAGE_PUYO) return false;
+        
+        // 左右が同色で、中央と上が同色の鍵積みパターン
+        return (leftColor === rightColor && centerColor === topColor && leftColor !== centerColor);
+    }
+    
+    // GTRパターンマッチング
+    matchesGTRPattern(board, startX, startY) {
+        if (startX + 1 >= this.BOARD_WIDTH || startY + 2 >= this.BOARD_HEIGHT) return false;
+        
+        const pattern = [
+            board[startY][startX], board[startY][startX + 1],
+            board[startY + 1][startX], board[startY + 1][startX + 1],
+            board[startY + 2][startX], board[startY + 2][startX + 1]
+        ];
+        
+        // 全てのセルが空でないことを確認
+        if (pattern.some(color => color === 0 || color === this.GARBAGE_PUYO)) return false;
+        
+        // GTRパターン: AB / CA / BC の形
+        return (pattern[0] !== pattern[1] && pattern[2] !== pattern[3] && pattern[4] !== pattern[5] &&
+                pattern[0] === pattern[3] && pattern[1] === pattern[4] && pattern[2] === pattern[5]);
+    }
+    
+    // 連鎖の種を検出
+    findChainSeeds(board) {
+        const seeds = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false)));
+                    
+                    if (connected.length === 2 || connected.length === 3) {
+                        seeds.push({x: x, y: y, color: board[y][x], size: connected.length});
+                    }
+                }
+            }
+        }
+        
+        return seeds;
+    }
+    
+    // 特定色のぷよ位置を取得
+    findColorPositions(board, color) {
+        const positions = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === color) {
+                    positions.push({x: x, y: y});
+                }
+            }
+        }
+        
+        return positions;
     }
 }
 
