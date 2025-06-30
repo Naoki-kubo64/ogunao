@@ -4103,14 +4103,19 @@ class GameModeManager {
                 this.game.resetGame();
                 this.game.gameRunning = false; // 明示的にfalseに設定
                 
-                // 次のフレームで開始
+                // 直接ゲームを開始状態に設定
                 requestAnimationFrame(() => {
+                    this.game.gameRunning = true; // 強制的にtrueに設定
                     this.game.startGame();
-                    // ゲームループが動作しているかチェック
+                    
+                    // 確実にゲームループが開始されているかチェック
                     setTimeout(() => {
                         if (!this.game.gameRunning) {
-                            console.log('⚠️ ゲームが開始されていません、再試行します');
-                            this.game.startGame();
+                            console.log('⚠️ ゲームが開始されていません、強制開始します');
+                            this.game.gameRunning = true;
+                            this.game.startGameLoop(); // ゲームループを直接開始
+                        } else {
+                            console.log('✅ ゲームが正常に開始されました');
                         }
                     }, 200);
                 });
@@ -4120,7 +4125,7 @@ class GameModeManager {
                 if (window.game) {
                     console.log('🔄 window.gameを使用してゲームを開始します');
                     window.game.resetGame();
-                    window.game.gameRunning = false;
+                    window.game.gameRunning = true; // 強制的にtrueに設定
                     requestAnimationFrame(() => {
                         window.game.startGame();
                     });
