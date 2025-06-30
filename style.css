@@ -1634,6 +1634,9 @@ body::before {
     overflow: hidden;
     display: block !important;
     visibility: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
 }
 
 @keyframes battleGlow {
@@ -1644,14 +1647,16 @@ body::before {
 .battle-content {
     width: 100%;
     height: 100vh;
-    margin: 0;
+    margin: 0 !important;
     padding: 10px;
     color: white;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    align-items: stretch;
     overflow: hidden;
+    position: relative;
 }
 
 .battle-header {
@@ -1688,10 +1693,10 @@ body::before {
 
 .battle-arena {
     display: flex;
-    justify-content: space-around;
+    justify-content: center;
     align-items: flex-start;
     gap: 20px;
-    margin-bottom: 20px;
+    margin: 0 auto 20px auto;
     background: rgba(0, 0, 0, 0.3);
     padding: 20px;
     border-radius: 15px;

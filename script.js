@@ -4040,6 +4040,11 @@ class GameModeManager {
         console.log('📱 タイトル画面に切り替え');
         this.currentMode = 'title';
         
+        // bodyのflexboxを元に戻す
+        document.body.style.display = 'flex';
+        document.body.style.justifyContent = 'center';
+        document.body.style.alignItems = 'center';
+        
         // 全画面を非表示
         this.hideAllScreens();
         
@@ -4131,6 +4136,11 @@ class GameModeManager {
         console.log('⚔️ 対戦モードに切り替え');
         this.currentMode = 'battle';
         
+        // bodyのflexboxを一時的に無効化
+        document.body.style.display = 'block';
+        document.body.style.justifyContent = 'initial';
+        document.body.style.alignItems = 'initial';
+        
         // 全画面を非表示
         this.hideAllScreens();
         
@@ -4139,6 +4149,18 @@ class GameModeManager {
             this.battleScreen.classList.remove('hidden');
             this.battleScreen.style.display = 'block';
             this.battleScreen.style.visibility = 'visible';
+            
+            // 位置を強制的に修正
+            this.battleScreen.style.position = 'fixed';
+            this.battleScreen.style.top = '0px';
+            this.battleScreen.style.left = '0px';
+            this.battleScreen.style.width = '100vw';
+            this.battleScreen.style.height = '100vh';
+            this.battleScreen.style.zIndex = '9999';
+            this.battleScreen.style.margin = '0';
+            this.battleScreen.style.padding = '0';
+            this.battleScreen.style.transform = 'none';
+            
             console.log('✅ 対戦画面を表示しました');
         } else {
             console.error('❌ 対戦画面要素が見つかりません');

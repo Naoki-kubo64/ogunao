@@ -3952,3 +3952,538 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ================================================
+// ゲームモード管理システム
+// ================================================
+
+class GameModeManager {
+    constructor() {
+        this.currentMode = 'title'; // 'title', 'solo', 'battle'
+        this.game = null; // ソロゲームインスタンス
+        this.battleGame = null; // 対戦ゲームインスタンス
+        
+        this.initializeElements();
+        this.setupModeEventListeners();
+    }
+    
+    initializeElements() {
+        // スクリーン要素
+        this.startScreen = document.getElementById('start-screen');
+        this.gameArea = document.querySelector('.game-area');
+        this.battleScreen = document.getElementById('battle-screen');
+        
+        // モード選択ボタン
+        this.soloModeBtn = document.getElementById('solo-mode-btn');
+        this.battleModeBtn = document.getElementById('battle-mode-btn');
+        this.backToTitleBtn = document.getElementById('back-to-title');
+        
+        console.log('🎮 ゲームモード管理システムを初期化しました');
+    }
+    
+    setupModeEventListeners() {
+        // ソロモードボタン
+        if (this.soloModeBtn) {
+            this.soloModeBtn.addEventListener('click', () => {
+                this.switchToSoloMode();
+            });
+        }
+        
+        // 対戦モードボタン
+        if (this.battleModeBtn) {
+            this.battleModeBtn.addEventListener('click', () => {
+                this.switchToBattleMode();
+            });
+        }
+        
+        // タイトルに戻るボタン
+        if (this.backToTitleBtn) {
+            this.backToTitleBtn.addEventListener('click', () => {
+                this.switchToTitleMode();
+            });
+        }
+        
+        // Enterキーによるソロモード開始（既存の動作との互換性）
+        // 既存のキーハンドラーと競合しないよう、より優先度の高いイベントリスナーとして追加
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && this.currentMode === 'title') {
+                // タイトル画面でEnterが押された場合、ソロモードに切り替え
+                e.preventDefault();
+                e.stopPropagation();
+                this.switchToSoloMode();
+            }
+        }, true); // キャプチャフェーズで実行
+    }
+    
+    switchToTitleMode() {
+        console.log('📱 タイトル画面に切り替え');
+        this.currentMode = 'title';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // タイトル画面を表示
+        if (this.startScreen) {
+            this.startScreen.classList.remove('hidden');
+        }
+        
+        // コンテナの表示を確認
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'flex';
+        }
+        
+        // ゲームを停止
+        if (this.game) {
+            this.game.resetGame();
+            // ゲームの状態をリセット
+            if (this.game.gameRunning) {
+                this.game.gameRunning = false;
+            }
+        }
+        if (this.battleGame) {
+            this.battleGame.cleanup();
+            this.battleGame = null;
+        }
+    }
+    
+    switchToSoloMode() {
+        console.log('🎮 ソロモードに切り替え');
+        this.currentMode = 'solo';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // ソロゲーム画面を表示
+        if (this.gameArea) {
+            this.gameArea.style.display = 'flex';
+            this.gameArea.style.visibility = 'visible';
+        }
+        
+        // コンテナの表示を確認
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'flex';
+        }
+        
+        // 既存のゲームを開始 - 少し遅延させて確実に表示されてから
+        setTimeout(() => {
+            if (this.game) {
+                console.log('🎯 ソロゲームを開始します');
+                // ゲームの状態を完全にリセットしてから開始
+                this.game.resetGame();
+                this.game.gameRunning = false; // 明示的にfalseに設定
+                
+                // 次のフレームで開始
+                requestAnimationFrame(() => {
+                    this.game.startGame();
+                    // ゲームループが動作しているかチェック
+                    setTimeout(() => {
+                        if (!this.game.gameRunning) {
+                            console.log('⚠️ ゲームが開始されていません、再試行します');
+                            this.game.startGame();
+                        }
+                    }, 200);
+                });
+            } else {
+                console.log('⚠️ ゲームインスタンスが見つかりません');
+                // ゲームインスタンスが見つからない場合、window.gameを試行
+                if (window.game) {
+                    console.log('🔄 window.gameを使用してゲームを開始します');
+                    window.game.resetGame();
+                    window.game.gameRunning = false;
+                    requestAnimationFrame(() => {
+                        window.game.startGame();
+                    });
+                }
+            }
+        }, 150);
+    }
+    
+    switchToBattleMode() {
+        console.log('⚔️ 対戦モードに切り替え');
+        this.currentMode = 'battle';
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // 対戦画面を表示
+        if (this.battleScreen) {
+            this.battleScreen.classList.remove('hidden');
+            this.battleScreen.style.display = 'block';
+            this.battleScreen.style.visibility = 'visible';
+            console.log('✅ 対戦画面を表示しました');
+        } else {
+            console.error('❌ 対戦画面要素が見つかりません');
+        }
+        
+        // 少し遅延してから対戦ゲームを初期化
+        setTimeout(() => {
+            if (!this.battleGame) {
+                this.battleGame = new BattleGame();
+            } else {
+                // 既存の対戦ゲームをリセット
+                this.battleGame.resetBattle();
+            }
+        }, 100);
+    }
+    
+    hideAllScreens() {
+        // タイトル画面を非表示
+        if (this.startScreen) {
+            this.startScreen.classList.add('hidden');
+        }
+        
+        // ゲームエリアを非表示（ソロモード用）
+        if (this.gameArea) {
+            this.gameArea.style.display = 'none';
+        }
+        
+        // 対戦画面を非表示
+        if (this.battleScreen) {
+            this.battleScreen.classList.add('hidden');
+            this.battleScreen.style.display = 'none';
+            this.battleScreen.style.visibility = 'hidden';
+        }
+        
+        // ゲームオーバー画面も非表示
+        const gameOverScreen = document.getElementById('game-over');
+        if (gameOverScreen) {
+            gameOverScreen.classList.add('hidden');
+        }
+    }
+    
+    setGameInstance(gameInstance) {
+        this.game = gameInstance;
+        console.log('🎯 ゲームインスタンスを設定しました');
+    }
+}
+
+// ================================================
+// 対戦ゲームプロトタイプクラス
+// ================================================
+
+class BattleGame {
+    constructor() {
+        console.log('⚔️ 対戦ゲームプロトタイプを初期化中...');
+        
+        this.playerCanvas = null;
+        this.cpuCanvas = null;
+        this.playerCtx = null;
+        this.cpuCtx = null;
+        this.gameRunning = false;
+        this.timeLeft = 180; // 3分
+        this.timer = null;
+        
+        this.playerScore = 0;
+        this.cpuScore = 0;
+        this.cpuLevel = 'normal';
+        
+        this.initializeElements();
+        this.setupEventListeners();
+        this.initializeCanvas();
+        this.showPrototypeMessage();
+    }
+    
+    initializeElements() {
+        // キャンバス要素
+        this.playerCanvas = document.getElementById('player-canvas');
+        this.cpuCanvas = document.getElementById('cpu-canvas');
+        
+        // UI要素
+        this.battleStartBtn = document.getElementById('battle-start');
+        this.battlePauseBtn = document.getElementById('battle-pause');
+        this.timeLeftDisplay = document.getElementById('time-left');
+        this.playerScoreDisplay = document.getElementById('player-score');
+        this.cpuScoreDisplay = document.getElementById('cpu-score');
+        this.cpuLevelSelect = document.getElementById('cpu-level');
+        
+        console.log('🎯 対戦モード要素を初期化しました');
+    }
+    
+    setupEventListeners() {
+        // 対戦開始ボタン
+        if (this.battleStartBtn) {
+            this.battleStartBtn.addEventListener('click', () => {
+                this.startBattle();
+            });
+        }
+        
+        // 一時停止ボタン
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.addEventListener('click', () => {
+                this.pauseBattle();
+            });
+        }
+        
+        // CPU難易度変更
+        if (this.cpuLevelSelect) {
+            this.cpuLevelSelect.addEventListener('change', (e) => {
+                this.cpuLevel = e.target.value;
+                console.log(`🤖 CPU難易度を${this.cpuLevel}に変更`);
+            });
+        }
+    }
+    
+    initializeCanvas() {
+        console.log('🎨 対戦モードキャンバスを初期化中...');
+        
+        if (this.playerCanvas) {
+            this.playerCtx = this.playerCanvas.getContext('2d');
+            console.log('✅ プレイヤーキャンバス初期化完了');
+            this.drawPlaceholder(this.playerCtx, 'プレイヤー');
+        } else {
+            console.error('❌ プレイヤーキャンバスが見つかりません');
+        }
+        
+        if (this.cpuCanvas) {
+            this.cpuCtx = this.cpuCanvas.getContext('2d');
+            console.log('✅ CPUキャンバス初期化完了');
+            this.drawPlaceholder(this.cpuCtx, 'CPU');
+        } else {
+            console.error('❌ CPUキャンバスが見つかりません');
+        }
+        
+        // キャンバスのサイズとスタイルを確認
+        if (this.playerCanvas) {
+            console.log(`📐 プレイヤーキャンバス: ${this.playerCanvas.width}x${this.playerCanvas.height}`);
+        }
+        if (this.cpuCanvas) {
+            console.log(`📐 CPUキャンバス: ${this.cpuCanvas.width}x${this.cpuCanvas.height}`);
+        }
+    }
+    
+    drawPlaceholder(ctx, label) {
+        if (!ctx) return;
+        
+        // 背景
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // プレースホルダーテキスト
+        ctx.fillStyle = '#ffa500';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, ctx.canvas.width / 2, ctx.canvas.height / 2 - 20);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Arial';
+        ctx.fillText('プロトタイプ', ctx.canvas.width / 2, ctx.canvas.height / 2 + 10);
+        ctx.fillText('準備中...', ctx.canvas.width / 2, ctx.canvas.height / 2 + 30);
+    }
+    
+    showPrototypeMessage() {
+        // プロトタイプメッセージを表示
+        const battleTitle = document.querySelector('.battle-title');
+        if (battleTitle) {
+            battleTitle.innerHTML = '⚔️ CPU対戦モード <span style="color: #ff6600; font-size: 18px;">[プロトタイプ]</span>';
+        }
+        
+        // 開発中メッセージ
+        console.log(`
+🚧 対戦モードプロトタイプ 🚧
+
+現在実装済み:
+✅ モード選択UI
+✅ 2画面レイアウト
+✅ 基本的な画面切り替え
+✅ プロトタイプ表示
+
+今後実装予定:
+⏳ プレイヤー側ゲームロジック
+⏳ CPU AI システム
+⏳ おじゃまぷよシステム
+⏳ 勝敗判定
+⏳ エフェクト・演出
+        `);
+    }
+    
+    startBattle() {
+        console.log('⚔️ 対戦開始！（プロトタイプ）');
+        this.gameRunning = true;
+        
+        // ボタンの切り替え
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.add('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.remove('hidden');
+        }
+        
+        // タイマー開始
+        this.startTimer();
+        
+        // プロトタイプアニメーション
+        this.startPrototypeAnimation();
+    }
+    
+    pauseBattle() {
+        console.log('⏸️ 対戦一時停止');
+        this.gameRunning = false;
+        
+        // ボタンの切り替え
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+        
+        // タイマー停止
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+    }
+    
+    startTimer() {
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            if (this.timeLeftDisplay) {
+                this.timeLeftDisplay.textContent = this.timeLeft;
+            }
+            
+            if (this.timeLeft <= 0) {
+                this.endBattle();
+            }
+        }, 1000);
+    }
+    
+    startPrototypeAnimation() {
+        // プロトタイプ用のシンプルアニメーション
+        let frame = 0;
+        const animate = () => {
+            if (!this.gameRunning) return;
+            
+            frame++;
+            
+            // プレイヤー側にランダムカラーブロック
+            if (this.playerCtx && frame % 30 === 0) {
+                this.drawRandomBlocks(this.playerCtx);
+                this.updateScore('player', Math.floor(Math.random() * 100));
+            }
+            
+            // CPU側にランダムカラーブロック
+            if (this.cpuCtx && frame % 45 === 0) {
+                this.drawRandomBlocks(this.cpuCtx);
+                this.updateScore('cpu', Math.floor(Math.random() * 80));
+            }
+            
+            if (this.gameRunning) {
+                requestAnimationFrame(animate);
+            }
+        };
+        
+        animate();
+    }
+    
+    drawRandomBlocks(ctx) {
+        // ランダムなカラーブロックを描画（プロトタイプ用）
+        const colors = ['#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF'];
+        const blockSize = 30;
+        
+        for (let i = 0; i < 3; i++) {
+            const x = Math.random() * (ctx.canvas.width - blockSize);
+            const y = Math.random() * (ctx.canvas.height - blockSize);
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, blockSize, blockSize);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, blockSize, blockSize);
+        }
+    }
+    
+    updateScore(player, points) {
+        if (player === 'player') {
+            this.playerScore += points;
+            if (this.playerScoreDisplay) {
+                this.playerScoreDisplay.textContent = this.playerScore;
+            }
+        } else {
+            this.cpuScore += points;
+            if (this.cpuScoreDisplay) {
+                this.cpuScoreDisplay.textContent = this.cpuScore;
+            }
+        }
+    }
+    
+    endBattle() {
+        console.log('🏁 対戦終了！');
+        this.gameRunning = false;
+        
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        
+        // 勝敗判定
+        const winner = this.playerScore > this.cpuScore ? 'プレイヤー' : 'CPU';
+        
+        alert(`対戦終了！\n\nプレイヤー: ${this.playerScore}点\nCPU: ${this.cpuScore}点\n\n勝者: ${winner}`);
+        
+        // リセット
+        this.resetBattle();
+    }
+    
+    resetBattle() {
+        this.timeLeft = 180;
+        this.playerScore = 0;
+        this.cpuScore = 0;
+        
+        if (this.timeLeftDisplay) {
+            this.timeLeftDisplay.textContent = this.timeLeft;
+        }
+        if (this.playerScoreDisplay) {
+            this.playerScoreDisplay.textContent = this.playerScore;
+        }
+        if (this.cpuScoreDisplay) {
+            this.cpuScoreDisplay.textContent = this.cpuScore;
+        }
+        
+        // ボタンをリセット
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.remove('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.add('hidden');
+        }
+        
+        // キャンバスをリセット
+        this.initializeCanvas();
+    }
+    
+    cleanup() {
+        console.log('🧹 対戦ゲームをクリーンアップ');
+        this.gameRunning = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+    }
+}
+
+// ================================================
+// ゲーム初期化時にモード管理システムを追加
+// ================================================
+
+// DOMが読み込まれた後にモード管理システムを初期化
+document.addEventListener('DOMContentLoaded', () => {
+    // 少し遅延させてゲームインスタンスが確実に作成された後に実行
+    setTimeout(() => {
+        window.gameModeManager = new GameModeManager();
+        
+        // 既存のゲームインスタンスをモード管理システムに登録
+        if (window.game) {
+            window.gameModeManager.setGameInstance(window.game);
+            console.log('✅ ゲームインスタンスを正常に登録しました');
+        } else {
+            console.log('⚠️ ゲームインスタンスがまだ作成されていません、再試行します');
+            // 再試行
+            setTimeout(() => {
+                if (window.game && window.gameModeManager) {
+                    window.gameModeManager.setGameInstance(window.game);
+                    console.log('✅ ゲームインスタンスを遅延登録しました');
+                }
+            }, 500);
+        }
+    }, 200);
+});
