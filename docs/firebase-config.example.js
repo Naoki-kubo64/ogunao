@@ -7,10 +7,25 @@ const firebaseConfig = {
     projectId: "ogunaogames",
     storageBucket: "ogunaogames.firebasestorage.app",
     messagingSenderId: "737503471226",
-    appId: "1:737503471226:web:166745d7ac81f141683dc3",
+    appId: "1:737503471226:web:abcdef123456789",
     measurementId: "G-77Z4H2HZM6"
 };
 
+// グローバルにfirebaseConfigを公開
+window.firebaseConfig = firebaseConfig;
+
 // Firebase初期化
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+try {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // グローバルにdbオブジェクトを公開
+    window.db = db;
+    
+    console.log('✅ Firebase初期化完了');
+    console.log('✅ Firestore DB設定完了');
+    
+} catch (error) {
+    console.error('❌ Firebase初期化エラー:', error);
+    window.db = null;
+}

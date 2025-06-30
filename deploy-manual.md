@@ -1,26 +1,49 @@
-# 手動デプロイ手順
+# 🚀 手動デプロイ手順
 
 GitHub Actionsがうまく動作しない場合の手動デプロイ方法です。
 
-## 🔧 手動デプロイ手順
+## 🔧 改善されたデプロイ手順
 
 ### 1. ビルド実行
 ```bash
-# ローカルでビルド
+# ローカルでビルド（改善されたビルドシステム）
+npm run build
+
+# または直接実行
 node build.js
+
+# ビルド結果をプレビュー
+npm run preview
 ```
+
+ビルド完了後、以下の情報が表示されます：
+- 📄 ファイル数
+- 📦 総サイズ  
+- 🕐 ビルド時刻
+- ✅ 最適化項目（デバッグ無効化、Firebase設定など）
 
 ### 2. ファイルをgitに追加
 ```bash
-# docsディレクトリをgit管理に追加
+# ビルド成果物をgit管理に追加
 git add docs/
-git add .github/
-git add *.js *.json *.md
-git commit -m "Add GitHub Pages build files"
+git add build.js package.json
+git add *.md
+
+# コミット（自動生成されたビルド情報は除外される）
+git commit -m "🚀 Deploy: Updated build with latest features
+
+- デバッグモード無効化
+- Firebase設定最適化  
+- プロダクション用メタタグ追加
+- SEO対応完了"
 ```
 
 ### 3. プッシュ
 ```bash
+# メインブランチにプッシュ
+git push origin main
+
+# または masterブランチの場合
 git push origin master
 ```
 

@@ -194,6 +194,32 @@ class PuyoPuyoGame {
         this.clearSE = document.getElementById('se-clear');
         this.naochanTimeSE = document.getElementById('se-naochan-time');
         
+        // 連鎖カットイン用動画要素
+        this.god1CutinVideo = document.getElementById('god1-cutin-video'); // 5連鎖用
+        this.god2CutinVideo = document.getElementById('god2-cutin-video'); // 6連鎖用
+        this.godCutinVideo = document.getElementById('god-cutin-video');   // 7連鎖以上用
+        
+        if (this.god1CutinVideo) {
+            this.god1CutinVideo.volume = this.seVolume;
+            console.log('✅ GOD1 カットイン動画要素を取得しました');
+        } else {
+            console.error('❌ GOD1 カットイン動画要素が見つかりません');
+        }
+        
+        if (this.god2CutinVideo) {
+            this.god2CutinVideo.volume = this.seVolume;
+            console.log('✅ GOD2 カットイン動画要素を取得しました');
+        } else {
+            console.error('❌ GOD2 カットイン動画要素が見つかりません');
+        }
+        
+        if (this.godCutinVideo) {
+            this.godCutinVideo.volume = this.seVolume;
+            console.log('✅ GOD カットイン動画要素を取得しました');
+        } else {
+            console.error('❌ GOD カットイン動画要素が見つかりません');
+        }
+        
         // SE音量の初期化
         this.updateSeVolume();
         
@@ -401,6 +427,17 @@ class PuyoPuyoGame {
                 se.volume = this.seVolume;
             }
         });
+        
+        // GOD動画の音量も設定
+        if (this.god1CutinVideo) {
+            this.god1CutinVideo.volume = this.seVolume;
+        }
+        if (this.god2CutinVideo) {
+            this.god2CutinVideo.volume = this.seVolume;
+        }
+        if (this.godCutinVideo) {
+            this.godCutinVideo.volume = this.seVolume;
+        }
         
         console.log(`🔊 SE音量を ${Math.round(this.seVolume * 100)}% に設定しました`);
     }
@@ -1359,12 +1396,20 @@ class PuyoPuyoGame {
         const text = document.createElement('div');
         text.className = 'cutin-text';
         
-        // 連鎖数に応じたメッセージ
+        // 連鎖数に応じて動画カットインを再生
         if (chainCount >= 7) {
-            text.textContent = `${chainCount}連鎖！ 最高や！`;
+            this.showGodCutinVideo(chainCount);
+            return; // 動画再生のため、通常のカットインはスキップ
+        } else if (chainCount === 6) {
+            this.showGod2CutinVideo(chainCount);
+            return; // 動画再生のため、通常のカットインはスキップ
         } else if (chainCount === 5) {
-            text.textContent = `5連鎖！ すごいやん！`;
-        } else if (chainCount >= 4) {
+            this.showGod1CutinVideo(chainCount);
+            return; // 動画再生のため、通常のカットインはスキップ
+        }
+        
+        // 連鎖数に応じたメッセージ（4連鎖以下のみ）
+        if (chainCount >= 4) {
             text.textContent = `${chainCount}連鎖！ やるやん！`;
         } else if (chainCount === 3) {
             text.textContent = `3連鎖！ いいね！`;
@@ -1384,6 +1429,264 @@ class PuyoPuyoGame {
                 cutin.parentElement.removeChild(cutin);
             }
         }, 2000);
+    }
+    
+    // 5連鎖GOD1動画カットインを表示（同期版）
+    showGod1CutinVideo(chainCount) {
+        console.log(`🎬 GOD1動画カットイン開始: ${chainCount}連鎖`);
+        
+        if (!this.god1CutinVideo) {
+            console.error('❌ GOD1動画要素が見つかりません');
+            return;
+        }
+        
+        // 動画を最初から再生
+        this.god1CutinVideo.currentTime = 0;
+        this.god1CutinVideo.style.display = 'block';
+        
+        // 動画を再生
+        this.god1CutinVideo.play().then(() => {
+            console.log('✅ GOD1動画再生開始');
+        }).catch(e => {
+            console.error('❌ GOD1動画再生に失敗:', e);
+        });
+        
+        // 動画終了時に非表示にする
+        const hideVideo = () => {
+            this.god1CutinVideo.style.display = 'none';
+            this.god1CutinVideo.removeEventListener('ended', hideVideo);
+            console.log('✅ GOD1動画カットイン終了');
+        };
+        
+        this.god1CutinVideo.addEventListener('ended', hideVideo);
+        
+        // 安全のため、5秒後に強制終了
+        setTimeout(() => {
+            if (this.god1CutinVideo.style.display !== 'none') {
+                this.god1CutinVideo.style.display = 'none';
+                this.god1CutinVideo.pause();
+                this.god1CutinVideo.removeEventListener('ended', hideVideo);
+                console.log('⚠️ GOD1動画カットイン強制終了（タイムアウト）');
+            }
+        }, 5000);
+    }
+    
+    // 6連鎖GOD2動画カットインを表示（同期版）
+    showGod2CutinVideo(chainCount) {
+        console.log(`🎬 GOD2動画カットイン開始: ${chainCount}連鎖`);
+        
+        if (!this.god2CutinVideo) {
+            console.error('❌ GOD2動画要素が見つかりません');
+            return;
+        }
+        
+        // 動画を最初から再生
+        this.god2CutinVideo.currentTime = 0;
+        this.god2CutinVideo.style.display = 'block';
+        
+        // 動画を再生
+        this.god2CutinVideo.play().then(() => {
+            console.log('✅ GOD2動画再生開始');
+        }).catch(e => {
+            console.error('❌ GOD2動画再生に失敗:', e);
+        });
+        
+        // 動画終了時に非表示にする
+        const hideVideo = () => {
+            this.god2CutinVideo.style.display = 'none';
+            this.god2CutinVideo.removeEventListener('ended', hideVideo);
+            console.log('✅ GOD2動画カットイン終了');
+        };
+        
+        this.god2CutinVideo.addEventListener('ended', hideVideo);
+        
+        // 安全のため、5秒後に強制終了
+        setTimeout(() => {
+            if (this.god2CutinVideo.style.display !== 'none') {
+                this.god2CutinVideo.style.display = 'none';
+                this.god2CutinVideo.pause();
+                this.god2CutinVideo.removeEventListener('ended', hideVideo);
+                console.log('⚠️ GOD2動画カットイン強制終了（タイムアウト）');
+            }
+        }, 5000);
+    }
+    
+    // GOD動画カットインを表示（同期版）
+    showGodCutinVideo(chainCount) {
+        console.log(`🎬 GOD動画カットイン開始: ${chainCount}連鎖`);
+        
+        if (!this.godCutinVideo) {
+            console.error('❌ GOD動画要素が見つかりません');
+            return;
+        }
+        
+        // 動画を最初から再生
+        this.godCutinVideo.currentTime = 0;
+        this.godCutinVideo.style.display = 'block';
+        
+        // 動画を再生
+        this.godCutinVideo.play().then(() => {
+            console.log('✅ GOD動画再生開始');
+        }).catch(e => {
+            console.error('❌ GOD動画再生に失敗:', e);
+        });
+        
+        // 動画終了時に非表示にする
+        const hideVideo = () => {
+            this.godCutinVideo.style.display = 'none';
+            this.godCutinVideo.removeEventListener('ended', hideVideo);
+            console.log('✅ GOD動画カットイン終了');
+        };
+        
+        this.godCutinVideo.addEventListener('ended', hideVideo);
+        
+        // 安全のため、5秒後に強制終了
+        setTimeout(() => {
+            if (this.godCutinVideo.style.display !== 'none') {
+                this.godCutinVideo.style.display = 'none';
+                this.godCutinVideo.pause();
+                this.godCutinVideo.removeEventListener('ended', hideVideo);
+                console.log('⚠️ GOD動画カットイン強制終了（タイムアウト）');
+            }
+        }, 5000);
+    }
+    
+    // 5連鎖GOD1動画カットインを表示（非同期版）
+    showGod1CutinVideoAsync(chainCount) {
+        return new Promise((resolve) => {
+            console.log(`🎬 GOD1動画カットイン開始（非同期）: ${chainCount}連鎖`);
+            
+            if (!this.god1CutinVideo) {
+                console.error('❌ GOD1動画要素が見つかりません');
+                resolve();
+                return;
+            }
+            
+            // 動画を最初から再生
+            this.god1CutinVideo.currentTime = 0;
+            this.god1CutinVideo.style.display = 'block';
+            
+            // 動画を再生
+            this.god1CutinVideo.play().then(() => {
+                console.log('✅ GOD1動画再生開始（非同期）');
+            }).catch(e => {
+                console.error('❌ GOD1動画再生に失敗:', e);
+                resolve();
+            });
+            
+            // 動画終了時に非表示にしてresolve
+            const hideVideoAndResolve = () => {
+                this.god1CutinVideo.style.display = 'none';
+                this.god1CutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                console.log('✅ GOD1動画カットイン終了（非同期）');
+                resolve();
+            };
+            
+            this.god1CutinVideo.addEventListener('ended', hideVideoAndResolve);
+            
+            // 安全のため、5秒後に強制終了
+            setTimeout(() => {
+                if (this.god1CutinVideo.style.display !== 'none') {
+                    this.god1CutinVideo.style.display = 'none';
+                    this.god1CutinVideo.pause();
+                    this.god1CutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                    console.log('⚠️ GOD1動画カットイン強制終了（タイムアウト・非同期）');
+                    resolve();
+                }
+            }, 5000);
+        });
+    }
+    
+    // 6連鎖GOD2動画カットインを表示（非同期版）
+    showGod2CutinVideoAsync(chainCount) {
+        return new Promise((resolve) => {
+            console.log(`🎬 GOD2動画カットイン開始（非同期）: ${chainCount}連鎖`);
+            
+            if (!this.god2CutinVideo) {
+                console.error('❌ GOD2動画要素が見つかりません');
+                resolve();
+                return;
+            }
+            
+            // 動画を最初から再生
+            this.god2CutinVideo.currentTime = 0;
+            this.god2CutinVideo.style.display = 'block';
+            
+            // 動画を再生
+            this.god2CutinVideo.play().then(() => {
+                console.log('✅ GOD2動画再生開始（非同期）');
+            }).catch(e => {
+                console.error('❌ GOD2動画再生に失敗:', e);
+                resolve();
+            });
+            
+            // 動画終了時に非表示にしてresolve
+            const hideVideoAndResolve = () => {
+                this.god2CutinVideo.style.display = 'none';
+                this.god2CutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                console.log('✅ GOD2動画カットイン終了（非同期）');
+                resolve();
+            };
+            
+            this.god2CutinVideo.addEventListener('ended', hideVideoAndResolve);
+            
+            // 安全のため、5秒後に強制終了
+            setTimeout(() => {
+                if (this.god2CutinVideo.style.display !== 'none') {
+                    this.god2CutinVideo.style.display = 'none';
+                    this.god2CutinVideo.pause();
+                    this.god2CutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                    console.log('⚠️ GOD2動画カットイン強制終了（タイムアウト・非同期）');
+                    resolve();
+                }
+            }, 5000);
+        });
+    }
+    
+    // GOD動画カットインを表示（非同期版）
+    showGodCutinVideoAsync(chainCount) {
+        return new Promise((resolve) => {
+            console.log(`🎬 GOD動画カットイン開始（非同期）: ${chainCount}連鎖`);
+            
+            if (!this.godCutinVideo) {
+                console.error('❌ GOD動画要素が見つかりません');
+                resolve();
+                return;
+            }
+            
+            // 動画を最初から再生
+            this.godCutinVideo.currentTime = 0;
+            this.godCutinVideo.style.display = 'block';
+            
+            // 動画を再生
+            this.godCutinVideo.play().then(() => {
+                console.log('✅ GOD動画再生開始（非同期）');
+            }).catch(e => {
+                console.error('❌ GOD動画再生に失敗:', e);
+                resolve();
+            });
+            
+            // 動画終了時に非表示にしてresolve
+            const hideVideoAndResolve = () => {
+                this.godCutinVideo.style.display = 'none';
+                this.godCutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                console.log('✅ GOD動画カットイン終了（非同期）');
+                resolve();
+            };
+            
+            this.godCutinVideo.addEventListener('ended', hideVideoAndResolve);
+            
+            // 安全のため、5秒後に強制終了
+            setTimeout(() => {
+                if (this.godCutinVideo.style.display !== 'none') {
+                    this.godCutinVideo.style.display = 'none';
+                    this.godCutinVideo.pause();
+                    this.godCutinVideo.removeEventListener('ended', hideVideoAndResolve);
+                    console.log('⚠️ GOD動画カットイン強制終了（タイムアウト・非同期）');
+                    resolve();
+                }
+            }, 5000);
+        });
     }
     
     // 非同期版のカットイン表示（アニメーション完了まで待機）
@@ -1443,12 +1746,20 @@ class PuyoPuyoGame {
             const text = document.createElement('div');
             text.className = 'cutin-text';
             
-            // 連鎖数に応じたメッセージ
+            // 連鎖数に応じて動画カットインを再生
             if (chainCount >= 7) {
-                text.textContent = `${chainCount}連鎖！ 最高や！`;
+                this.showGodCutinVideoAsync(chainCount).then(resolve);
+                return; // 動画再生のため、通常のカットインはスキップ
+            } else if (chainCount === 6) {
+                this.showGod2CutinVideoAsync(chainCount).then(resolve);
+                return; // 動画再生のため、通常のカットインはスキップ
             } else if (chainCount === 5) {
-                text.textContent = `5連鎖！ すごいやん！`;
-            } else if (chainCount >= 4) {
+                this.showGod1CutinVideoAsync(chainCount).then(resolve);
+                return; // 動画再生のため、通常のカットインはスキップ
+            }
+            
+            // 連鎖数に応じたメッセージ（4連鎖以下のみ）
+            if (chainCount >= 4) {
                 text.textContent = `${chainCount}連鎖！ やるやん！`;
             } else if (chainCount === 3) {
                 text.textContent = `3連鎖！ いいね！`;
@@ -2570,10 +2881,24 @@ class PuyoPuyoGame {
         console.log('- Normal cutin (saginaoki.jpg):', this.cutinImage?.complete, this.cutinImage?.src);
         console.log('- 3Chain cutin (nao7.png):', this.cutin3ChainImage?.complete, this.cutin3ChainImage?.src);
         console.log('- 5Chain cutin (5rensa.png):', this.cutin5ChainImage?.complete, this.cutin5ChainImage?.src);
+        console.log('- GOD video (GOD.mp4):', !!this.godCutinVideo, this.godCutinVideo?.src);
         
-        // ランダムな連鎖数でカットインを表示
-        const randomChain = Math.floor(Math.random() * 5) + 3; // 3-7連鎖
-        this.showCutinEffect(randomChain);
+        // ランダムな連鎖数でカットインを表示（5連鎖以上で動画テスト）
+        const randomChain = Math.floor(Math.random() * 8) + 3; // 3-10連鎖（5+で動画）
+        console.log(`🎲 ランダム連鎖数: ${randomChain}`);
+        
+        if (randomChain >= 7) {
+            console.log('🎬 GOD動画カットインテスト');
+            this.showGodCutinVideo(randomChain);
+        } else if (randomChain === 6) {
+            console.log('🎬 GOD2動画カットインテスト');
+            this.showGod2CutinVideo(randomChain);
+        } else if (randomChain === 5) {
+            console.log('🎬 GOD1動画カットインテスト');
+            this.showGod1CutinVideo(randomChain);
+        } else {
+            this.showCutinEffect(randomChain);
+        }
     }
     
     debugClear() {
