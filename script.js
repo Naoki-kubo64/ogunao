@@ -539,6 +539,11 @@ class PuyoPuyoGame {
     
     // 隠しコマンド処理
     handleSecretCommand(key) {
+        // キーがundefinedの場合は処理しない
+        if (!key || typeof key !== 'string') {
+            return;
+        }
+        
         // 隠しコマンド: "debug" でデバッグモード表示/非表示を切り替え
         this.secretKeySequence.push(key.toLowerCase());
         
@@ -1983,7 +1988,12 @@ class PuyoPuyoGame {
     gameOver() {
         this.gameRunning = false;
         this.scoreSubmitted = false; // リセット
-        document.getElementById('final-score').textContent = this.score;
+        
+        // スコアを保存（clearGameStateで0になる前に）
+        this.finalScore = this.score;
+        this.finalChain = this.chain;
+        
+        document.getElementById('final-score').textContent = this.finalScore;
         
         // なおちゃんがゲームオーバーコメント
         setTimeout(() => {
@@ -2826,8 +2836,17 @@ class PuyoPuyoGame {
             
             const rankings = [];
             snapshot.forEach(doc => {
-                rankings.push(doc.data());
+                const data = doc.data();
+                console.log('🔍 Firestoreから取得した生データ:', {
+                    docId: doc.id,
+                    rawData: data,
+                    scoreField: data.score,
+                    scoreType: typeof data.score
+                });
+                rankings.push(data);
             });
+            
+            console.log('📋 取得したランキング配列:', rankings);
             
             // フォールバック：Firestoreが空の場合はローカルデータも表示
             if (rankings.length === 0) {
@@ -2852,13 +2871,30 @@ class PuyoPuyoGame {
             return;
         }
         
-        rankingList.innerHTML = rankings.map((item, index) => `
-            <div class="ranking-item">
-                <span class="ranking-rank">${index + 1}位</span>
-                <span class="ranking-name">${this.escapeHtml(item.name)}</span>
-                <span class="ranking-score">${item.score.toLocaleString()}</span>
-            </div>
-        `).join('');
+        console.log('🏆 ランキング表示データ:', rankings);
+        
+        rankingList.innerHTML = rankings.map((item, index) => {
+            // スコアデータの詳細ログ
+            console.log(`ランキング${index + 1}位:`, {
+                name: item.name,
+                score: item.score,
+                scoreType: typeof item.score,
+                scoreValue: item.score
+            });
+            
+            // スコアが数値でない場合の処理
+            const displayScore = (typeof item.score === 'number' && !isNaN(item.score)) 
+                ? item.score.toLocaleString() 
+                : '0';
+            
+            return `
+                <div class="ranking-item">
+                    <span class="ranking-rank">${index + 1}位</span>
+                    <span class="ranking-name">${this.escapeHtml(item.name)}</span>
+                    <span class="ranking-score">${displayScore}</span>
+                </div>
+            `;
+        }).join('');
     }
     
     async submitScore() {
@@ -2879,15 +2915,27 @@ class PuyoPuyoGame {
         submitButton.textContent = '登録中...';
         
         try {
+            // ゲームオーバー時に保存されたスコアを使用
+            const gameScore = this.finalScore || this.score;
+            const gameChain = this.finalChain || this.chain;
+            
             const scoreData = {
                 name: playerName,
-                score: this.score,
+                score: gameScore,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                maxChain: this.chain,
+                maxChain: gameChain,
                 difficulty: this.difficulty
             };
             
-            console.log('送信するスコアデータ:', scoreData);
+            console.log('📊 送信するスコアデータ詳細:', {
+                name: playerName,
+                score: gameScore,
+                scoreType: typeof gameScore,
+                scoreValue: gameScore,
+                maxChain: gameChain,
+                difficulty: this.difficulty,
+                finalScoreUsed: !!this.finalScore
+            });
             console.log('Firestoreに接続中...');
             
             await db.collection('rankings').add(scoreData);
@@ -2919,9 +2967,9 @@ class PuyoPuyoGame {
                 // フォールバック：ローカルデータに追加
                 const localScoreData = {
                     name: playerName,
-                    score: this.score,
+                    score: gameScore,
                     timestamp: new Date(),
-                    maxChain: this.chain,
+                    maxChain: gameChain,
                     difficulty: this.difficulty
                 };
                 localRanking.push(localScoreData);
