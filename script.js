@@ -171,14 +171,28 @@ class PuyoPuyoGame {
         this.bgm2 = document.getElementById('game-bgm-2');
         this.naochanBgm = document.getElementById('naochan-bgm');
         
+        // 音量設定の初期化
+        this.bgmVolume = 0.5; // 50%
+        this.seVolume = 0.7;  // 70%
+        
         if (this.titleBgm && this.bgm && this.bgm2 && this.naochanBgm) {
-            this.titleBgm.volume = 0.4;
-            this.bgm.volume = 0.5;
-            this.bgm2.volume = 0.5;
-            this.naochanBgm.volume = 0.5;
+            this.updateBgmVolume();
         } else {
             console.error('❌ Audio要素が見つかりません');
         }
+        
+        // SE要素の取得
+        this.gameStartSE = document.getElementById('se-gamestart');
+        this.chain2SE = document.getElementById('se-chain2');
+        this.chain3SE = document.getElementById('se-chain3');
+        this.chain4SE = document.getElementById('se-chain4');
+        this.moveSE = document.getElementById('se-move');
+        this.rotateSE = document.getElementById('se-rotate');
+        this.clearSE = document.getElementById('se-clear');
+        this.naochanTimeSE = document.getElementById('se-naochan-time');
+        
+        // SE音量の初期化
+        this.updateSeVolume();
         
         // BGM管理用の変数
         this.currentBgm = null;
@@ -346,6 +360,63 @@ class PuyoPuyoGame {
         
         // ユーザー操作でタイトルBGMを開始
         this.setupTitleBgmTrigger();
+        
+        // 音量コントロールのイベントリスナーを設定
+        this.setupVolumeControls();
+    }
+    
+    // BGM音量を更新
+    updateBgmVolume() {
+        if (this.titleBgm) this.titleBgm.volume = this.bgmVolume;
+        if (this.bgm) this.bgm.volume = this.bgmVolume;
+        if (this.bgm2) this.bgm2.volume = this.bgmVolume;
+        if (this.naochanBgm) this.naochanBgm.volume = this.bgmVolume;
+    }
+    
+    // SE音量を更新
+    updateSeVolume() {
+        const seElements = [
+            this.gameStartSE,
+            this.chain2SE,
+            this.chain3SE,
+            this.chain4SE,
+            this.moveSE,
+            this.rotateSE,
+            this.clearSE,
+            this.naochanTimeSE
+        ];
+        
+        seElements.forEach(se => {
+            if (se) {
+                se.volume = this.seVolume;
+            }
+        });
+        
+        console.log(`🔊 SE音量を ${Math.round(this.seVolume * 100)}% に設定しました`);
+    }
+    
+    // 音量コントロールのイベントリスナーを設定
+    setupVolumeControls() {
+        const bgmSlider = document.getElementById('bgm-volume');
+        const seSlider = document.getElementById('se-volume');
+        const bgmDisplay = document.getElementById('bgm-volume-display');
+        const seDisplay = document.getElementById('se-volume-display');
+        
+        if (bgmSlider && bgmDisplay) {
+            bgmSlider.addEventListener('input', (e) => {
+                this.bgmVolume = e.target.value / 100;
+                bgmDisplay.textContent = `${e.target.value}%`;
+                this.updateBgmVolume();
+            });
+        }
+        
+        if (seSlider && seDisplay) {
+            seSlider.addEventListener('input', (e) => {
+                this.seVolume = e.target.value / 100;
+                seDisplay.textContent = `${e.target.value}%`;
+                this.updateSeVolume();
+            });
+        }
     }
     
     startTitleBgm() {
@@ -385,10 +456,11 @@ class PuyoPuyoGame {
     playSE(seElement, seName) {
         if (seElement) {
             seElement.currentTime = 0; // 再生位置をリセット
+            seElement.volume = this.seVolume; // 現在のSE音量を設定
             seElement.play().catch(e => {
                 console.log(`${seName} SE再生に失敗:`, e.message);
             });
-            console.log(`🔊 ${seName} SE再生`);
+            console.log(`🔊 ${seName} SE再生 (音量: ${Math.round(this.seVolume * 100)}%)`);
         } else {
             console.log(`❌ ${seName} SE要素が見つかりません`);
         }

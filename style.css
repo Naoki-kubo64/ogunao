@@ -1411,3 +1411,71 @@ body::before {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     display: inline-block;
 }
+
+/* 音量コントロール */
+.volume-controls {
+    background: #2a2a2a;
+    border: 2px solid #444;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.volume-controls h4 {
+    color: #ffa500;
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+.volume-control-row {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    gap: 8px;
+}
+
+.volume-control-row label {
+    color: #fff;
+    font-size: 12px;
+    min-width: 60px;
+    text-align: left;
+}
+
+.volume-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #555;
+    outline: none;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffa500;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffa500;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.volume-control-row span {
+    color: #ffa500;
+    font-size: 11px;
+    min-width: 35px;
+    text-align: right;
+    font-weight: bold;
+}
