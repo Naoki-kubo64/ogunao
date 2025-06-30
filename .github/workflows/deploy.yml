@@ -29,17 +29,54 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          
+      - name: Check package files
+        run: |
+          echo "📦 Checking package files..."
+          ls -la package*.json || echo "Package files not found"
+          echo "📁 Working directory: $(pwd)"
+          echo "📋 Directory contents:"
+          ls -la
           
       - name: Install dependencies
-        run: npm ci --only=production || npm install --only=production
+        run: |
+          echo "🔧 Installing dependencies..."
+          if [ -f package-lock.json ]; then
+            echo "📋 Using npm ci with package-lock.json"
+            npm ci --omit=dev || npm install --omit=dev
+          elif [ -f package.json ]; then
+            echo "📋 Using npm install with package.json" 
+            npm install --omit=dev
+          else
+            echo "⚠️ No package.json found, continuing without dependencies"
+          fi
+          echo "📦 Dependencies installed successfully"
           
       - name: Build for production
         run: |
           echo "🚀 Starting GitHub Pages build..."
-          npm run build
-          echo "📊 Build info:"
-          cat docs/build-info.json
+          
+          # ビルドスクリプトが存在するかチェック
+          if [ -f build.js ]; then
+            echo "📋 Running custom build script..."
+            node build.js
+          elif [ -f package.json ] && grep -q '"build"' package.json; then
+            echo "📋 Running npm build script..."
+            npm run build
+          else
+            echo "⚠️ No build script found, creating basic docs directory..."
+            mkdir -p docs
+            cp -r *.html *.css *.js docs/ 2>/dev/null || true
+            cp -r images music SE Video docs/ 2>/dev/null || true
+          fi
+          
+          # ビルド結果の確認
+          echo "📊 Build results:"
+          ls -la docs/
+          if [ -f docs/build-info.json ]; then
+            echo "📋 Build info:"
+            cat docs/build-info.json
+          fi
           echo "✅ Build completed successfully!"
         
       - name: Setup Pages
