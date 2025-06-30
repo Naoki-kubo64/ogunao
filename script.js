@@ -3978,6 +3978,10 @@ class GameModeManager {
         this.battleModeBtn = document.getElementById('battle-mode-btn');
         this.backToTitleBtn = document.getElementById('back-to-title');
         
+        // Press Enter Key 表示要素
+        this.pressEnterInstruction = document.getElementById('press-enter-instruction');
+        this.startInstruction = document.querySelector('.start-instruction');
+        
         console.log('🎮 ゲームモード管理システムを初期化しました');
     }
     
@@ -3985,7 +3989,7 @@ class GameModeManager {
         // ソロモードボタン
         if (this.soloModeBtn) {
             this.soloModeBtn.addEventListener('click', () => {
-                this.switchToSoloMode();
+                this.showPressEnterInstruction();
             });
         }
         
@@ -4006,13 +4010,30 @@ class GameModeManager {
         // Enterキーによるソロモード開始（既存の動作との互換性）
         // 既存のキーハンドラーと競合しないよう、より優先度の高いイベントリスナーとして追加
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && this.currentMode === 'title') {
-                // タイトル画面でEnterが押された場合、ソロモードに切り替え
+            if (e.key === 'Enter' && (this.currentMode === 'title' || this.currentMode === 'solo-waiting')) {
+                // タイトル画面またはソロ待機画面でEnterが押された場合、ソロモードに切り替え
                 e.preventDefault();
                 e.stopPropagation();
                 this.switchToSoloMode();
             }
         }, true); // キャプチャフェーズで実行
+    }
+    
+    showPressEnterInstruction() {
+        console.log('🎮 ソロプレイが選択されました - Press Enter Key表示');
+        
+        // モード選択の説明文を非表示
+        if (this.startInstruction) {
+            this.startInstruction.style.display = 'none';
+        }
+        
+        // Press Enter Key表示を表示
+        if (this.pressEnterInstruction) {
+            this.pressEnterInstruction.classList.remove('hidden');
+        }
+        
+        // モードを"solo-waiting"に設定（Enterキー待ち状態）
+        this.currentMode = 'solo-waiting';
     }
     
     switchToTitleMode() {
@@ -4025,6 +4046,14 @@ class GameModeManager {
         // タイトル画面を表示
         if (this.startScreen) {
             this.startScreen.classList.remove('hidden');
+        }
+        
+        // Press Enter Key表示を非表示にして、元の説明文を表示
+        if (this.pressEnterInstruction) {
+            this.pressEnterInstruction.classList.add('hidden');
+        }
+        if (this.startInstruction) {
+            this.startInstruction.style.display = 'block';
         }
         
         // コンテナの表示を確認
@@ -4181,8 +4210,13 @@ class BattleGame {
         
         this.initializeElements();
         this.setupEventListeners();
-        this.initializeCanvas();
-        this.showPrototypeMessage();
+        
+        // 少し遅延を入れてからキャンバス初期化
+        setTimeout(() => {
+            this.initializeCanvas();
+            this.showPrototypeMessage();
+            this.ensureCanvasVisibility();
+        }, 200);
     }
     
     initializeElements() {
@@ -4256,20 +4290,85 @@ class BattleGame {
     drawPlaceholder(ctx, label) {
         if (!ctx) return;
         
-        // 背景
-        ctx.fillStyle = '#000';
+        console.log(`🎨 ${label}のプレースホルダーを描画中...`);
+        
+        // 背景を暗い色で塗りつぶし
+        ctx.fillStyle = '#222';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // 枠線を描画
+        ctx.strokeStyle = '#ffa500';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(2, 2, ctx.canvas.width - 4, ctx.canvas.height - 4);
         
         // プレースホルダーテキスト
         ctx.fillStyle = '#ffa500';
-        ctx.font = '20px Arial';
+        ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(label, ctx.canvas.width / 2, ctx.canvas.height / 2 - 20);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, ctx.canvas.width / 2, ctx.canvas.height / 2 - 30);
         
+        // サブテキスト
         ctx.fillStyle = '#fff';
-        ctx.font = '14px Arial';
-        ctx.fillText('プロトタイプ', ctx.canvas.width / 2, ctx.canvas.height / 2 + 10);
-        ctx.fillText('準備中...', ctx.canvas.width / 2, ctx.canvas.height / 2 + 30);
+        ctx.font = '16px Arial';
+        ctx.fillText('準備完了', ctx.canvas.width / 2, ctx.canvas.height / 2 + 10);
+        
+        // 格子模様を描画（ゲームボードっぽく）
+        ctx.strokeStyle = 'rgba(255, 165, 0, 0.2)';
+        ctx.lineWidth = 1;
+        
+        // 縦線
+        for (let x = 50; x < ctx.canvas.width; x += 50) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, ctx.canvas.height);
+            ctx.stroke();
+        }
+        
+        // 横線
+        for (let y = 50; y < ctx.canvas.height; y += 50) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(ctx.canvas.width, y);
+            ctx.stroke();
+        }
+        
+        console.log(`✅ ${label}のプレースホルダー描画完了`);
+    }
+    
+    ensureCanvasVisibility() {
+        console.log('🔍 キャンバス表示を確認中...');
+        
+        // キャンバス要素の表示設定を強制的に適用
+        if (this.playerCanvas) {
+            this.playerCanvas.style.display = 'block';
+            this.playerCanvas.style.visibility = 'visible';
+            this.playerCanvas.style.opacity = '1';
+            console.log('✅ プレイヤーキャンバス表示設定完了');
+        }
+        
+        if (this.cpuCanvas) {
+            this.cpuCanvas.style.display = 'block';
+            this.cpuCanvas.style.visibility = 'visible';
+            this.cpuCanvas.style.opacity = '1';
+            console.log('✅ CPUキャンバス表示設定完了');
+        }
+        
+        // 親要素の表示も確認
+        const battleScreen = document.getElementById('battle-screen');
+        if (battleScreen) {
+            console.log(`🖥️ 対戦画面表示状態: ${battleScreen.style.display}, 可視性: ${battleScreen.style.visibility}`);
+        }
+        
+        // 再描画を強制実行
+        setTimeout(() => {
+            if (this.playerCtx) {
+                this.drawPlaceholder(this.playerCtx, 'プレイヤー');
+            }
+            if (this.cpuCtx) {
+                this.drawPlaceholder(this.cpuCtx, 'CPU');
+            }
+        }, 100);
     }
     
     showPrototypeMessage() {

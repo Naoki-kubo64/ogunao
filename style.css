@@ -1514,3 +1514,403 @@ body::before {
     text-align: right;
     font-weight: bold;
 }
+
+/* ===========================================
+   モード選択画面のスタイル
+   =========================================== */
+
+.mode-selection {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.mode-title {
+    color: #ffa500;
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.mode-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(45deg, #ff6600, #ff8833);
+    border: 3px solid #ffa500;
+    border-radius: 15px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+    min-width: 150px;
+}
+
+.mode-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(255, 165, 0, 0.6);
+    background: linear-gradient(45deg, #ff8833, #ffaa55);
+}
+
+.mode-button:active {
+    transform: translateY(-2px);
+}
+
+.mode-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.mode-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.mode-desc {
+    font-size: 12px;
+    opacity: 0.9;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.press-enter-instruction {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(45deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    animation: pressEnterPulse 2s ease-in-out infinite;
+}
+
+.press-enter-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+    margin-bottom: 5px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.press-enter-subtext {
+    font-size: 14px;
+    color: #ffaa00;
+    opacity: 0.9;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes pressEnterPulse {
+    0%, 100% { 
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+        transform: scale(1.02);
+    }
+}
+
+/* ===========================================
+   対戦モード画面のスタイル
+   =========================================== */
+
+.battle-screen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: linear-gradient(45deg, #1a0f2e, #2d1b3d, #4a2c5a);
+    background-size: 400% 400%;
+    animation: battleGlow 6s ease-in-out infinite;
+    z-index: 9999 !important;
+    overflow-y: auto;
+    display: block !important;
+    visibility: visible !important;
+}
+
+@keyframes battleGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.battle-content {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    color: white;
+    box-sizing: border-box;
+}
+
+.battle-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.battle-title {
+    font-size: 36px;
+    color: #ff6600;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+    margin-bottom: 10px;
+}
+
+.back-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: linear-gradient(45deg, #666, #888);
+    color: white;
+    border: 2px solid #aaa;
+    border-radius: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: linear-gradient(45deg, #888, #aaa);
+    transform: translateY(-2px);
+}
+
+.battle-arena {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 30px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 30px 20px;
+    border-radius: 20px;
+    border: 2px solid #ff6600;
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
+.player-side, .cpu-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    min-width: 280px;
+    max-width: 350px;
+}
+
+.player-info, .cpu-info {
+    text-align: center;
+}
+
+.player-name, .cpu-name {
+    font-size: 24px;
+    color: #ffa500;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    margin-bottom: 5px;
+}
+
+.player-score, .cpu-score {
+    font-size: 18px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.player-board, .cpu-board {
+    border: 3px solid #ffa500;
+    border-radius: 10px;
+    background: #000;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+#player-canvas, #cpu-canvas {
+    display: block;
+    background: #000;
+    border-radius: 7px;
+    max-width: 100%;
+    height: auto;
+}
+
+.player-next, .cpu-next {
+    text-align: center;
+}
+
+.next-label {
+    font-size: 14px;
+    color: #ffa500;
+    margin-bottom: 5px;
+}
+
+.vs-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 300px;
+    margin: 0 10px;
+}
+
+.vs-text {
+    font-size: 48px;
+    font-weight: bold;
+    color: #ff6600;
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+    animation: vsGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes vsGlow {
+    0% {
+        text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.8);
+    }
+    100% {
+        text-shadow: 
+            4px 4px 8px rgba(0, 0, 0, 0.8),
+            0 0 20px rgba(255, 102, 0, 1),
+            0 0 40px rgba(255, 165, 0, 0.8);
+    }
+}
+
+.battle-status {
+    text-align: center;
+}
+
+.battle-timer {
+    font-size: 18px;
+    color: #ffa500;
+    margin-bottom: 15px;
+}
+
+.battle-start-btn, .battle-pause-btn {
+    background: linear-gradient(45deg, #ff6600, #ff8833);
+    color: white;
+    border: 3px solid #ffa500;
+    border-radius: 15px;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
+}
+
+.battle-start-btn:hover, .battle-pause-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 165, 0, 0.6);
+    background: linear-gradient(45deg, #ff8833, #ffaa55);
+}
+
+.battle-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #ff6600;
+}
+
+.control-info h4 {
+    color: #ffa500;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.battle-settings {
+    text-align: right;
+}
+
+.battle-settings label {
+    color: #ffa500;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+.battle-settings select {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: 2px solid #ffa500;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===========================================
+   対戦モードのレスポンシブ対応
+   =========================================== */
+
+@media (max-width: 1024px) {
+    .battle-arena {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+    }
+    
+    .vs-display {
+        order: 2;
+        margin: 20px 0;
+    }
+    
+    .player-side {
+        order: 1;
+    }
+    
+    .cpu-side {
+        order: 3;
+    }
+    
+    .vs-text {
+        font-size: 36px;
+    }
+}
+
+@media (max-width: 768px) {
+    .battle-content {
+        padding: 15px;
+    }
+    
+    .battle-title {
+        font-size: 28px;
+    }
+    
+    .battle-arena {
+        padding: 20px 15px;
+    }
+    
+    .player-side, .cpu-side {
+        min-width: 240px;
+        max-width: 100%;
+    }
+    
+    .vs-text {
+        font-size: 32px;
+    }
+    
+    .battle-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        text-align: center;
+    }
+}
