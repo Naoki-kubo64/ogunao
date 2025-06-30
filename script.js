@@ -4,6 +4,9 @@
 // デモ用のローカルランキングデータ（初期は空）
 let localRanking = [];
 
+// ================================================
+// メインゲームクラス
+// ================================================
 class PuyoPuyoGame {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
@@ -194,7 +197,9 @@ class PuyoPuyoGame {
         // SE音量の初期化
         this.updateSeVolume();
         
-        // BGM管理用の変数
+        // ================================================
+        // 🎵 BGM管理用の変数
+        // ================================================
         this.currentBgm = null;
         this.bgmSwitched = false; // スコア200000でのBGM切り替えフラグ
         this.fadeInterval = null; // フェード処理用のインターバル
@@ -291,6 +296,9 @@ class PuyoPuyoGame {
         console.log('ゲーム準備完了！Enterキーでゲーム開始');
     }
     
+    // ================================================
+    // 🎮 イベントリスナー設定
+    // ================================================
     setupEventListeners() {
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
         document.getElementById('restart-btn').addEventListener('click', () => this.restart());
@@ -365,7 +373,9 @@ class PuyoPuyoGame {
         this.setupVolumeControls();
     }
     
-    // BGM音量を更新
+    // ================================================
+    // 🔊 音量管理メソッド群
+    // ================================================
     updateBgmVolume() {
         if (this.titleBgm) this.titleBgm.volume = this.bgmVolume;
         if (this.bgm) this.bgm.volume = this.bgmVolume;
@@ -795,6 +805,9 @@ class PuyoPuyoGame {
         }
     }
     
+    // ================================================
+    // 🎮 ゲームコア機能
+    // ================================================
     movePiece(dx, dy) {
         if (!this.currentPiece) return;
         
@@ -1139,7 +1152,9 @@ class PuyoPuyoGame {
         }
     }
     
-    // デバッグ用：ボードの状態を視覚的に表示
+    // ================================================
+    // 🔧 デバッグ機能
+    // ================================================
     debugPrintBoard(title) {
         console.log(`📋 ${title}:`);
         for (let y = 0; y < this.BOARD_HEIGHT; y++) {
@@ -2205,7 +2220,9 @@ class PuyoPuyoGame {
         }
     }
     
-    // なおちゃんタイム発動
+    // ================================================
+    // 🌟 なおちゃんシステム
+    // ================================================
     activateNaochanTime() {
         if (this.naochanTimeActive) return;
         
@@ -2895,7 +2912,9 @@ class PuyoPuyoGame {
         }
     }
     
-    // ランキング機能
+    // ================================================
+    // 🗄️ Firebase & データベース機能
+    // ================================================
     async loadRanking() {
         const rankingList = document.getElementById('ranking-list');
         rankingList.innerHTML = '<div class="loading">読み込み中...</div>';
@@ -3543,6 +3562,9 @@ class PuyoPuyoGame {
     }
 }
 
+// ================================================
+// 🚀 ゲーム起動
+// ================================================
 const game = new PuyoPuyoGame();
 
 // ページ読み込み完了時にフォーカス管理
