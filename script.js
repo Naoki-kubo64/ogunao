@@ -4095,40 +4095,33 @@ class GameModeManager {
             container.style.display = 'flex';
         }
         
-        // 既存のゲームを開始 - 少し遅延させて確実に表示されてから
+        // 従来のEnterキー処理と同じロジックを実行
         setTimeout(() => {
             if (this.game) {
-                console.log('🎯 ソロゲームを開始します');
-                // ゲームの状態を完全にリセットしてから開始
-                this.game.resetGame();
-                this.game.gameRunning = false; // 明示的にfalseに設定
+                console.log('🎯 従来のEnterキー処理でソロゲームを開始します');
                 
-                // 直接ゲームを開始状態に設定
-                requestAnimationFrame(() => {
-                    this.game.gameRunning = true; // 強制的にtrueに設定
-                    this.game.startGame();
-                    
-                    // 確実にゲームループが開始されているかチェック
-                    setTimeout(() => {
-                        if (!this.game.gameRunning) {
-                            console.log('⚠️ ゲームが開始されていません、強制開始します');
-                            this.game.gameRunning = true;
-                            this.game.startGameLoop(); // ゲームループを直接開始
-                        } else {
-                            console.log('✅ ゲームが正常に開始されました');
-                        }
-                    }, 200);
-                });
+                // コメント入力フィールドからフォーカスを外す（従来の処理と同じ）
+                const commentInput = document.getElementById('comment-input');
+                if (document.activeElement === commentInput) {
+                    console.log('📝 Removing focus from comment input');
+                    commentInput.blur();
+                }
+                
+                // 従来のstartGame()メソッドを直接呼び出し
+                this.game.startGame();
+                console.log('✅ 従来のstartGame()メソッドを実行しました');
+                
             } else {
                 console.log('⚠️ ゲームインスタンスが見つかりません');
                 // ゲームインスタンスが見つからない場合、window.gameを試行
                 if (window.game) {
                     console.log('🔄 window.gameを使用してゲームを開始します');
-                    window.game.resetGame();
-                    window.game.gameRunning = true; // 強制的にtrueに設定
-                    requestAnimationFrame(() => {
-                        window.game.startGame();
-                    });
+                    // コメント入力フィールドからフォーカスを外す
+                    const commentInput = document.getElementById('comment-input');
+                    if (document.activeElement === commentInput) {
+                        commentInput.blur();
+                    }
+                    window.game.startGame();
                 }
             }
         }, 150);
