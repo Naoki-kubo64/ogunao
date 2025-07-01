@@ -116,11 +116,17 @@ export class GameModeManager {
     }
     
     switchToSoloMode() {
+        // 既にソロモードまたはゲーム実行中の場合は何もしない
+        if (this.currentMode === 'solo' || (this.game && this.game.gameRunning)) {
+            console.log('⚠️ 既にソロモードまたはゲーム実行中です');
+            return;
+        }
+        
         console.log('🎮 ソロモードに切り替え');
         this.currentMode = 'solo';
         
         setTimeout(() => {
-            if (this.game) {
+            if (this.game && !this.game.gameRunning) {
                 const commentInput = document.getElementById('comment-input');
                 if (document.activeElement === commentInput) {
                     commentInput.blur();
@@ -167,13 +173,13 @@ export class GameModeManager {
         // 少し遅延してから対戦ゲームを初期化
         setTimeout(() => {
             if (!this.battleGame) {
-                // BattleGameクラスをインポートして初期化
-                import('./battleGame.js').then(({ BattleGame }) => {
-                    this.battleGame = new BattleGame();
-                    console.log('✅ 対戦ゲームを初期化しました');
-                }).catch(error => {
-                    console.error('❌ 対戦ゲームの初期化に失敗しました:', error);
-                });
+                // メインのBattleGameクラスを使用（script.jsから）
+                if (window.BattleGame) {
+                    this.battleGame = new window.BattleGame();
+                    console.log('✅ 対戦ゲーム（メイン版）を初期化しました');
+                } else {
+                    console.error('❌ メインのBattleGameクラスが見つかりません');
+                }
             }
         }, 100);
     }

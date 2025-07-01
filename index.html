@@ -26,6 +26,9 @@
     <audio id="naochan-bgm" preload="auto" loop>
         <source src="music/jagler1.mp3" type="audio/mpeg">
     </audio>
+    <audio id="battle-bgm" preload="auto" loop>
+        <source src="music/battleBGM.MP3" type="audio/mpeg">
+    </audio>
     
     <!-- SE用のaudio要素 -->
     <audio id="se-gamestart" preload="auto">
@@ -119,7 +122,7 @@
                 </div>
             </div>
             <div class="game-board">
-                <canvas id="game-canvas" width="480" height="720"></canvas>
+                <canvas id="game-canvas" width="480" height="960"></canvas>
             </div>
             <div class="controls">
                     <div class="next-puyo-label">次のぷよ</div>
@@ -269,10 +272,11 @@
                                 <div class="player-score">スコア: <span id="player-score">0</span></div>
                             </div>
                             <div class="player-board">
-                                <canvas id="player-canvas" width="300" height="450"></canvas>
+                                <canvas id="player-canvas" width="300" height="600"></canvas>
                             </div>
-                            <div class="player-next">
-                                <div class="next-label">次のぷよ</div>
+                            <!-- プレイヤー側の次のぷよ表示 -->
+                            <div class="player-next-outside">
+                                <div class="next-label">あなたの次のぷよ</div>
                                 <div id="player-next-puyo"></div>
                             </div>
                         </div>
@@ -282,8 +286,10 @@
                             <div class="vs-text">VS</div>
                             <div class="battle-status">
                                 <div id="battle-timer">残り時間: <span id="time-left">180</span>秒</div>
-                                <button id="battle-start" class="battle-start-btn">対戦開始</button>
-                                <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                <div class="battle-buttons">
+                                    <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                    <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                </div>
                             </div>
                         </div>
                         
@@ -294,10 +300,11 @@
                                 <div class="cpu-score">スコア: <span id="cpu-score">0</span></div>
                             </div>
                             <div class="cpu-board">
-                                <canvas id="cpu-canvas" width="300" height="450"></canvas>
+                                <canvas id="cpu-canvas" width="300" height="600"></canvas>
                             </div>
-                            <div class="cpu-next">
-                                <div class="next-label">次のぷよ</div>
+                            <!-- CPU側の次のぷよ表示 -->
+                            <div class="cpu-next-outside">
+                                <div class="next-label">CPUの次のぷよ</div>
                                 <div id="cpu-next-puyo"></div>
                             </div>
                         </div>

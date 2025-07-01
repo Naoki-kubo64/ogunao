@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI視覚チェック - 対戦モード</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .visual-test {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            color: #fff;
+        }
+        
+        .highlight-overlaps {
+            background: rgba(255, 0, 0, 0.3) !important;
+            border: 2px solid #ff0000 !important;
+        }
+        
+        .highlight-good {
+            background: rgba(0, 255, 0, 0.2) !important;
+            border: 2px solid #00ff00 !important;
+        }
+        
+        .demo-puyo {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 1px;
+            vertical-align: middle;
+        }
+        
+        .puyo-red { background: #ff4444; }
+        .puyo-green { background: #44ff44; }
+        .puyo-blue { background: #4444ff; }
+        .puyo-yellow { background: #ffff44; }
+        .puyo-purple { background: #ff44ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="visual-test">
+            <h1>🔍 UI視覚チェック - 対戦モード</h1>
+            <p><strong>確認項目:</strong></p>
+            <ul>
+                <li>✅ 次のぷよがキャンバスの上部に配置されているか</li>
+                <li>⚠️ 対戦開始ボタンと次のぷよが被っていないか</li>
+                <li>✅ 左右の配置バランスが適切か</li>
+                <li>✅ レスポンシブ対応できているか</li>
+            </ul>
+            <button onclick="checkOverlaps()" style="padding: 10px; margin: 10px; background: #ffa500; border: none; border-radius: 5px;">重複チェック</button>
+            <button onclick="resetHighlight()" style="padding: 10px; margin: 10px; background: #666; color: #fff; border: none; border-radius: 5px;">ハイライト解除</button>
+        </div>
+        
+        <div class="game-area">
+            <div class="game-status">
+                <!-- 対戦モード画面 -->
+                <div id="battle-screen" class="battle-screen">
+                    <div class="battle-content">
+                        <div class="battle-header">
+                            <h2 class="battle-title">⚔️ CPU対戦モード - UI視覚チェック</h2>
+                        </div>
+                        
+                        <div class="battle-arena">
+                            <!-- プレイヤー側 -->
+                            <div class="player-side" id="player-area">
+                                <div class="player-info">
+                                    <h3 class="player-name">あなた</h3>
+                                    <div class="player-score">スコア: <span id="player-score">45,200</span></div>
+                                </div>
+                                <div class="player-board">
+                                    <canvas id="player-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- プレイヤー側の次のぷよ表示 - 右上部 -->
+                                <div class="player-next-outside" id="player-next">
+                                    <div class="next-label">あなたの次のぷよ</div>
+                                    <div id="player-next-puyo">
+                                        <div class="demo-puyo puyo-green"></div>
+                                        <div class="demo-puyo puyo-yellow"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- VS表示 -->
+                            <div class="vs-display" id="vs-area">
+                                <div class="vs-text">VS</div>
+                                <div class="battle-status">
+                                    <div id="battle-timer">残り時間: <span id="time-left">142</span>秒</div>
+                                    <div class="battle-buttons" id="battle-buttons">
+                                        <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                        <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- CPU側 -->
+                            <div class="cpu-side" id="cpu-area">
+                                <div class="cpu-info">
+                                    <h3 class="cpu-name">CPU</h3>
+                                    <div class="cpu-score">スコア: <span id="cpu-score">38,750</span></div>
+                                </div>
+                                <div class="cpu-board">
+                                    <canvas id="cpu-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- CPU側の次のぷよ表示 - 左上部 -->
+                                <div class="cpu-next-outside" id="cpu-next">
+                                    <div class="next-label">CPUの次のぷよ</div>
+                                    <div id="cpu-next-puyo">
+                                        <div class="demo-puyo puyo-red"></div>
+                                        <div class="demo-puyo puyo-blue"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-controls">
+                            <div class="control-info">
+                                <h4>操作方法</h4>
+                                <div class="controls-grid">
+                                    <span>A: 左移動</span>
+                                    <span>D: 右移動</span>
+                                    <span>S: 下移動</span>
+                                    <span>Space: 回転</span>
+                                </div>
+                            </div>
+                            <div class="battle-settings">
+                                <label for="cpu-level">CPU難易度:</label>
+                                <select id="cpu-level">
+                                    <option value="easy">簡単</option>
+                                    <option value="normal" selected>普通</option>
+                                    <option value="hard">難しい</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="visual-test">
+            <h3>📊 レイアウト分析結果</h3>
+            <div id="analysis-results">
+                <div>📐 VS表示位置: <span id="vs-position">分析待ち</span></div>
+                <div>🎮 プレイヤー次のぷよ位置: <span id="player-position">分析待ち</span></div>
+                <div>🤖 CPU次のぷよ位置: <span id="cpu-position">分析待ち</span></div>
+                <div>⚠️ 重複チェック: <span id="overlap-status">未確認</span></div>
+                <div>✅ 配置バランス: <span id="balance-status">分析待ち</span></div>
+            </div>
+            <p><small>※ 重複チェックボタンで要素の重なりを確認できます</small></p>
+        </div>
+    </div>
+
+    <script>
+        function checkOverlaps() {
+            // 要素の位置を取得
+            const vsArea = document.getElementById('vs-area');
+            const battleButtons = document.getElementById('battle-buttons');
+            const playerNext = document.getElementById('player-next');
+            const cpuNext = document.getElementById('cpu-next');
+            
+            const vsRect = vsArea.getBoundingClientRect();
+            const buttonsRect = battleButtons.getBoundingClientRect();
+            const playerRect = playerNext.getBoundingClientRect();
+            const cpuRect = cpuNext.getBoundingClientRect();
+            
+            // 重複チェック
+            const playerOverlapsVS = isOverlapping(playerRect, vsRect);
+            const cpuOverlapsVS = isOverlapping(cpuRect, vsRect);
+            const playerOverlapsButtons = isOverlapping(playerRect, buttonsRect);
+            const cpuOverlapsButtons = isOverlapping(cpuRect, buttonsRect);
+            
+            // ハイライト適用
+            resetHighlight();
+            
+            if (playerOverlapsVS || playerOverlapsButtons) {
+                playerNext.classList.add('highlight-overlaps');
+            } else {
+                playerNext.classList.add('highlight-good');
+            }
+            
+            if (cpuOverlapsVS || cpuOverlapsButtons) {
+                cpuNext.classList.add('highlight-overlaps');
+            } else {
+                cpuNext.classList.add('highlight-good');
+            }
+            
+            // 結果を表示
+            document.getElementById('vs-position').textContent = 
+                `(${Math.round(vsRect.x)}, ${Math.round(vsRect.y)}) 幅${Math.round(vsRect.width)}×高${Math.round(vsRect.height)}`;
+            
+            document.getElementById('player-position').textContent = 
+                `(${Math.round(playerRect.x)}, ${Math.round(playerRect.y)}) 幅${Math.round(playerRect.width)}×高${Math.round(playerRect.height)}`;
+                
+            document.getElementById('cpu-position').textContent = 
+                `(${Math.round(cpuRect.x)}, ${Math.round(cpuRect.y)}) 幅${Math.round(cpuRect.width)}×高${Math.round(cpuRect.height)}`;
+            
+            const hasOverlaps = playerOverlapsVS || cpuOverlapsVS || playerOverlapsButtons || cpuOverlapsButtons;
+            document.getElementById('overlap-status').textContent = 
+                hasOverlaps ? '❌ 重複あり' : '✅ 重複なし';
+            
+            // バランスチェック
+            const distanceFromCenter = Math.abs((playerRect.x + playerRect.width/2) - (cpuRect.x + cpuRect.width/2));
+            document.getElementById('balance-status').textContent = 
+                distanceFromCenter > 200 ? '✅ 適切な間隔' : '⚠️ 間隔が狭い';
+            
+            console.log('重複チェック結果:', {
+                playerOverlapsVS,
+                cpuOverlapsVS,
+                playerOverlapsButtons,
+                cpuOverlapsButtons,
+                distanceFromCenter
+            });
+        }
+        
+        function isOverlapping(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
+                    rect1.top > rect2.bottom);
+        }
+        
+        function resetHighlight() {
+            const elements = document.querySelectorAll('.highlight-overlaps, .highlight-good');
+            elements.forEach(el => {
+                el.classList.remove('highlight-overlaps', 'highlight-good');
+            });
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 UI視覚チェック初期化完了');
+            setTimeout(checkOverlaps, 1000);
+        });
+        
+        // ウィンドウリサイズ時の自動再チェック
+        window.addEventListener('resize', () => {
+            setTimeout(checkOverlaps, 200);
+        });
+    </script>
+</body>
+</html>

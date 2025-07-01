@@ -25,7 +25,20 @@
       "Bash(npx playwright test:*)",
       "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test garbage-puyo.spec.js --project=chromium --timeout=30000)",
       "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-test.js)",
-      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test garbage-puyo.spec.js --project=chromium)"
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers npx playwright test garbage-puyo.spec.js --project=chromium)",
+      "Bash(echo $HOME)",
+      "Bash(mkdir:*)",
+      "mcp__playwright__browser_snapshot",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node test-board-size.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-board-test.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node test-gameplay.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node test-enter-duplicate.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node final-comprehensive-test.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-final-test.js)",
+      "WebFetch(domain:trap.jp)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node test-advanced-cpu.js)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-cpu-test.js)",
+      "Bash(npm run serve:*)"
     ],
     "deny": []
   },

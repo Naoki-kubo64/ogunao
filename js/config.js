@@ -2,7 +2,7 @@
 export const GAME_CONFIG = {
     BOARD: {
         WIDTH: 6,
-        HEIGHT: 9,
+        HEIGHT: 12,
         CELL_SIZE: 40
     },
     

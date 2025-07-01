@@ -38,7 +38,7 @@ class PuyoPuyoGame {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
-        this.BOARD_HEIGHT = 9;
+        this.BOARD_HEIGHT = 12;
         this.CELL_SIZE = 80;
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
     }
@@ -424,7 +424,10 @@ class PuyoPuyoGame {
         if (this.score >= 200000 && !this.bgmSwitched) {
             console.log('🏆 スコア200000達成！BGMを切り替えます');
             this.bgmSwitched = true;
-            this.switchBgm(this.bgm2);
+            // なおちゃんタイム中は BGM 切り替えを行わない（該当ファイルでサポートされている場合）
+            if (!this.naochanTimeActive) {
+                this.switchBgm(this.bgm2);
+            }
         }
     }
     
@@ -518,6 +521,12 @@ class PuyoPuyoGame {
     }
     
     startGame() {
+        // 重複起動を防ぐ
+        if (this.gameRunning) {
+            console.log('⚠️ ゲームは既に実行中です');
+            return;
+        }
+        
         this.gameRunning = true;
         this.score = 0;
         this.time = 0;

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>キャンバス側レイアウトテスト</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* テスト用の追加スタイル */
+        .test-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 20px;
+        }
+        
+        .test-info {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        
+        .highlight-canvas {
+            border: 3px solid #ff0000 !important;
+            box-shadow: 0 0 20px #ff0000 !important;
+        }
+        
+        .highlight-next {
+            border: 3px dashed #00ff00 !important;
+            background: rgba(0, 255, 0, 0.2) !important;
+        }
+        
+        .demo-puyo {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 1px;
+            vertical-align: middle;
+        }
+        
+        .puyo-red { background: #ff4444; }
+        .puyo-green { background: #44ff44; }
+        .puyo-blue { background: #4444ff; }
+        .puyo-yellow { background: #ffff44; }
+        .puyo-purple { background: #ff44ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-container">
+            <h1>🎮 キャンバス側レイアウトテスト</h1>
+            <div class="test-info">
+                <h3>📋 最終レイアウト確認</h3>
+                <div>✅ プレイヤー側: 次のぷよをプレイヤーキャンバス下部に配置</div>
+                <div>✅ CPU側: 次のぷよをCPUキャンバス下部に配置</div>
+                <div>✅ 各側に専用の視覚的枠組みを追加</div>
+                <div>✅ 中央のVS表示とボタンはそのまま維持</div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div class="game-status">
+                <!-- 対戦モード画面 -->
+                <div id="battle-screen" class="battle-screen">
+                    <div class="battle-content">
+                        <div class="battle-header">
+                            <h2 class="battle-title">⚔️ CPU対戦モード - キャンバス側レイアウト</h2>
+                            <button onclick="toggleHighlight()" class="back-button">ハイライト表示</button>
+                        </div>
+                        
+                        <div class="battle-arena">
+                            <!-- プレイヤー側 -->
+                            <div class="player-side" id="player-area">
+                                <div class="player-info">
+                                    <h3 class="player-name">あなた</h3>
+                                    <div class="player-score">スコア: <span id="player-score">23,600</span></div>
+                                </div>
+                                <div class="player-board">
+                                    <canvas id="player-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- プレイヤー側の次のぷよ表示 -->
+                                <div class="player-next-outside" id="player-next">
+                                    <div class="next-label">あなたの次のぷよ</div>
+                                    <div id="player-next-puyo">
+                                        <!-- デモ用のぷよ -->
+                                        <div class="demo-puyo puyo-green"></div>
+                                        <div class="demo-puyo puyo-yellow"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- VS表示 -->
+                            <div class="vs-display">
+                                <div class="vs-text">VS</div>
+                                <div class="battle-status">
+                                    <div id="battle-timer">残り時間: <span id="time-left">89</span>秒</div>
+                                    <div class="battle-buttons">
+                                        <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                        <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- CPU側 -->
+                            <div class="cpu-side" id="cpu-area">
+                                <div class="cpu-info">
+                                    <h3 class="cpu-name">CPU</h3>
+                                    <div class="cpu-score">スコア: <span id="cpu-score">18,950</span></div>
+                                </div>
+                                <div class="cpu-board">
+                                    <canvas id="cpu-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- CPU側の次のぷよ表示 -->
+                                <div class="cpu-next-outside" id="cpu-next">
+                                    <div class="next-label">CPUの次のぷよ</div>
+                                    <div id="cpu-next-puyo">
+                                        <!-- デモ用のぷよ -->
+                                        <div class="demo-puyo puyo-red"></div>
+                                        <div class="demo-puyo puyo-blue"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-controls">
+                            <div class="control-info">
+                                <h4>🔧 レイアウト検証機能</h4>
+                                <div class="controls-grid">
+                                    <button onclick="measureLayout()">位置計測</button>
+                                    <button onclick="animatePuyos()">ぷよアニメーション</button>
+                                    <button onclick="testAlignment()">整列確認</button>
+                                    <button onclick="resetAll()">リセット</button>
+                                </div>
+                            </div>
+                            <div class="battle-settings">
+                                <label>表示テスト:</label>
+                                <select id="display-test" onchange="changeDisplayTest()">
+                                    <option value="normal">通常表示</option>
+                                    <option value="compact">コンパクト</option>
+                                    <option value="wide">ワイド</option>
+                                    <option value="mobile">モバイル</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-container">
+            <div class="test-info">
+                <h3>📊 レイアウト計測結果</h3>
+                <div id="measurement-results">
+                    <div>📐 プレイヤーエリア: <span id="player-measurements">計測待ち</span></div>
+                    <div>🎯 プレイヤー次のぷよ: <span id="player-next-pos">計測待ち</span></div>
+                    <div>🤖 CPUエリア: <span id="cpu-measurements">計測待ち</span></div>
+                    <div>🎯 CPU次のぷよ: <span id="cpu-next-pos">計測待ち</span></div>
+                    <div>⚖️ 全体バランス: <span id="balance-check">計測待ち</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let highlightMode = false;
+        let puyoColors = ['red', 'green', 'blue', 'yellow', 'purple'];
+        let colorIndex = 0;
+        
+        function toggleHighlight() {
+            highlightMode = !highlightMode;
+            
+            const canvases = document.querySelectorAll('canvas');
+            const nextAreas = document.querySelectorAll('.player-next-outside, .cpu-next-outside');
+            
+            if (highlightMode) {
+                canvases.forEach(canvas => canvas.classList.add('highlight-canvas'));
+                nextAreas.forEach(area => area.classList.add('highlight-next'));
+            } else {
+                canvases.forEach(canvas => canvas.classList.remove('highlight-canvas'));
+                nextAreas.forEach(area => area.classList.remove('highlight-next'));
+            }
+            
+            console.log('ハイライトモード:', highlightMode ? 'ON' : 'OFF');
+        }
+        
+        function measureLayout() {
+            const playerArea = document.getElementById('player-area');
+            const cpuArea = document.getElementById('cpu-area');
+            const playerNext = document.getElementById('player-next');
+            const cpuNext = document.getElementById('cpu-next');
+            const playerCanvas = document.getElementById('player-canvas');
+            const cpuCanvas = document.getElementById('cpu-canvas');
+            
+            // 各要素の位置とサイズを取得
+            const playerRect = playerArea.getBoundingClientRect();
+            const cpuRect = cpuArea.getBoundingClientRect();
+            const playerNextRect = playerNext.getBoundingClientRect();
+            const cpuNextRect = cpuNext.getBoundingClientRect();
+            const playerCanvasRect = playerCanvas.getBoundingClientRect();
+            const cpuCanvasRect = cpuCanvas.getBoundingClientRect();
+            
+            // 結果を表示
+            document.getElementById('player-measurements').textContent = 
+                `位置(${Math.round(playerRect.x)}, ${Math.round(playerRect.y)}) サイズ(${Math.round(playerRect.width)}×${Math.round(playerRect.height)})`;
+            
+            document.getElementById('player-next-pos').textContent = 
+                `キャンバス下${Math.round(playerNextRect.y - (playerCanvasRect.y + playerCanvasRect.height))}px`;
+            
+            document.getElementById('cpu-measurements').textContent = 
+                `位置(${Math.round(cpuRect.x)}, ${Math.round(cpuRect.y)}) サイズ(${Math.round(cpuRect.width)}×${Math.round(cpuRect.height)})`;
+            
+            document.getElementById('cpu-next-pos').textContent = 
+                `キャンバス下${Math.round(cpuNextRect.y - (cpuCanvasRect.y + cpuCanvasRect.height))}px`;
+            
+            // バランスチェック
+            const isBalanced = Math.abs(playerRect.width - cpuRect.width) < 20 && 
+                             Math.abs(playerRect.height - cpuRect.height) < 20;
+            document.getElementById('balance-check').textContent = 
+                isBalanced ? '✅ 左右バランス良好' : '⚠️ サイズに差異あり';
+            
+            console.log('レイアウト計測完了');
+        }
+        
+        function animatePuyos() {
+            const puyos = document.querySelectorAll('.demo-puyo');
+            
+            puyos.forEach((puyo, index) => {
+                setTimeout(() => {
+                    puyo.style.transform = 'scale(1.5) rotate(360deg)';
+                    puyo.style.transition = 'transform 0.6s ease';
+                    
+                    setTimeout(() => {
+                        puyo.style.transform = 'scale(1) rotate(0deg)';
+                        puyo.className = `demo-puyo puyo-${puyoColors[colorIndex % puyoColors.length]}`;
+                        colorIndex++;
+                    }, 600);
+                }, index * 200);
+            });
+            
+            console.log('ぷよアニメーション実行');
+        }
+        
+        function testAlignment() {
+            const playerNext = document.getElementById('player-next');
+            const cpuNext = document.getElementById('cpu-next');
+            const playerCanvas = document.getElementById('player-canvas');
+            const cpuCanvas = document.getElementById('cpu-canvas');
+            
+            const playerNextRect = playerNext.getBoundingClientRect();
+            const cpuNextRect = cpuNext.getBoundingClientRect();
+            const playerCanvasRect = playerCanvas.getBoundingClientRect();
+            const cpuCanvasRect = cpuCanvas.getBoundingClientRect();
+            
+            // 中央揃えの確認
+            const playerCenterX = playerCanvasRect.x + playerCanvasRect.width / 2;
+            const playerNextCenterX = playerNextRect.x + playerNextRect.width / 2;
+            const playerAligned = Math.abs(playerCenterX - playerNextCenterX) < 10;
+            
+            const cpuCenterX = cpuCanvasRect.x + cpuCanvasRect.width / 2;
+            const cpuNextCenterX = cpuNextRect.x + cpuNextRect.width / 2;
+            const cpuAligned = Math.abs(cpuCenterX - cpuNextCenterX) < 10;
+            
+            console.log('整列確認:', {
+                player: playerAligned ? '✅' : '❌',
+                cpu: cpuAligned ? '✅' : '❌',
+                playerDiff: Math.round(playerCenterX - playerNextCenterX),
+                cpuDiff: Math.round(cpuCenterX - cpuNextCenterX)
+            });
+            
+            alert(`整列確認結果:\nプレイヤー側: ${playerAligned ? '✅ 中央揃え良好' : '❌ 位置ずれあり'}\nCPU側: ${cpuAligned ? '✅ 中央揃え良好' : '❌ 位置ずれあり'}`);
+        }
+        
+        function resetAll() {
+            if (highlightMode) {
+                toggleHighlight();
+            }
+            
+            const container = document.querySelector('.container');
+            container.style.maxWidth = '';
+            
+            // puyoの変形をリセット
+            const puyos = document.querySelectorAll('.demo-puyo');
+            puyos.forEach(puyo => {
+                puyo.style.transform = '';
+                puyo.style.transition = '';
+            });
+            
+            console.log('全リセット実行');
+            setTimeout(measureLayout, 200);
+        }
+        
+        function changeDisplayTest() {
+            const selector = document.getElementById('display-test');
+            const container = document.querySelector('.container');
+            
+            switch(selector.value) {
+                case 'compact':
+                    container.style.maxWidth = '900px';
+                    break;
+                case 'wide':
+                    container.style.maxWidth = '1400px';
+                    break;
+                case 'mobile':
+                    container.style.maxWidth = '480px';
+                    break;
+                default:
+                    container.style.maxWidth = '';
+            }
+            
+            setTimeout(measureLayout, 300);
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 キャンバス側レイアウトテスト初期化完了');
+            setTimeout(measureLayout, 500);
+        });
+        
+        // ウィンドウリサイズ時の自動再計測
+        window.addEventListener('resize', () => {
+            setTimeout(measureLayout, 200);
+        });
+    </script>
+</body>
+</html>

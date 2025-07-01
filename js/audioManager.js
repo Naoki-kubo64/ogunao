@@ -14,11 +14,12 @@ export class AudioManager {
         this.bgm = document.getElementById('game-bgm');
         this.bgm2 = document.getElementById('game-bgm-2');
         this.naochanBgm = document.getElementById('naochan-bgm');
+        this.battleBgm = document.getElementById('battle-bgm');
         
         this.currentBgm = null;
         this.bgmSwitched = false;
         
-        if (this.titleBgm && this.bgm && this.bgm2 && this.naochanBgm) {
+        if (this.titleBgm && this.bgm && this.bgm2 && this.naochanBgm && this.battleBgm) {
             this.updateBgmVolume();
         } else {
             console.error('❌ Audio要素が見つかりません');
@@ -66,6 +67,7 @@ export class AudioManager {
         if (this.bgm) this.bgm.volume = this.bgmVolume;
         if (this.bgm2) this.bgm2.volume = this.bgmVolume;
         if (this.naochanBgm) this.naochanBgm.volume = this.bgmVolume;
+        if (this.battleBgm) this.battleBgm.volume = this.bgmVolume;
     }
     
     updateSeVolume() {
@@ -191,5 +193,52 @@ export class AudioManager {
                 console.log('BGM resume failed:', e);
             });
         }
+    }
+    
+    // 対戦モード専用BGM開始
+    startBattleBgm() {
+        console.log('🎵 対戦モードBGM開始');
+        
+        // 現在のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
+        
+        // 対戦BGMを開始
+        if (this.battleBgm) {
+            this.battleBgm.currentTime = 0;
+            this.battleBgm.volume = this.bgmVolume;
+            this.battleBgm.play().catch(e => {
+                console.error('❌ 対戦モードBGM再生に失敗:', e);
+                // autoplay制限対策として少し遅延してリトライ
+                setTimeout(() => {
+                    this.battleBgm.play().catch(e => {
+                        console.error('❌ 対戦モードBGM再生リトライも失敗:', e);
+                    });
+                }, 500);
+            });
+            this.currentBgm = this.battleBgm;
+            console.log('🎵 対戦モードBGM開始完了');
+        } else {
+            console.error('❌ battle-bgm要素が見つかりません');
+        }
+    }
+    
+    // 全BGM停止
+    stopAllBgm() {
+        const bgmElements = [
+            this.titleBgm, this.bgm, this.bgm2, this.naochanBgm, this.battleBgm
+        ];
+        
+        bgmElements.forEach(bgm => {
+            if (bgm) {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+        });
+        
+        this.currentBgm = null;
+        console.log('🔇 全てのBGMを停止しました');
     }
 }
