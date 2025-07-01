@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>次のぷよ位置テスト</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .test-info {
+            background: rgba(255, 165, 0, 0.1);
+            border: 2px solid #ffa500;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-overlay {
+            position: absolute;
+            border: 2px dashed #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .position-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="position-info" id="position-info">
+        位置情報: 計測待ち
+    </div>
+    
+    <div class="test-info">
+        <h1>🎮 次のぷよ位置テスト</h1>
+        <p><strong>確認項目:</strong></p>
+        <ul>
+            <li>プレイヤー側の次のぷよが左側に表示されているか</li>
+            <li>CPU側の次のぷよが右側に表示されているか</li>
+            <li>両方とも画面内で見えているか</li>
+        </ul>
+        <button onclick="measurePositions()" style="padding: 10px; background: #ffa500; border: none; border-radius: 5px; color: #000;">位置計測</button>
+        <button onclick="toggleDebugOverlay()" style="padding: 10px; background: #555; border: none; border-radius: 5px; color: #fff; margin-left: 10px;">デバッグ表示</button>
+    </div>
+
+    <div class="container">
+        <div class="game-area">
+            <div class="game-status">
+                <!-- 対戦モード画面 -->
+                <div id="battle-screen" class="battle-screen">
+                    <div class="battle-content">
+                        <div class="battle-header">
+                            <h2 class="battle-title">⚔️ CPU対戦モード - 次のぷよ位置テスト</h2>
+                        </div>
+                        
+                        <div class="battle-arena">
+                            <!-- プレイヤー側 -->
+                            <div class="player-side" id="player-area">
+                                <div class="player-info">
+                                    <h3 class="player-name">あなた</h3>
+                                    <div class="player-score">スコア: <span id="player-score">0</span></div>
+                                </div>
+                                <div class="player-board">
+                                    <canvas id="player-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- プレイヤー側の次のぷよ表示 -->
+                                <div class="player-next-outside" id="player-next">
+                                    <div class="next-label">あなたの次のぷよ</div>
+                                    <div id="player-next-puyo">
+                                        <!-- テスト用のぷよ表示 -->
+                                        <div style="display: flex; justify-content: center; gap: 5px; margin-top: 10px;">
+                                            <div style="width: 30px; height: 30px; background: #44ff44; border-radius: 15px; border: 2px solid #fff;"></div>
+                                            <div style="width: 30px; height: 30px; background: #ffff44; border-radius: 15px; border: 2px solid #fff;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- VS表示 -->
+                            <div class="vs-display">
+                                <div class="vs-text">VS</div>
+                                <div class="battle-status">
+                                    <div id="battle-timer">残り時間: <span id="time-left">180</span>秒</div>
+                                    <div class="battle-buttons">
+                                        <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                        <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- CPU側 -->
+                            <div class="cpu-side" id="cpu-area">
+                                <div class="cpu-info">
+                                    <h3 class="cpu-name">CPU</h3>
+                                    <div class="cpu-score">スコア: <span id="cpu-score">0</span></div>
+                                </div>
+                                <div class="cpu-board">
+                                    <canvas id="cpu-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                                <!-- CPU側の次のぷよ表示 -->
+                                <div class="cpu-next-outside" id="cpu-next">
+                                    <div class="next-label">CPUの次のぷよ</div>
+                                    <div id="cpu-next-puyo">
+                                        <!-- テスト用のぷよ表示 -->
+                                        <div style="display: flex; justify-content: center; gap: 5px; margin-top: 10px;">
+                                            <div style="width: 30px; height: 30px; background: #ff4444; border-radius: 15px; border: 2px solid #fff;"></div>
+                                            <div style="width: 30px; height: 30px; background: #4444ff; border-radius: 15px; border: 2px solid #fff;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let debugMode = false;
+        
+        function measurePositions() {
+            const playerNext = document.getElementById('player-next');
+            const cpuNext = document.getElementById('cpu-next');
+            const playerCanvas = document.getElementById('player-canvas');
+            const cpuCanvas = document.getElementById('cpu-canvas');
+            const battleArena = document.querySelector('.battle-arena');
+            
+            if (!playerNext || !cpuNext) {
+                alert('❌ 次のぷよ要素が見つかりません');
+                return;
+            }
+            
+            const playerRect = playerNext.getBoundingClientRect();
+            const cpuRect = cpuNext.getBoundingClientRect();
+            const playerCanvasRect = playerCanvas.getBoundingClientRect();
+            const cpuCanvasRect = cpuCanvas.getBoundingClientRect();
+            const arenaRect = battleArena.getBoundingClientRect();
+            
+            // 画面内かどうかをチェック
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            const playerVisible = playerRect.left >= 0 && playerRect.right <= windowWidth && 
+                                playerRect.top >= 0 && playerRect.bottom <= windowHeight;
+            const cpuVisible = cpuRect.left >= 0 && cpuRect.right <= windowWidth && 
+                             cpuRect.top >= 0 && cpuRect.bottom <= windowHeight;
+            
+            const info = document.getElementById('position-info');
+            info.innerHTML = `
+                <strong>位置計測結果:</strong><br>
+                プレイヤー: (${Math.round(playerRect.left)}, ${Math.round(playerRect.top)}) ${playerVisible ? '✅' : '❌'}<br>
+                CPU: (${Math.round(cpuRect.left)}, ${Math.round(cpuRect.top)}) ${cpuVisible ? '✅' : '❌'}<br>
+                画面幅: ${windowWidth}px<br>
+                アリーナ: (${Math.round(arenaRect.left)}, ${Math.round(arenaRect.top)})
+            `;
+            
+            console.log('📐 位置情報:', {
+                player: { x: playerRect.left, y: playerRect.top, visible: playerVisible },
+                cpu: { x: cpuRect.left, y: cpuRect.top, visible: cpuVisible },
+                playerCanvas: { x: playerCanvasRect.left, y: playerCanvasRect.top },
+                cpuCanvas: { x: cpuCanvasRect.left, y: cpuCanvasRect.top },
+                arena: { x: arenaRect.left, y: arenaRect.top, width: arenaRect.width }
+            });
+            
+            // 結果をアラートで表示
+            const result = `📊 次のぷよ表示確認結果:
+            
+プレイヤー側:
+• 位置: (${Math.round(playerRect.left)}, ${Math.round(playerRect.top)})
+• 画面内表示: ${playerVisible ? '✅ OK' : '❌ 画面外'}
+• キャンバス左側: ${playerRect.right < playerCanvasRect.left ? '✅ OK' : '❌ NG'}
+
+CPU側:
+• 位置: (${Math.round(cpuRect.left)}, ${Math.round(cpuRect.top)})  
+• 画面内表示: ${cpuVisible ? '✅ OK' : '❌ 画面外'}
+• キャンバス右側: ${cpuRect.left > cpuCanvasRect.right ? '✅ OK' : '❌ NG'}
+
+画面幅: ${windowWidth}px`;
+            
+            alert(result);
+        }
+        
+        function toggleDebugOverlay() {
+            debugMode = !debugMode;
+            
+            // 既存のオーバーレイを削除
+            document.querySelectorAll('.debug-overlay').forEach(el => el.remove());
+            
+            if (debugMode) {
+                const playerNext = document.getElementById('player-next');
+                const cpuNext = document.getElementById('cpu-next');
+                
+                [playerNext, cpuNext].forEach(el => {
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        const overlay = document.createElement('div');
+                        overlay.className = 'debug-overlay';
+                        overlay.style.left = rect.left + 'px';
+                        overlay.style.top = rect.top + 'px';
+                        overlay.style.width = rect.width + 'px';
+                        overlay.style.height = rect.height + 'px';
+                        document.body.appendChild(overlay);
+                    }
+                });
+                
+                console.log('🔍 デバッグモード ON - 要素の境界を表示');
+            } else {
+                console.log('🔍 デバッグモード OFF');
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 次のぷよ位置テスト開始');
+            setTimeout(measurePositions, 1000);
+        });
+        
+        // ウィンドウリサイズ時の再計測
+        window.addEventListener('resize', () => {
+            if (debugMode) {
+                toggleDebugOverlay();
+                toggleDebugOverlay();
+            }
+            setTimeout(measurePositions, 200);
+        });
+    </script>
+</body>
+</html>

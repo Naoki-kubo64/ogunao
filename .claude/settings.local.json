@@ -38,7 +38,12 @@
       "WebFetch(domain:trap.jp)",
       "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node test-advanced-cpu.js)",
       "Bash(PLAYWRIGHT_BROWSERS_PATH=/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers node simple-cpu-test.js)",
-      "Bash(npm run serve:*)"
+      "Bash(npm run serve:*)",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_close"
     ],
     "deny": []
   },

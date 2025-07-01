@@ -166,6 +166,20 @@
                         <span id="se-volume-display">70%</span>
                     </div>
                 </div>
+                <div class="bgm-selector">
+                    <h4>🎶 BGM選択</h4>
+                    <div class="volume-control-row">
+                        <label for="solo-bgm-select">ソロBGM:</label>
+                        <select id="solo-bgm-select" class="bgm-select">
+                            <option value="ぷよぷよっと始まる毎日.mp3">ぷよぷよっと始まる毎日</option>
+                            <option value="2.mp3">BGM 2</option>
+                            <option value="2 -inst.mp3">BGM 2 (inst)</option>
+                            <option value="ED.mp3">ED</option>
+                            <option value="instrumental.mp3">Instrumental</option>
+                            <option value="jagler (mp3cut.net).mp3">Jagler (cut)</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="debug-controls">
                     <p>デバッグモード:</p>
                     <div class="debug-row">
@@ -327,6 +341,36 @@
                                 <option value="normal" selected>普通</option>
                                 <option value="hard">難しい</option>
                             </select>
+                        </div>
+                        
+                        <!-- 対戦モード音量設定 -->
+                        <div class="battle-volume-controls">
+                            <h4>🎵 音量設定</h4>
+                            <div class="volume-control-row">
+                                <label for="battle-bgm-volume">BGM音量:</label>
+                                <input type="range" id="battle-bgm-volume" min="0" max="100" value="50" class="volume-slider">
+                                <span id="battle-bgm-volume-display">50%</span>
+                            </div>
+                            <div class="volume-control-row">
+                                <label for="battle-se-volume">SE音量:</label>
+                                <input type="range" id="battle-se-volume" min="0" max="100" value="70" class="volume-slider">
+                                <span id="battle-se-volume-display">70%</span>
+                            </div>
+                        </div>
+                        <div class="battle-bgm-selector">
+                            <h4>🎶 BGM選択</h4>
+                            <div class="volume-control-row">
+                                <label for="battle-bgm-select">対戦BGM:</label>
+                                <select id="battle-bgm-select" class="bgm-select">
+                                    <option value="battleBGM.MP3">Battle BGM</option>
+                                    <option value="battleBGM-inst].mp3">Battle BGM (inst)</option>
+                                    <option value="2.mp3">BGM 2</option>
+                                    <option value="2 -inst.mp3">BGM 2 (inst)</option>
+                                    <option value="ED.mp3">ED</option>
+                                    <option value="instrumental.mp3">Instrumental</option>
+                                    <option value="ぷよぷよっと始まる毎日.mp3">ぷよぷよっと始まる毎日</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
