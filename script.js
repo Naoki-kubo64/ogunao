@@ -29,6 +29,10 @@ class PuyoPuyoGame {
         this.scoreSubmitted = false; // スコアが登録済みかどうか
         this.isPlacingPiece = false; // ピース配置中かどうか
         
+        // Enter キー debounce 用
+        this.lastEnterKeyTime = 0;
+        this.enterKeyDebounceMs = 300;
+        
         // コンボ状態
         this.oguComboActive = false;
         this.oguComboEndTime = 0;
@@ -177,6 +181,8 @@ class PuyoPuyoGame {
         // 音量設定の初期化
         this.bgmVolume = 0.5; // 50%
         this.seVolume = 0.7;  // 70%
+        this.selectedSoloBgm = 'ぷよぷよっと始まる毎日.mp3'; // デフォルトのソロモードBGM
+        this.customBgmAudio = null; // カスタムBGM用のAudio要素
         
         if (this.titleBgm && this.bgm && this.bgm2 && this.naochanBgm) {
             this.updateBgmVolume();
@@ -397,6 +403,94 @@ class PuyoPuyoGame {
         
         // 音量コントロールのイベントリスナーを設定
         this.setupVolumeControls();
+        
+        // BGM選択機能を設定
+        this.setupBgmSelector();
+    }
+    
+    // BGM選択機能を設定
+    setupBgmSelector() {
+        const soloBgmSelect = document.getElementById('solo-bgm-select');
+        if (soloBgmSelect) {
+            soloBgmSelect.addEventListener('change', (e) => {
+                this.selectedSoloBgm = e.target.value;
+                console.log('🎵 ソロモードBGM変更:', this.selectedSoloBgm);
+                
+                // ゲーム中の場合はBGMを即座に切り替え
+                if (this.gameRunning && this.currentBgm) {
+                    this.switchSoloBgm();
+                }
+            });
+        }
+    }
+    
+    // ソロモードBGMを動的に切り替え
+    switchSoloBgm() {
+        // 現在のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
+        
+        // カスタムBGM用のAudio要素を作成または更新
+        if (this.customBgmAudio) {
+            this.customBgmAudio.pause();
+            this.customBgmAudio = null;
+        }
+        
+        // 選択されたBGMに基づいてAudio要素を設定
+        if (this.selectedSoloBgm === 'ぷよぷよっと始まる毎日.mp3') {
+            this.currentBgm = this.bgm;
+        } else if (this.selectedSoloBgm === '2.mp3') {
+            this.currentBgm = this.bgm2;
+        } else {
+            // カスタムBGM用のAudio要素を作成
+            this.customBgmAudio = new Audio(`music/${this.selectedSoloBgm}`);
+            this.customBgmAudio.loop = true;
+            this.customBgmAudio.volume = this.bgmVolume;
+            this.currentBgm = this.customBgmAudio;
+        }
+        
+        // 新しいBGMを再生
+        if (this.currentBgm) {
+            this.currentBgm.play().catch(e => {
+                console.log('BGM切り替え再生エラー:', e);
+            });
+            console.log('🎵 BGM切り替え完了:', this.selectedSoloBgm);
+        }
+    }
+    
+    // 選択されたソロモードBGMを開始
+    startSelectedSoloBgm() {
+        // 既存のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
+        if (this.customBgmAudio) {
+            this.customBgmAudio.pause();
+            this.customBgmAudio = null;
+        }
+        
+        // 選択されたBGMに基づいてAudio要素を設定
+        if (this.selectedSoloBgm === 'ぷよぷよっと始まる毎日.mp3') {
+            this.currentBgm = this.bgm;
+        } else if (this.selectedSoloBgm === '2.mp3') {
+            this.currentBgm = this.bgm2;
+        } else {
+            // カスタムBGM用のAudio要素を作成
+            this.customBgmAudio = new Audio(`music/${this.selectedSoloBgm}`);
+            this.customBgmAudio.loop = true;
+            this.customBgmAudio.volume = this.bgmVolume;
+            this.currentBgm = this.customBgmAudio;
+        }
+        
+        // BGMを再生
+        if (this.currentBgm) {
+            this.currentBgm.play().catch(e => {
+                console.log('BGM auto-play blocked:', e);
+            });
+        }
     }
     
     // ================================================
@@ -407,6 +501,7 @@ class PuyoPuyoGame {
         if (this.bgm) this.bgm.volume = this.bgmVolume;
         if (this.bgm2) this.bgm2.volume = this.bgmVolume;
         if (this.naochanBgm) this.naochanBgm.volume = this.bgmVolume;
+        if (this.customBgmAudio) this.customBgmAudio.volume = this.bgmVolume;
     }
     
     // SE音量を更新
@@ -604,35 +699,43 @@ class PuyoPuyoGame {
         // 隠しコマンドの処理（どの状態でも有効）
         this.handleSecretCommand(e.key);
         
-        // ゲーム開始時のEnterキー処理（最優先）
-        if (!this.gameRunning && e.key === 'Enter') {
-            e.preventDefault();
-            console.log('🎮 Starting game with Enter key');
-            // コメント入力フィールドからフォーカスを外す
-            const commentInput = document.getElementById('comment-input');
-            if (document.activeElement === commentInput) {
-                console.log('📝 Removing focus from comment input');
-                commentInput.blur();
-            }
-            this.startGame();
-            return;
-        }
-        
         // コメント入力中はその他のゲーム操作を無効にする
         const commentInput = document.getElementById('comment-input');
         if (document.activeElement === commentInput) {
             return;
         }
         
+        // Enter キーの debounce 処理
+        if (e.key === 'Enter') {
+            const now = Date.now();
+            if (now - this.lastEnterKeyTime < this.enterKeyDebounceMs) {
+                console.log('🚫 Enter key debounced - ignoring rapid press');
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            this.lastEnterKeyTime = now;
+            
+            // ソロモード中のポーズ/再開処理
+            if (window.gameModeManager && window.gameModeManager.currentMode === 'solo') {
+                console.log('🎮 Solo mode - Enter key for pause/resume');
+                e.preventDefault();
+                e.stopPropagation();
+                this.togglePause();
+                return;
+            }
+            
+            // その他のモードではGameModeManagerに処理を委譲
+            return;
+        }
+        
+        // ゲームが動いていない場合は移動操作を無効にする
         if (!this.gameRunning) {
             return;
         }
         
         // 切り離されたピースは操作不可
         if (this.isSeparatedPiece) {
-            if (e.key === 'Enter') {
-                this.togglePause();
-            }
             return;
         }
         
@@ -649,9 +752,6 @@ class PuyoPuyoGame {
             case ' ':
                 e.preventDefault();
                 this.rotatePiece();
-                break;
-            case 'enter':
-                this.togglePause();
                 break;
         }
     }
@@ -749,17 +849,18 @@ class PuyoPuyoGame {
         // タイトルBGMを停止
         this.stopTitleBgm();
         
-        // ゲームBGM開始
-        this.bgm.play().catch(e => {
-            console.log('BGM auto-play blocked:', e);
-        });
-        this.currentBgm = this.bgm; // 現在のBGMを設定
-        console.log('🎵 ゲームBGM開始');
+        // 選択されたソロモードBGMを開始
+        this.startSelectedSoloBgm();
+        console.log('🎵 選択されたソロモードBGM開始:', this.selectedSoloBgm);
     }
     
     togglePause() {
+        console.log('🔄 togglePause called - current gameRunning:', this.gameRunning);
         this.gameRunning = !this.gameRunning;
+        console.log('🔄 togglePause - new gameRunning:', this.gameRunning);
+        
         if (this.gameRunning) {
+            console.log('▶️ ゲーム再開');
             this.gameLoop();
             // ポーズ解除時に現在のBGMを再開
             if (this.currentBgm) {
@@ -768,6 +869,7 @@ class PuyoPuyoGame {
                 });
             }
         } else {
+            console.log('⏸️ ゲーム一時停止');
             // ポーズ時に現在のBGMを一時停止
             if (this.currentBgm) {
                 this.currentBgm.pause();
@@ -1877,7 +1979,13 @@ class PuyoPuyoGame {
         }
         
         this.render();
-        requestAnimationFrame(() => this.gameLoop());
+        
+        // ゲームが実行中の場合のみ次のフレームを要求
+        if (this.gameRunning) {
+            requestAnimationFrame(() => this.gameLoop());
+        } else {
+            console.log('🛑 requestAnimationFrame停止: ゲーム一時停止中');
+        }
     }
     
     render() {
@@ -4237,12 +4345,15 @@ class BattleGame {
         this.playerCtx = null;
         this.cpuCtx = null;
         this.gameRunning = false;
+        this.gameLoopRunning = false;
         this.timeLeft = 180; // 3分
         this.timer = null;
         
         this.playerScore = 0;
         this.cpuScore = 0;
         this.cpuLevel = 'normal';
+        this.selectedBattleBgm = 'battleBGM.MP3'; // デフォルトの対戦BGM
+        this.customBgmAudio = null; // カスタムBGM用のAudio要素
         
         // ゲームボード設定
         this.BOARD_WIDTH = 6;
@@ -4336,6 +4447,9 @@ class BattleGame {
         // 音量調整スライダー
         this.setupVolumeControls();
         
+        // BGM選択機能を設定
+        this.setupBattleBgmSelector();
+        
         // プレイヤーのキーボード操作
         this.boundKeyHandler = (e) => this.handlePlayerInput(e);
         document.addEventListener('keydown', this.boundKeyHandler);
@@ -4377,6 +4491,90 @@ class BattleGame {
         console.log('🎛️ 対戦モード音量コントロールを初期化しました');
     }
     
+    // 対戦モードBGM選択機能を設定
+    setupBattleBgmSelector() {
+        const battleBgmSelect = document.getElementById('battle-bgm-select');
+        if (battleBgmSelect) {
+            battleBgmSelect.addEventListener('change', (e) => {
+                this.selectedBattleBgm = e.target.value;
+                console.log('🎵 対戦モードBGM変更:', this.selectedBattleBgm);
+                
+                // ゲーム中の場合はBGMを即座に切り替え
+                if (this.gameRunning && this.currentBgm) {
+                    this.switchBattleBgm();
+                }
+            });
+        }
+    }
+    
+    // 対戦モードBGMを動的に切り替え
+    switchBattleBgm() {
+        // 現在のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
+        
+        // カスタムBGM用のAudio要素を作成または更新
+        if (this.customBgmAudio) {
+            this.customBgmAudio.pause();
+            this.customBgmAudio = null;
+        }
+        
+        // 選択されたBGMに基づいてAudio要素を設定
+        const battleBgm = document.getElementById('battle-bgm');
+        if (this.selectedBattleBgm === 'battleBGM.MP3') {
+            this.currentBgm = battleBgm;
+        } else {
+            // カスタムBGM用のAudio要素を作成
+            this.customBgmAudio = new Audio(`music/${this.selectedBattleBgm}`);
+            this.customBgmAudio.loop = true;
+            this.customBgmAudio.volume = this.bgmVolume || 0.5;
+            this.currentBgm = this.customBgmAudio;
+        }
+        
+        // 新しいBGMを再生
+        if (this.currentBgm) {
+            this.currentBgm.play().catch(e => {
+                console.log('対戦BGM切り替え再生エラー:', e);
+            });
+            console.log('🎵 対戦BGM切り替え完了:', this.selectedBattleBgm);
+        }
+    }
+    
+    // 選択された対戦BGMを開始
+    startSelectedBattleBgm() {
+        // 既存のBGMを停止
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm.currentTime = 0;
+        }
+        if (this.customBgmAudio) {
+            this.customBgmAudio.pause();
+            this.customBgmAudio = null;
+        }
+        
+        // 選択されたBGMに基づいてAudio要素を設定
+        const battleBgm = document.getElementById('battle-bgm');
+        if (this.selectedBattleBgm === 'battleBGM.MP3') {
+            this.currentBgm = battleBgm;
+        } else {
+            // カスタムBGM用のAudio要素を作成
+            this.customBgmAudio = new Audio(`music/${this.selectedBattleBgm}`);
+            this.customBgmAudio.loop = true;
+            this.customBgmAudio.volume = this.bgmVolume || 0.5;
+            this.currentBgm = this.customBgmAudio;
+        }
+        
+        // BGMを再生
+        if (this.currentBgm) {
+            this.currentBgm.play().catch(e => {
+                console.log('対戦BGM auto-play blocked:', e);
+            });
+            console.log('🎵 選択された対戦BGM開始:', this.selectedBattleBgm);
+        }
+    }
+    
     updateBgmVolume(volume) {
         const volumeValue = Math.max(0.3, volume / 100); // 最低30%保証
         
@@ -4384,6 +4582,11 @@ class BattleGame {
         const battleBgm = document.getElementById('battle-bgm');
         if (battleBgm) {
             battleBgm.volume = volumeValue;
+        }
+        
+        // カスタムBGMがある場合は調整
+        if (this.customBgmAudio) {
+            this.customBgmAudio.volume = volumeValue;
         }
         
         // 既存のBGMも調整
@@ -4394,6 +4597,9 @@ class BattleGame {
         if (gameBgm) gameBgm.volume = volumeValue;
         if (gameBgm2) gameBgm2.volume = volumeValue;
         if (naochanBgm) naochanBgm.volume = volumeValue;
+        
+        this.bgmVolume = volumeValue;
+        console.log(`🔊 対戦モード BGM音量を${Math.round(volumeValue * 100)}%に設定`);
     }
     
     updateSeVolume(volume) {
@@ -4416,38 +4622,8 @@ class BattleGame {
         // 他のBGMを停止
         this.stopAllBgm();
         
-        // 対戦モード専用BGMを開始
-        const battleBgm = document.getElementById('battle-bgm');
-        if (battleBgm) {
-            battleBgm.currentTime = 0;
-            
-            // 音量設定を適用（BGM音量スライダーから取得）
-            const bgmVolumeSlider = document.getElementById('bgm-volume');
-            if (bgmVolumeSlider) {
-                const volume = Math.max(0.3, bgmVolumeSlider.value / 100);
-                battleBgm.volume = volume;
-                console.log(`🔊 対戦BGM音量設定: ${Math.round(volume * 100)}%`);
-            } else {
-                battleBgm.volume = 0.5; // デフォルト50%
-                console.log('🔊 対戦BGM音量: デフォルト50%');
-            }
-            
-            battleBgm.play().then(() => {
-                console.log('✅ 対戦モードBGM開始成功');
-                this.currentBgm = battleBgm; // 現在のBGMを更新
-            }).catch(e => {
-                console.error('❌ 対戦モードBGM再生に失敗:', e);
-                // autoplay制限対策として少し遅延してリトライ
-                setTimeout(() => {
-                    battleBgm.play().then(() => {
-                        console.log('✅ 対戦モードBGM再生リトライ成功');
-                        this.currentBgm = battleBgm;
-                    }).catch(e => {
-                        console.error('❌ 対戦モードBGM再生リトライも失敗:', e);
-                    });
-                }, 500);
-            });
-        }
+        // 選択された対戦BGMを開始
+        this.startSelectedBattleBgm();
     }
     
     stopAllBgm() {
@@ -4510,6 +4686,11 @@ class BattleGame {
                 break;
             case ' ':
                 this.rotatePlayerPiece();
+                e.preventDefault();
+                e.stopPropagation();
+                break;
+            case 'enter':
+                this.toggleBattlePause();
                 e.preventDefault();
                 e.stopPropagation();
                 break;
@@ -4959,18 +5140,53 @@ class BattleGame {
         }
     }
     
+    // 対戦モード用：角の丸い四角形を描画
+    roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+    
     drawPuyo(ctx, x, y, color) {
         const xPos = x * this.CELL_SIZE;
         const yPos = y * this.CELL_SIZE;
         
         // 画像がある場合は画像を使用、なければ色で描画
         if (this.puyoImages && this.puyoImages[color]) {
+            // 丸い形でクリッピングして画像を描画
+            ctx.save();
+            this.roundRect(ctx, xPos, yPos, this.CELL_SIZE, this.CELL_SIZE, 8);
+            ctx.clip();
             ctx.drawImage(this.puyoImages[color], xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
+            ctx.restore();
         } else {
-            // フォールバック：色で描画
+            // フォールバック：色で丸い形状を描画
             const colors = ['', '#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF', '#888888']; // 6番目はおじゃまぷよ（灰色）
             ctx.fillStyle = colors[color] || '#FFFFFF';
-            ctx.fillRect(xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
+            
+            // 丸い形状を描画
+            this.roundRect(ctx, xPos, yPos, this.CELL_SIZE, this.CELL_SIZE, 8);
+            ctx.fill();
+            
+            // グラデーション効果を追加
+            const gradient = ctx.createRadialGradient(
+                xPos + this.CELL_SIZE * 0.3, yPos + this.CELL_SIZE * 0.3, 0,
+                xPos + this.CELL_SIZE * 0.5, yPos + this.CELL_SIZE * 0.5, this.CELL_SIZE * 0.7
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+            
+            ctx.fillStyle = gradient;
+            this.roundRect(ctx, xPos, yPos, this.CELL_SIZE, this.CELL_SIZE, 8);
+            ctx.fill();
             
             // おじゃまぷよの特別な描画
             if (color === this.GARBAGE_PUYO) {
@@ -4984,11 +5200,6 @@ class BattleGame {
                 ctx.lineTo(xPos + 10, yPos + this.CELL_SIZE - 10);
                 ctx.stroke();
             }
-            
-            // 枠線
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(xPos, yPos, this.CELL_SIZE, this.CELL_SIZE);
         }
     }
     
@@ -5034,17 +5245,32 @@ class BattleGame {
                 
                 // 画像がある場合は画像を描画、なければ色で描画
                 if (this.puyoImages && this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
+                    // 丸い形でクリッピングして画像を描画
+                    ctx.save();
+                    this.roundRect(ctx, x, y, 40, 40, 12);
+                    ctx.clip();
                     ctx.drawImage(this.puyoImages[colorIndex], x, y, 40, 40);
+                    ctx.restore();
                 } else {
-                    // フォールバック：色での描画
+                    // フォールバック：色で丸い形状を描画
                     const colors = ['', '#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF', '#888888'];
                     ctx.fillStyle = colors[colorIndex] || '#FFFFFF';
-                    ctx.fillRect(x, y, 40, 40);
                     
-                    // 枠線
-                    ctx.strokeStyle = '#FFFFFF';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(x, y, 40, 40);
+                    // 丸い形状を描画
+                    this.roundRect(ctx, x, y, 40, 40, 12);
+                    ctx.fill();
+                    
+                    // グラデーション効果を追加
+                    const gradient = ctx.createRadialGradient(
+                        x + 12, y + 12, 0,
+                        x + 20, y + 20, 28
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+                    
+                    ctx.fillStyle = gradient;
+                    this.roundRect(ctx, x, y, 40, 40, 12);
+                    ctx.fill();
                 }
             }
             
@@ -5149,6 +5375,47 @@ class BattleGame {
         this.stopBattleBgm();
     }
     
+    toggleBattlePause() {
+        if (this.gameRunning) {
+            console.log('⏸️ 対戦一時停止（Enterキー）');
+            this.pauseBattle();
+        } else {
+            console.log('▶️ 対戦再開（Enterキー）');
+            this.resumeBattle();
+        }
+    }
+    
+    resumeBattle() {
+        console.log('▶️ 対戦再開');
+        
+        // ゲーム状態を再開に設定
+        this.gameRunning = true;
+        
+        // ボタンの切り替え
+        if (this.battleStartBtn) {
+            this.battleStartBtn.classList.add('hidden');
+        }
+        if (this.battlePauseBtn) {
+            this.battlePauseBtn.classList.remove('hidden');
+        }
+        
+        // 既存のタイマーをクリアしてから再開
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        this.startTimer();
+        
+        // BGM再開
+        this.startBattleBgm();
+        
+        // ゲームループを確実に再開
+        this.playerLastMoveTime = Date.now();
+        this.cpuLastMoveTime = Date.now();
+        this.startGameLoop();
+        
+        console.log('✅ 対戦再開完了');
+    }
+    
     startTimer() {
         this.timer = setInterval(() => {
             this.timeLeft--;
@@ -5162,11 +5429,103 @@ class BattleGame {
         }, 1000);
     }
     
+    // 対戦モード用：ぷよ連結方向を取得
+    getConnectedDirections(x, y, colorIndex, board) {
+        const directions = { up: false, down: false, left: false, right: false };
+        
+        if (y > 0 && board[y - 1][x] === colorIndex) directions.up = true;
+        if (y < this.boardHeight - 1 && board[y + 1][x] === colorIndex) directions.down = true;
+        if (x > 0 && board[y][x - 1] === colorIndex) directions.left = true;
+        if (x < this.boardWidth - 1 && board[y][x + 1] === colorIndex) directions.right = true;
+        
+        return directions;
+    }
+    
+    // 対戦モード用：爆発エフェクトを作成
+    createBattleExplosionEffect(x, y, player) {
+        const gameArea = player === 'player' ? document.getElementById('player-canvas') : document.getElementById('cpu-canvas');
+        const rect = gameArea.getBoundingClientRect();
+        
+        const effect = document.createElement('div');
+        effect.className = 'battle-explosion-effect';
+        effect.style.position = 'absolute';
+        effect.style.left = (rect.left + x * 30 + 15) + 'px';
+        effect.style.top = (rect.top + y * 30 + 15) + 'px';
+        effect.style.pointerEvents = 'none';
+        effect.style.zIndex = '1000';
+        
+        document.body.appendChild(effect);
+        
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 500);
+    }
+    
+    // 対戦モード用：連鎖エフェクトを表示
+    showBattleChainEffect(chainCount, player) {
+        const gameArea = player === 'player' ? document.getElementById('player-canvas') : document.getElementById('cpu-canvas');
+        const rect = gameArea.getBoundingClientRect();
+        
+        const effect = document.createElement('div');
+        effect.className = 'battle-chain-effect';
+        effect.textContent = `${chainCount} 連鎖!`;
+        effect.style.position = 'absolute';
+        effect.style.left = (rect.left + rect.width / 2) + 'px';
+        effect.style.top = (rect.top + rect.height / 2) + 'px';
+        effect.style.transform = 'translate(-50%, -50%)';
+        effect.style.pointerEvents = 'none';
+        effect.style.zIndex = '1000';
+        
+        document.body.appendChild(effect);
+        
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 1000);
+    }
+    
+    // 対戦モード用：カットインエフェクトを表示
+    showBattleCutinEffect(chainCount, player) {
+        if (chainCount < 3) return;
+        
+        const container = document.querySelector('.battle-arena');
+        const effect = document.createElement('div');
+        effect.className = 'battle-cutin-effect';
+        
+        const text = document.createElement('div');
+        text.className = 'battle-cutin-text';
+        text.textContent = chainCount >= 5 ? '🔥 AMAZING CHAIN! 🔥' : '✨ GREAT CHAIN! ✨';
+        
+        effect.appendChild(text);
+        container.appendChild(effect);
+        
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.parentNode.removeChild(effect);
+            }
+        }, 2000);
+    }
+    
     startGameLoop() {
         console.log('🔄 ゲームループを開始');
         
+        // 既にゲームループが動いている場合は何もしない
+        if (this.gameLoopRunning) {
+            console.log('⚠️ ゲームループは既に実行中です');
+            return;
+        }
+        
+        this.gameLoopRunning = true;
+        
         const gameLoop = () => {
-            if (!this.gameRunning) return;
+            if (!this.gameRunning) {
+                this.gameLoopRunning = false;
+                console.log('🛑 ゲームループを停止');
+                return;
+            }
             
             const currentTime = Date.now();
             
@@ -5194,8 +5553,10 @@ class BattleGame {
             this.drawGameBoard('player');
             this.drawGameBoard('cpu');
             
-            if (this.gameRunning) {
+            if (this.gameRunning && this.gameLoopRunning) {
                 requestAnimationFrame(gameLoop);
+            } else {
+                this.gameLoopRunning = false;
             }
         };
         

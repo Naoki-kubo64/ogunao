@@ -41,7 +41,7 @@ export class GameModeManager {
         // 対戦モードボタン
         if (this.battleModeBtn) {
             this.battleModeBtn.addEventListener('click', () => {
-                this.switchToBattleMode();
+                this.showBattlePressEnterInstruction();
             });
         }
         
@@ -60,6 +60,15 @@ export class GameModeManager {
                 e.preventDefault();
                 e.stopPropagation();
                 this.switchToSoloMode();
+            } else if (e.key === 'Enter' && this.currentMode === 'battle-waiting') {
+                // 対戦待機画面でEnterが押された場合、対戦モードに切り替え
+                e.preventDefault();
+                e.stopPropagation();
+                this.switchToBattleMode();
+            } else if (e.key === 'Enter' && (this.currentMode === 'solo' || this.currentMode === 'battle')) {
+                // ゲーム実行中はGameModeManagerでのエンター処理をスキップ（メインゲームの一時停止処理に任せる）
+                console.log('🎮 ゲーム実行中 - エンター処理をメインゲームに委譲');
+                return;
             }
         }, true); // キャプチャフェーズで実行
     }
@@ -79,6 +88,25 @@ export class GameModeManager {
         
         // モードを"solo-waiting"に設定（Enterキー待ち状態）
         this.currentMode = 'solo-waiting';
+    }
+    
+    showBattlePressEnterInstruction() {
+        console.log('⚔️ 対戦モードが選択されました - Press Enter Key表示');
+        
+        // モード選択の説明文を非表示
+        if (this.startInstruction) {
+            this.startInstruction.style.display = 'none';
+        }
+        
+        // Press Enter Key表示を表示
+        if (this.pressEnterInstruction) {
+            this.pressEnterInstruction.classList.remove('hidden');
+        }
+        
+        // モードを battle-waiting に設定
+        this.currentMode = 'battle-waiting';
+        
+        console.log('✅ 対戦モード開始待機状態になりました');
     }
     
     switchToTitleMode() {
@@ -132,6 +160,8 @@ export class GameModeManager {
                     commentInput.blur();
                 }
                 this.game.startGame();
+                // ゲーム開始後もソロモード状態を維持
+                console.log('✅ ソロゲーム開始 - currentMode保持:', this.currentMode);
             }
         }, 150);
     }
@@ -177,6 +207,7 @@ export class GameModeManager {
                 if (window.BattleGame) {
                     this.battleGame = new window.BattleGame();
                     console.log('✅ 対戦ゲーム（メイン版）を初期化しました');
+                    console.log('✅ 対戦ゲーム開始 - currentMode保持:', this.currentMode);
                 } else {
                     console.error('❌ メインのBattleGameクラスが見つかりません');
                 }
