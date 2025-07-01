@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--browser=chromium",
+        "--headless"
+      ],
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/mnt/c/Users/naoki/puyo-puyo/node_modules/playwright-core/.local-browsers"
+      }
+    }
+  }
+}

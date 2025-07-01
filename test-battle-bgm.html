@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対戦BGMテスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .volume-control {
+            margin: 10px 0;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <!-- BGM用のaudio要素 -->
+    <audio id="title-bgm" preload="auto" loop>
+        <source src="music/instrumental.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="game-bgm" preload="auto" loop>
+        <source src="music/ぷよぷよっと始まる毎日.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="game-bgm-2" preload="auto" loop>
+        <source src="music/2.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="naochan-bgm" preload="auto" loop>
+        <source src="music/jagler1.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="battle-bgm" preload="auto" loop>
+        <source src="music/battleBGM.MP3" type="audio/mpeg">
+    </audio>
+
+    <div class="test-container">
+        <h1>🎵 対戦モードBGMテスト</h1>
+        
+        <div class="test-section">
+            <h3>🔧 BGM要素状態確認</h3>
+            <div id="element-status"></div>
+            <button onclick="checkBgmElements()">BGM要素チェック</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🎮 BGM制御テスト</h3>
+            <div class="volume-control">
+                <label for="test-volume">BGM音量:</label>
+                <input type="range" id="test-volume" min="0" max="100" value="50">
+                <span id="volume-display">50%</span>
+            </div>
+            
+            <button onclick="playTitleBgm()">タイトルBGM再生</button>
+            <button onclick="playGameBgm()">ゲームBGM再生</button>
+            <button onclick="playBattleBgm()">対戦BGM再生</button>
+            <button onclick="stopAllBgm()">全BGM停止</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 対戦モード遷移テスト</h3>
+            <button onclick="simulateBattleStart()">対戦開始シミュレート</button>
+            <button onclick="simulateBattleEnd()">対戦終了シミュレート</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 現在の状態</h3>
+            <div id="current-status"></div>
+            <button onclick="updateStatus()">状態更新</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 ログ</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">ログクリア</button>
+        </div>
+    </div>
+
+    <script>
+        let currentBgm = null;
+        
+        // ログ関数
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+        
+        // 音量コントロール
+        const volumeSlider = document.getElementById('test-volume');
+        const volumeDisplay = document.getElementById('volume-display');
+        
+        volumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            volumeDisplay.textContent = `${volume}%`;
+            updateAllBgmVolume(volume / 100);
+        });
+        
+        function updateAllBgmVolume(volume) {
+            const bgmElements = ['title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'];
+            bgmElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.volume = volume;
+                }
+            });
+            log(`🔊 全BGM音量を${Math.round(volume * 100)}%に設定`);
+        }
+        
+        // BGM要素チェック
+        function checkBgmElements() {
+            const statusDiv = document.getElementById('element-status');
+            const bgmElements = ['title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'];
+            
+            let html = '';
+            bgmElements.forEach(id => {
+                const element = document.getElementById(id);
+                const exists = element !== null;
+                const canPlay = exists && element.readyState >= 1;
+                const statusClass = exists ? (canPlay ? 'success' : 'info') : 'error';
+                
+                html += `<div class="status ${statusClass}">
+                    ${id}: ${exists ? '✅' : '❌'} 存在 | ${canPlay ? '✅' : '❌'} 再生可能
+                </div>`;
+                
+                log(`${id}: 存在=${exists}, 再生可能=${canPlay}`);
+            });
+            
+            statusDiv.innerHTML = html;
+        }
+        
+        // BGM制御関数
+        function stopAllBgm() {
+            const bgmElements = ['title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'];
+            
+            bgmElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.pause();
+                    element.currentTime = 0;
+                }
+            });
+            
+            currentBgm = null;
+            log('🔇 全てのBGMを停止');
+            updateStatus();
+        }
+        
+        function playTitleBgm() {
+            stopAllBgm();
+            const titleBgm = document.getElementById('title-bgm');
+            if (titleBgm) {
+                titleBgm.play().then(() => {
+                    currentBgm = titleBgm;
+                    log('🎵 タイトルBGM開始成功');
+                    updateStatus();
+                }).catch(e => {
+                    log(`❌ タイトルBGM再生失敗: ${e.message}`, 'error');
+                });
+            } else {
+                log('❌ title-bgm要素が見つかりません', 'error');
+            }
+        }
+        
+        function playGameBgm() {
+            stopAllBgm();
+            const gameBgm = document.getElementById('game-bgm');
+            if (gameBgm) {
+                gameBgm.play().then(() => {
+                    currentBgm = gameBgm;
+                    log('🎵 ゲームBGM開始成功');
+                    updateStatus();
+                }).catch(e => {
+                    log(`❌ ゲームBGM再生失敗: ${e.message}`, 'error');
+                });
+            } else {
+                log('❌ game-bgm要素が見つかりません', 'error');
+            }
+        }
+        
+        function playBattleBgm() {
+            stopAllBgm();
+            const battleBgm = document.getElementById('battle-bgm');
+            if (battleBgm) {
+                battleBgm.currentTime = 0;
+                const volume = volumeSlider.value / 100;
+                battleBgm.volume = volume;
+                
+                battleBgm.play().then(() => {
+                    currentBgm = battleBgm;
+                    log(`✅ 対戦BGM開始成功 (音量: ${Math.round(volume * 100)}%)`);
+                    updateStatus();
+                }).catch(e => {
+                    log(`❌ 対戦BGM再生失敗: ${e.message}`, 'error');
+                    // リトライ
+                    setTimeout(() => {
+                        battleBgm.play().then(() => {
+                            currentBgm = battleBgm;
+                            log('✅ 対戦BGM再生リトライ成功');
+                            updateStatus();
+                        }).catch(e2 => {
+                            log(`❌ 対戦BGM再生リトライも失敗: ${e2.message}`, 'error');
+                        });
+                    }, 500);
+                });
+            } else {
+                log('❌ battle-bgm要素が見つかりません', 'error');
+            }
+        }
+        
+        // 対戦モードシミュレート
+        function simulateBattleStart() {
+            log('🎮 対戦開始シミュレート開始');
+            
+            // 1. 全BGM停止
+            stopAllBgm();
+            
+            // 2. 対戦BGM開始
+            setTimeout(() => {
+                playBattleBgm();
+            }, 100);
+        }
+        
+        function simulateBattleEnd() {
+            log('🏁 対戦終了シミュレート');
+            stopAllBgm();
+            
+            // タイトルBGMに戻す
+            setTimeout(() => {
+                playTitleBgm();
+            }, 500);
+        }
+        
+        // 状態更新
+        function updateStatus() {
+            const statusDiv = document.getElementById('current-status');
+            let html = '';
+            
+            if (currentBgm) {
+                const id = currentBgm.id;
+                const isPlaying = !currentBgm.paused;
+                const volume = Math.round(currentBgm.volume * 100);
+                const currentTime = Math.round(currentBgm.currentTime);
+                
+                html = `<div class="status ${isPlaying ? 'success' : 'info'}">
+                    現在のBGM: ${id}<br>
+                    状態: ${isPlaying ? '再生中' : '停止'}<br>
+                    音量: ${volume}%<br>
+                    再生時間: ${currentTime}秒
+                </div>`;
+            } else {
+                html = '<div class="status info">BGMは再生されていません</div>';
+            }
+            
+            statusDiv.innerHTML = html;
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 対戦BGMテストページ初期化完了');
+            checkBgmElements();
+            updateStatus();
+            updateAllBgmVolume(0.5);
+        });
+        
+        // 定期的な状態更新
+        setInterval(updateStatus, 1000);
+    </script>
+</body>
+</html>

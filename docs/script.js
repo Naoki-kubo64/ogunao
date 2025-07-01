@@ -12,7 +12,7 @@ class PuyoPuyoGame {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
-        this.BOARD_HEIGHT = 9;
+        this.BOARD_HEIGHT = 12;
         this.CELL_SIZE = 80;
         
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
@@ -4230,7 +4230,7 @@ class BattleGame {
         
         // ゲームボード設定
         this.BOARD_WIDTH = 6;
-        this.BOARD_HEIGHT = 9;
+        this.BOARD_HEIGHT = 12;
         this.CELL_SIZE = 50; // 300px / 6 = 50px (横基準)
         this.GARBAGE_PUYO = 6; // おじゃまぷよの色番号
         

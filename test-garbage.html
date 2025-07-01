@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おじゃまぷよテスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>おじゃまぷよ機能テスト</h1>
+    
+    <div>
+        <button onclick="testGarbageCalculation()">連鎖数による数量テスト</button>
+        <button onclick="testGarbageDrop()">落下テスト</button>
+        <button onclick="testBattleMode()">対戦モードテスト</button>
+    </div>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // テスト用の簡易実装
+        class TestBattleGame {
+            constructor() {
+                this.BOARD_WIDTH = 6;
+                this.BOARD_HEIGHT = 12;
+                this.GARBAGE_PUYO = 6;
+            }
+            
+            calculateGarbagePuyos(chainCount, removedCount) {
+                let garbageCount = 0;
+                
+                if (chainCount >= 2) {
+                    if (chainCount === 2) {
+                        garbageCount = Math.floor(Math.random() * 2) + 1; // 1-2個
+                    } else if (chainCount === 3) {
+                        garbageCount = Math.floor(Math.random() * 2) + 2; // 2-3個
+                    } else if (chainCount === 4) {
+                        garbageCount = Math.floor(Math.random() * 3) + 3; // 3-5個
+                    } else if (chainCount === 5) {
+                        garbageCount = Math.floor(Math.random() * 3) + 5; // 5-7個
+                    } else if (chainCount >= 6) {
+                        garbageCount = Math.floor(Math.random() * 4) + 6 + (chainCount - 6) * 2;
+                    }
+                    
+                    if (removedCount >= 8) {
+                        garbageCount += Math.floor(removedCount / 6);
+                    }
+                }
+                
+                return Math.min(garbageCount, 30);
+            }
+            
+            testGarbageDrop() {
+                // テスト用ボード作成
+                const board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
+                
+                // 下半分にランダムにぷよを配置
+                for (let row = 6; row < this.BOARD_HEIGHT; row++) {
+                    for (let col = 0; col < this.BOARD_WIDTH; col++) {
+                        if (Math.random() < 0.7) {
+                            board[row][col] = Math.floor(Math.random() * 5) + 1;
+                        }
+                    }
+                }
+                
+                // おじゃまぷよを下から上に配置
+                let garbageCount = 5;
+                for (let row = this.BOARD_HEIGHT - 1; row >= 0 && garbageCount > 0; row--) {
+                    for (let col = 0; col < this.BOARD_WIDTH && garbageCount > 0; col++) {
+                        if (board[row][col] === 0) {
+                            board[row][col] = this.GARBAGE_PUYO;
+                            garbageCount--;
+                        }
+                    }
+                }
+                
+                return board;
+            }
+        }
+        
+        const testGame = new TestBattleGame();
+        
+        function addTestResult(title, result, isSuccess = true) {
+            const resultsDiv = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            div.innerHTML = `<h3>${title}</h3><pre>${result}</pre>`;
+            resultsDiv.appendChild(div);
+        }
+        
+        function testGarbageCalculation() {
+            const results = [];
+            
+            for (let chainCount = 2; chainCount <= 8; chainCount++) {
+                const amounts = [];
+                for (let i = 0; i < 10; i++) {
+                    amounts.push(testGame.calculateGarbagePuyos(chainCount, 4));
+                }
+                const min = Math.min(...amounts);
+                const max = Math.max(...amounts);
+                results.push(`${chainCount}連鎖: ${min}-${max}個 (平均: ${(amounts.reduce((a,b) => a+b, 0)/10).toFixed(1)})`);
+            }
+            
+            addTestResult('連鎖数による数量テスト', results.join('\n'));
+        }
+        
+        function testGarbageDrop() {
+            const board = testGame.testGarbageDrop();
+            let visualization = '';
+            
+            for (let row = 0; row < board.length; row++) {
+                let rowStr = '';
+                for (let col = 0; col < board[row].length; col++) {
+                    if (board[row][col] === 0) rowStr += '・';
+                    else if (board[row][col] === 6) rowStr += '■';
+                    else rowStr += '●';
+                }
+                visualization += rowStr + '\n';
+            }
+            
+            addTestResult('落下テスト (■=おじゃまぷよ, ●=通常ぷよ, ・=空)', visualization);
+        }
+        
+        function testBattleMode() {
+            addTestResult('対戦モードテスト', 'メインゲームを起動してください\nhttp://localhost:3000 でアクセス可能です');
+        }
+    </script>
+</body>
+</html>

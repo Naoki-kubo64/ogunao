@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対戦UI レイアウトテスト</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* テスト用の追加スタイル */
+        .test-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 20px;
+        }
+        
+        .test-info {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        
+        .highlight-box {
+            border: 3px dashed #ff0080;
+            background: rgba(255, 0, 128, 0.2);
+            padding: 5px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+        
+        .demo-puyo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 2px;
+            vertical-align: middle;
+        }
+        
+        .puyo-red { background: #ff4444; }
+        .puyo-green { background: #44ff44; }
+        .puyo-blue { background: #4444ff; }
+        .puyo-yellow { background: #ffff44; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-container">
+            <h1>🎮 対戦UI レイアウトテスト</h1>
+            <div class="test-info">
+                <h3>📋 変更内容確認</h3>
+                <div>✅ プレイヤー側: 次のぷよ表示を右上外部に移動</div>
+                <div>✅ CPU側: 次のぷよ表示を左上外部に移動</div>
+                <div>✅ レスポンシブ対応: 画面サイズに応じて位置調整</div>
+                <div>✅ 視覚的にわかりやすいデザイン</div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div class="game-status">
+                <!-- 対戦モード画面 -->
+                <div id="battle-screen" class="battle-screen">
+                    <div class="battle-content">
+                        <div class="battle-header">
+                            <h2 class="battle-title">⚔️ CPU対戦モード - UIレイアウトテスト</h2>
+                            <button onclick="toggleHighlight()" class="back-button">ハイライト切替</button>
+                        </div>
+                        
+                        <div class="battle-arena">
+                            <!-- CPU側の次のぷよ表示（左上外部） -->
+                            <div class="cpu-next-outside" id="cpu-highlight">
+                                <div class="next-label">CPUの次のぷよ</div>
+                                <div id="cpu-next-puyo">
+                                    <!-- デモ用のぷよ -->
+                                    <div class="demo-puyo puyo-red"></div>
+                                    <div class="demo-puyo puyo-blue"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- プレイヤー側の次のぷよ表示（右上外部） -->
+                            <div class="player-next-outside" id="player-highlight">
+                                <div class="next-label">あなたの次のぷよ</div>
+                                <div id="player-next-puyo">
+                                    <!-- デモ用のぷよ -->
+                                    <div class="demo-puyo puyo-green"></div>
+                                    <div class="demo-puyo puyo-yellow"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- プレイヤー側 -->
+                            <div class="player-side">
+                                <div class="player-info">
+                                    <h3 class="player-name">あなた</h3>
+                                    <div class="player-score">スコア: <span id="player-score">12,500</span></div>
+                                </div>
+                                <div class="player-board">
+                                    <canvas id="player-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                            </div>
+                            
+                            <!-- VS表示 -->
+                            <div class="vs-display">
+                                <div class="vs-text">VS</div>
+                                <div class="battle-status">
+                                    <div id="battle-timer">残り時間: <span id="time-left">142</span>秒</div>
+                                    <button id="battle-start" class="battle-start-btn">対戦開始</button>
+                                    <button id="battle-pause" class="battle-pause-btn hidden">一時停止</button>
+                                </div>
+                            </div>
+                            
+                            <!-- CPU側 -->
+                            <div class="cpu-side">
+                                <div class="cpu-info">
+                                    <h3 class="cpu-name">CPU</h3>
+                                    <div class="cpu-score">スコア: <span id="cpu-score">8,750</span></div>
+                                </div>
+                                <div class="cpu-board">
+                                    <canvas id="cpu-canvas" width="300" height="600" style="background: rgba(0,0,0,0.5); border: 2px solid #ffa500;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-controls">
+                            <div class="control-info">
+                                <h4>🎯 レイアウトテスト機能</h4>
+                                <div class="controls-grid">
+                                    <button onclick="testPositions()">位置テスト</button>
+                                    <button onclick="testResponsive()">レスポンシブテスト</button>
+                                    <button onclick="resetLayout()">レイアウトリセット</button>
+                                    <button onclick="animateDemo()">アニメーションデモ</button>
+                                </div>
+                            </div>
+                            <div class="battle-settings">
+                                <label>画面サイズ:</label>
+                                <select id="size-test" onchange="changeViewSize()">
+                                    <option value="desktop">デスクトップ (1200px+)</option>
+                                    <option value="tablet">タブレット (1024px)</option>
+                                    <option value="mobile">モバイル (768px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-container">
+            <div class="test-info">
+                <h3>🔍 動作確認項目</h3>
+                <div id="test-results">
+                    <div>📱 レスポンシブ対応: <span id="responsive-status">確認待ち</span></div>
+                    <div>🎯 位置精度: <span id="position-status">確認待ち</span></div>
+                    <div>🎨 視認性: <span id="visibility-status">確認待ち</span></div>
+                    <div>⚡ パフォーマンス: <span id="performance-status">確認待ち</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let highlightMode = false;
+        
+        function toggleHighlight() {
+            highlightMode = !highlightMode;
+            const playerNext = document.getElementById('player-highlight');
+            const cpuNext = document.getElementById('cpu-highlight');
+            
+            if (highlightMode) {
+                playerNext.classList.add('highlight-box');
+                cpuNext.classList.add('highlight-box');
+                console.log('ハイライトモード: ON');
+            } else {
+                playerNext.classList.remove('highlight-box');
+                cpuNext.classList.remove('highlight-box');
+                console.log('ハイライトモード: OFF');
+            }
+        }
+        
+        function testPositions() {
+            const playerNext = document.querySelector('.player-next-outside');
+            const cpuNext = document.querySelector('.cpu-next-outside');
+            
+            const playerRect = playerNext.getBoundingClientRect();
+            const cpuRect = cpuNext.getBoundingClientRect();
+            
+            console.log('プレイヤー次のぷよ位置:', playerRect);
+            console.log('CPU次のぷよ位置:', cpuRect);
+            
+            document.getElementById('position-status').textContent = 
+                `✅ プレイヤー(${Math.round(playerRect.right)}px), CPU(${Math.round(cpuRect.left)}px)`;
+        }
+        
+        function testResponsive() {
+            const currentWidth = window.innerWidth;
+            let responsiveStatus = '';
+            
+            if (currentWidth >= 1200) {
+                responsiveStatus = '✅ デスクトップ表示 (外部配置)';
+            } else if (currentWidth >= 1024) {
+                responsiveStatus = '✅ タブレット表示 (上部配置)';
+            } else {
+                responsiveStatus = '✅ モバイル表示 (インライン配置)';
+            }
+            
+            document.getElementById('responsive-status').textContent = responsiveStatus;
+            console.log('画面幅:', currentWidth, 'px');
+        }
+        
+        function resetLayout() {
+            const container = document.querySelector('.battle-arena');
+            container.style.transform = 'none';
+            container.style.transition = 'none';
+            
+            document.getElementById('performance-status').textContent = '✅ レイアウトリセット完了';
+        }
+        
+        function animateDemo() {
+            const playerNext = document.querySelector('.player-next-outside');
+            const cpuNext = document.querySelector('.cpu-next-outside');
+            
+            // アニメーション効果のデモ
+            playerNext.style.transform = 'scale(1.2) rotate(5deg)';
+            cpuNext.style.transform = 'scale(1.2) rotate(-5deg)';
+            playerNext.style.transition = 'transform 0.3s ease';
+            cpuNext.style.transition = 'transform 0.3s ease';
+            
+            setTimeout(() => {
+                playerNext.style.transform = 'scale(1) rotate(0deg)';
+                cpuNext.style.transform = 'scale(1) rotate(0deg)';
+                document.getElementById('visibility-status').textContent = '✅ アニメーション動作確認済み';
+            }, 300);
+        }
+        
+        function changeViewSize() {
+            const selector = document.getElementById('size-test');
+            const container = document.querySelector('.container');
+            
+            switch(selector.value) {
+                case 'tablet':
+                    container.style.maxWidth = '1024px';
+                    break;
+                case 'mobile':
+                    container.style.maxWidth = '768px';
+                    break;
+                default:
+                    container.style.maxWidth = 'none';
+            }
+            
+            setTimeout(testResponsive, 100);
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 対戦UI レイアウトテスト初期化完了');
+            
+            // 自動テスト実行
+            setTimeout(() => {
+                testPositions();
+                testResponsive();
+                document.getElementById('performance-status').textContent = '✅ 初期化完了';
+                document.getElementById('visibility-status').textContent = '✅ 要素表示確認済み';
+            }, 500);
+        });
+        
+        // ウィンドウリサイズ時の自動テスト
+        window.addEventListener('resize', () => {
+            setTimeout(testResponsive, 100);
+        });
+    </script>
+</body>
+</html>

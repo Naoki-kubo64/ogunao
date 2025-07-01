@@ -101,8 +101,8 @@ body::before {
 }
 
 .next-display {
-    width: 100px;
-    height: 100px;
+    width: 130px;
+    height: 130px;
     background: rgba(0, 0, 0, 0.5);
     border: 2px solid #ff4500;
     border-radius: 8px;
@@ -1692,6 +1692,7 @@ body::before {
 }
 
 .battle-arena {
+    position: relative; /* 絶対配置の基準点として設定 */
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -1751,8 +1752,87 @@ body::before {
     height: auto;
 }
 
-.player-next, .cpu-next {
+/* 対戦ボタン */
+.battle-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 新しい次のぷよ表示（キャンバス上部に配置） */
+.player-next-outside, .cpu-next-outside {
+    background: rgba(0, 0, 0, 0.9);
+    border: 3px solid #ffa500;
+    border-radius: 12px;
+    padding: 15px;
     text-align: center;
+    min-width: 150px;
+    max-width: 180px;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.6);
+    font-size: 16px;
+}
+
+/* プレイヤー側とCPU側のレイアウト調整 */
+.player-side, .cpu-side {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+/* プレイヤー側の次のぷよ - キャンバス右上部に配置 */
+.player-next-outside {
+    position: absolute;
+    top: 10px;
+    right: -600px;
+    z-index: 10;
+}
+
+/* CPU側の次のぷよ - キャンバス左上部に配置 */
+.cpu-next-outside {
+    position: absolute;
+    top: 10px;
+    left: -600px;
+    z-index: 10;
+}
+
+/* キャンバスボード */
+.player-board, .cpu-board {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .player-next-outside {
+        right: -480px;
+        max-width: 120px;
+        min-width: 100px;
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .cpu-next-outside {
+        left: -480px;
+        max-width: 120px;
+        min-width: 100px;
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .player-side, .cpu-side {
+        padding: 10px;
+    }
+}
+
+/* 古い次のぷよ表示は非表示（互換性のため残す） */
+.player-next, .cpu-next {
+    display: none;
 }
 
 .next-label {

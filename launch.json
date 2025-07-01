@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "production",
+            "type": "node",
+            "request": "launch",
+            "program": "node_modules/@playwright/test/cli.js",
+            "args":["test"]
+        },
+        {
+            "name": "local",
+            "type": "node",
+            "request": "launch",
+            "program": "node_modules/@playwright/test/cli.js",
+            "args":["test"],
+            "env":{
+                "TEST_ENV":"local"
+            }
+        },
+        {
+            "name": "staging",
+            "type": "node",
+            "request": "launch",
+            "program": "node_modules/@playwright/test/cli.js",
+            "args":["test"],
+            "env":{
+                "TEST_ENV":"staging"
+            }
+        }
+    ]
+}

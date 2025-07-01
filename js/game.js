@@ -111,6 +111,12 @@ export class PuyoPuyoGame {
     }
     
     startGame() {
+        // 重複起動を防ぐ
+        if (this.gameRunning) {
+            console.log('⚠️ ゲームは既に実行中です');
+            return;
+        }
+        
         console.log('ゲーム開始！');
         this.gameRunning = true;
         this.timeStart = Date.now();

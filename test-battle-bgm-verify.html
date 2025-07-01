@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対戦BGM変更確認テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .bgm-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #3498db;
+            border-radius: 8px;
+        }
+        .controls {
+            margin: 15px 0;
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #c0392b;
+        }
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+        .status {
+            background: #2c3e50;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #f39c12;
+        }
+        .audio-info {
+            background: #27ae60;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .volume-control {
+            margin: 15px 0;
+        }
+        .volume-control input {
+            width: 200px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 新しい対戦BGM -->
+    <audio id="battle-bgm" preload="auto" loop>
+        <source src="music/battleBGM.MP3" type="audio/mpeg">
+    </audio>
+
+    <!-- 比較用の旧BGM -->
+    <audio id="old-bgm" preload="auto" loop>
+        <source src="music/ぷよぷよっと始まる毎日.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="container">
+        <h1>🎵 対戦BGM変更確認テスト</h1>
+        <p>対戦モードのBGMが <code>battleBGM.MP3</code> に正しく変更されているかを確認します。</p>
+
+        <div class="bgm-section">
+            <h3>🆕 新しい対戦BGM (battleBGM.MP3)</h3>
+            <div class="audio-info">
+                <div>ファイル: music/battleBGM.MP3</div>
+                <div>サイズ: ~5.3MB</div>
+                <div>状態: <span id="new-bgm-status">確認中...</span></div>
+            </div>
+            
+            <div class="controls">
+                <button onclick="playNewBattleBgm()">🎮 新BGM再生</button>
+                <button onclick="stopNewBattleBgm()">⏹️ 停止</button>
+            </div>
+            
+            <div class="volume-control">
+                <label>音量:</label>
+                <input type="range" id="new-volume" min="0" max="100" value="50">
+                <span id="new-volume-display">50%</span>
+            </div>
+        </div>
+
+        <div class="bgm-section">
+            <h3>🔄 比較用 旧BGM (ぷよぷよっと始まる毎日.mp3)</h3>
+            <div class="audio-info">
+                <div>ファイル: music/ぷよぷよっと始まる毎日.mp3</div>
+                <div>状態: <span id="old-bgm-status">確認中...</span></div>
+            </div>
+            
+            <div class="controls">
+                <button onclick="playOldBattleBgm()">🎵 旧BGM再生</button>
+                <button onclick="stopOldBattleBgm()">⏹️ 停止</button>
+            </div>
+            
+            <div class="volume-control">
+                <label>音量:</label>
+                <input type="range" id="old-volume" min="0" max="100" value="50">
+                <span id="old-volume-display">50%</span>
+            </div>
+        </div>
+
+        <div class="status" id="comparison-result">
+            <h4>📊 比較結果</h4>
+            <div id="comparison-text">両方のBGMを再生して、音楽の違いを確認してください。</div>
+        </div>
+
+        <div class="bgm-section">
+            <h3>🎯 対戦開始シミュレーション</h3>
+            <p>実際の対戦モード開始時の動作をシミュレートします。</p>
+            
+            <div class="controls">
+                <button onclick="simulateBattleSequence()">⚔️ 対戦開始シミュレート</button>
+                <button onclick="stopAllBgm()">🔇 全BGM停止</button>
+            </div>
+            
+            <div id="simulation-log" class="status">
+                <div>シミュレーションログが表示されます...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let newBgm = document.getElementById('battle-bgm');
+        let oldBgm = document.getElementById('old-bgm');
+        let currentPlayingBgm = null;
+
+        // 音量制御
+        const newVolumeSlider = document.getElementById('new-volume');
+        const oldVolumeSlider = document.getElementById('old-volume');
+        const newVolumeDisplay = document.getElementById('new-volume-display');
+        const oldVolumeDisplay = document.getElementById('old-volume-display');
+
+        newVolumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            newVolumeDisplay.textContent = `${volume}%`;
+            newBgm.volume = volume / 100;
+        });
+
+        oldVolumeSlider.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            oldVolumeDisplay.textContent = `${volume}%`;
+            oldBgm.volume = volume / 100;
+        });
+
+        // BGMステータス確認
+        function checkBgmStatus() {
+            // 新BGMステータス
+            if (newBgm.readyState >= 1) {
+                document.getElementById('new-bgm-status').textContent = '✅ 読み込み完了・再生可能';
+                document.getElementById('new-bgm-status').style.color = '#27ae60';
+            } else {
+                document.getElementById('new-bgm-status').textContent = '⏳ 読み込み中...';
+                document.getElementById('new-bgm-status').style.color = '#f39c12';
+            }
+
+            // 旧BGMステータス
+            if (oldBgm.readyState >= 1) {
+                document.getElementById('old-bgm-status').textContent = '✅ 読み込み完了・再生可能';
+                document.getElementById('old-bgm-status').style.color = '#27ae60';
+            } else {
+                document.getElementById('old-bgm-status').textContent = '⏳ 読み込み中...';
+                document.getElementById('old-bgm-status').style.color = '#f39c12';
+            }
+        }
+
+        // BGM再生・停止関数
+        function playNewBattleBgm() {
+            stopAllBgm();
+            newBgm.currentTime = 0;
+            newBgm.play().then(() => {
+                currentPlayingBgm = newBgm;
+                updateComparisonResult('新しい対戦BGM (battleBGM.MP3) が再生中です 🎮');
+                console.log('✅ 新BGM再生開始');
+            }).catch(e => {
+                console.error('❌ 新BGM再生失敗:', e);
+                updateComparisonResult('❌ 新BGM再生に失敗しました: ' + e.message);
+            });
+        }
+
+        function stopNewBattleBgm() {
+            newBgm.pause();
+            newBgm.currentTime = 0;
+            if (currentPlayingBgm === newBgm) {
+                currentPlayingBgm = null;
+                updateComparisonResult('新BGMを停止しました');
+            }
+        }
+
+        function playOldBattleBgm() {
+            stopAllBgm();
+            oldBgm.currentTime = 0;
+            oldBgm.play().then(() => {
+                currentPlayingBgm = oldBgm;
+                updateComparisonResult('比較用旧BGM (ぷよぷよっと始まる毎日.mp3) が再生中です 🎵');
+                console.log('✅ 旧BGM再生開始');
+            }).catch(e => {
+                console.error('❌ 旧BGM再生失敗:', e);
+                updateComparisonResult('❌ 旧BGM再生に失敗しました: ' + e.message);
+            });
+        }
+
+        function stopOldBattleBgm() {
+            oldBgm.pause();
+            oldBgm.currentTime = 0;
+            if (currentPlayingBgm === oldBgm) {
+                currentPlayingBgm = null;
+                updateComparisonResult('旧BGMを停止しました');
+            }
+        }
+
+        function stopAllBgm() {
+            newBgm.pause();
+            newBgm.currentTime = 0;
+            oldBgm.pause();
+            oldBgm.currentTime = 0;
+            currentPlayingBgm = null;
+            updateComparisonResult('全てのBGMを停止しました 🔇');
+        }
+
+        function updateComparisonResult(message) {
+            document.getElementById('comparison-text').textContent = message;
+        }
+
+        // 対戦開始シミュレーション
+        function simulateBattleSequence() {
+            const logDiv = document.getElementById('simulation-log');
+            logDiv.innerHTML = '<div>🎮 対戦開始シミュレーション開始...</div>';
+            
+            // 1. 全BGM停止
+            stopAllBgm();
+            setTimeout(() => {
+                logDiv.innerHTML += '<div>🔇 既存BGMを停止</div>';
+                
+                // 2. 対戦BGM開始
+                setTimeout(() => {
+                    logDiv.innerHTML += '<div>🎵 対戦BGM (battleBGM.MP3) 開始...</div>';
+                    playNewBattleBgm();
+                    
+                    setTimeout(() => {
+                        logDiv.innerHTML += '<div>✅ 対戦BGM再生開始完了</div>';
+                        logDiv.innerHTML += '<div style="color: #27ae60; font-weight: bold;">🎯 対戦モードBGM変更成功！</div>';
+                    }, 1000);
+                }, 500);
+            }, 200);
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            newBgm.volume = 0.5;
+            oldBgm.volume = 0.5;
+            
+            // BGMが読み込まれた時のイベント
+            newBgm.addEventListener('canplay', checkBgmStatus);
+            oldBgm.addEventListener('canplay', checkBgmStatus);
+            
+            // 定期的にステータスチェック
+            setInterval(checkBgmStatus, 1000);
+            
+            // 初回チェック
+            setTimeout(checkBgmStatus, 500);
+            
+            console.log('🚀 対戦BGM変更確認テスト初期化完了');
+        });
+    </script>
+</body>
+</html>

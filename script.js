@@ -12,7 +12,7 @@ class PuyoPuyoGame {
         this.canvas = document.getElementById('game-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
-        this.BOARD_HEIGHT = 9;
+        this.BOARD_HEIGHT = 12;
         this.CELL_SIZE = 80;
         
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
@@ -710,6 +710,12 @@ class PuyoPuyoGame {
     }
     
     startGame() {
+        // 重複起動を防ぐ
+        if (this.gameRunning) {
+            console.log('⚠️ ゲームは既に実行中です');
+            return;
+        }
+        
         console.log('Starting game...');
         
         // ゲームスタートSEを再生
@@ -2269,32 +2275,32 @@ class PuyoPuyoGame {
         if (this.nextPiece) {
             // 1個目のピース（通常表示）
             const canvas1 = document.createElement('canvas');
-            canvas1.width = 96;
-            canvas1.height = 96;
+            canvas1.width = 120;
+            canvas1.height = 120;
             const ctx1 = canvas1.getContext('2d');
             
             for (let i = 0; i < this.nextPiece.positions.length; i++) {
                 const pos = this.nextPiece.positions[i];
-                const x = (pos.x + 1) * 24 + 12;
-                const y = pos.y * 24 + 12;
+                const x = (pos.x + 1) * 30 + 15;
+                const y = pos.y * 30 + 15;
                 
                 const colorIndex = this.nextPiece.colors[i];
                 
                 // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
                 if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx1.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
+                    ctx1.drawImage(this.puyoImages[colorIndex], x, y, 40, 40);
                 } else {
                     // フォールバック：色での描画
                     ctx1.fillStyle = this.colors[colorIndex];
-                    ctx1.fillRect(x, y, 28, 28);
+                    ctx1.fillRect(x, y, 40, 40);
                     
                     ctx1.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx1.fillRect(x + 3, y + 3, 22, 22);
+                    ctx1.fillRect(x + 4, y + 4, 32, 32);
                 }
                 
                 ctx1.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx1.lineWidth = 2;
-                ctx1.strokeRect(x, y, 28, 28);
+                ctx1.strokeRect(x, y, 40, 40);
             }
             
             nextDisplay.appendChild(canvas1);
@@ -2310,32 +2316,32 @@ class PuyoPuyoGame {
                 nextDisplay.appendChild(label);
                 
                 const canvas2 = document.createElement('canvas');
-                canvas2.width = 96;
-                canvas2.height = 96;
+                canvas2.width = 120;
+                canvas2.height = 120;
                 const ctx2 = canvas2.getContext('2d');
                 
                 for (let i = 0; i < this.nextPiece2.positions.length; i++) {
                     const pos = this.nextPiece2.positions[i];
-                    const x = (pos.x + 1) * 24 + 12;
-                    const y = pos.y * 24 + 12;
+                    const x = (pos.x + 1) * 30 + 15;
+                    const y = pos.y * 30 + 15;
                     
                     const colorIndex = this.nextPiece2.colors[i];
                     
                     // 画像が読み込まれている場合は画像を描画、そうでなければ色で描画
                     if (this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                        ctx2.drawImage(this.puyoImages[colorIndex], x, y, 28, 28);
+                        ctx2.drawImage(this.puyoImages[colorIndex], x, y, 40, 40);
                     } else {
                         // フォールバック：色での描画
                         ctx2.fillStyle = this.colors[colorIndex];
-                        ctx2.fillRect(x, y, 28, 28);
+                        ctx2.fillRect(x, y, 40, 40);
                         
                         ctx2.fillStyle = 'rgba(255, 255, 255, 0.3)';
-                        ctx2.fillRect(x + 3, y + 3, 22, 22);
+                        ctx2.fillRect(x + 4, y + 4, 32, 32);
                     }
                     
                     ctx2.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                     ctx2.lineWidth = 2;
-                    ctx2.strokeRect(x, y, 28, 28);
+                    ctx2.strokeRect(x, y, 40, 40);
                 }
                 
                 nextDisplay.appendChild(canvas2);
@@ -2495,7 +2501,10 @@ class PuyoPuyoGame {
         if (this.score >= 200000 && !this.bgmSwitched) {
             console.log('🏆 スコア200000達成！BGMを切り替えます');
             this.bgmSwitched = true;
-            this.switchBgm(this.bgm2);
+            // なおちゃんタイム中は BGM 切り替えを行わない
+            if (!this.naochanTimeActive) {
+                this.switchBgm(this.bgm2);
+            }
         }
     }
     
@@ -2593,7 +2602,14 @@ class PuyoPuyoGame {
             this.naochanBgm.currentTime = 0;
             
             // スコア200000以上なら2番目のBGM、そうでなければ通常BGM
-            this.currentBgm = this.bgmSwitched ? this.bgm2 : this.bgm;
+            if (this.bgmSwitched) {
+                console.log('🎵 なおちゃんタイム終了 - 200000スコア達成BGMに切り替え');
+                this.currentBgm = this.bgm2;
+            } else {
+                console.log('🎵 なおちゃんタイム終了 - 通常BGMに戻す');
+                this.currentBgm = this.bgm;
+            }
+            
             this.currentBgm.play().catch(e => {
                 console.log('BGM resume failed:', e);
             });
@@ -4230,7 +4246,7 @@ class BattleGame {
         
         // ゲームボード設定
         this.BOARD_WIDTH = 6;
-        this.BOARD_HEIGHT = 9;
+        this.BOARD_HEIGHT = 12;
         this.CELL_SIZE = 50; // 300px / 6 = 50px (横基準)
         this.GARBAGE_PUYO = 6; // おじゃまぷよの色番号
         
@@ -4405,19 +4421,31 @@ class BattleGame {
         if (battleBgm) {
             battleBgm.currentTime = 0;
             
-            // 音量設定を適用
-            const bgmVolumeSlider = document.getElementById('battle-bgm-volume');
+            // 音量設定を適用（BGM音量スライダーから取得）
+            const bgmVolumeSlider = document.getElementById('bgm-volume');
             if (bgmVolumeSlider) {
                 const volume = Math.max(0.3, bgmVolumeSlider.value / 100);
                 battleBgm.volume = volume;
+                console.log(`🔊 対戦BGM音量設定: ${Math.round(volume * 100)}%`);
             } else {
                 battleBgm.volume = 0.5; // デフォルト50%
+                console.log('🔊 対戦BGM音量: デフォルト50%');
             }
             
             battleBgm.play().then(() => {
-                console.log('🎵 対戦モードBGM開始');
+                console.log('✅ 対戦モードBGM開始成功');
+                this.currentBgm = battleBgm; // 現在のBGMを更新
             }).catch(e => {
                 console.error('❌ 対戦モードBGM再生に失敗:', e);
+                // autoplay制限対策として少し遅延してリトライ
+                setTimeout(() => {
+                    battleBgm.play().then(() => {
+                        console.log('✅ 対戦モードBGM再生リトライ成功');
+                        this.currentBgm = battleBgm;
+                    }).catch(e => {
+                        console.error('❌ 対戦モードBGM再生リトライも失敗:', e);
+                    });
+                }, 500);
             });
         }
     }
@@ -4988,8 +5016,8 @@ class BattleGame {
         if (nextPiece) {
             // 次のピース表示用のキャンバスを作成
             const canvas = document.createElement('canvas');
-            canvas.width = 80;
-            canvas.height = 80;
+            canvas.width = 120;
+            canvas.height = 120;
             const ctx = canvas.getContext('2d');
             
             // キャンバスのスタイル設定
@@ -4999,24 +5027,24 @@ class BattleGame {
             
             for (let i = 0; i < nextPiece.positions.length; i++) {
                 const pos = nextPiece.positions[i];
-                const x = (pos.x + 1) * 20 + 10; // 小さめのサイズで中央配置
-                const y = pos.y * 20 + 10;
+                const x = (pos.x + 1) * 30 + 15; // より大きなサイズで中央配置
+                const y = pos.y * 30 + 15;
                 
                 const colorIndex = nextPiece.colors[i];
                 
                 // 画像がある場合は画像を描画、なければ色で描画
                 if (this.puyoImages && this.puyoImages[colorIndex] && this.puyoImages[colorIndex].complete) {
-                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 20, 20);
+                    ctx.drawImage(this.puyoImages[colorIndex], x, y, 40, 40);
                 } else {
                     // フォールバック：色での描画
                     const colors = ['', '#FF4444', '#44FF44', '#4444FF', '#FFFF44', '#FF44FF', '#888888'];
                     ctx.fillStyle = colors[colorIndex] || '#FFFFFF';
-                    ctx.fillRect(x, y, 20, 20);
+                    ctx.fillRect(x, y, 40, 40);
                     
                     // 枠線
                     ctx.strokeStyle = '#FFFFFF';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(x, y, 20, 20);
+                    ctx.strokeRect(x, y, 40, 40);
                 }
             }
             
@@ -5197,6 +5225,11 @@ class BattleGame {
             const bestMove = this.calculateBestMove();
             const thinkTime = Date.now() - startTime;
             
+            // 思考時間が100ms超えた場合は警告
+            if (thinkTime > 100) {
+                console.warn(`⚠️ CPU思考時間が長すぎます: ${thinkTime}ms`);
+            }
+            
             if (bestMove) {
                 this.cpuCurrentPiece.aiTarget = {
                     targetX: bestMove.x,
@@ -5206,7 +5239,7 @@ class BattleGame {
                     strategy: bestMove.strategy
                 };
                 
-                console.log(`🤖 CPU AI決定 (${thinkTime}ms): X=${bestMove.x}, 回転=${bestMove.rotation}, 戦略=${bestMove.strategy}, スコア=${bestMove.score.toFixed(1)}`);
+                console.log(`🤖 CPU AI決定 (${thinkTime}ms): X=${bestMove.x}, 回転=${bestMove.rotation}, 戦略=${bestMove.strategy}, スコア=${bestMove.score ? bestMove.score.toFixed(1) : '不明'}`);
             } else {
                 // フォールバック：中央配置
                 this.cpuCurrentPiece.aiTarget = {
@@ -5449,45 +5482,137 @@ class BattleGame {
     // ================================================
     
     initializeCpuAI() {
-        // AI設定
+        // AI設定（高度アルゴリズム対応）
+        this.useSimpleAI = false; // 重い処理の場合は自動でtrue切り替え
         this.aiConfig = {
-            thinkingDepth: 3, // 先読み深度
-            chainWeight: 100, // 連鎖の重み
-            heightPenalty: 10, // 高さペナルティ
-            garbageWeight: 50, // おじゃまぷよ重み
-            defenseWeight: 30  // 防御重み
+            // ビームサーチ設定（軽量化）
+            beamWidth: 8,            // ビーム幅を大幅削減
+            searchDepth: 2,          // 探索深度を削減  
+            monteCarloRuns: 2,       // モンテカルロ試行回数を削減
+            
+            // 評価関数重み
+            chainWeight: 250,        // 連鎖の重みを強化
+            heightPenalty: 6,        // 高さペナルティを最適化
+            garbageWeight: 60,       // おじゃまぷよ重み
+            defenseWeight: 30,       // 防御重み
+            
+            // 高度評価重み
+            chainSetupWeight: 180,   // 連鎖セットアップ
+            connectedPuyoWeight: 100, // 連結ぷよ
+            chainTriggerWeight: 350, // 連鎖発火
+            setupCompleteWeight: 300, // 連鎖準備完了
+            
+            // 新しい高度評価
+            gtrPatternWeight: 400,   // GTRパターン重み
+            stairPatternWeight: 200, // 階段積み重み
+            chainDepthWeight: 150,   // 連鎖深度重み
+            futureChainWeight: 120,  // 将来連鎖可能性
+            positionValueWeight: 80  // 位置価値重み
         };
+        
+        // 連鎖構築パターンを初期化
+        this.initializeChainPatterns();
+        
+        // 高度連鎖パターンを初期化
+        this.initializeAdvancedPatterns();
         
         // 難易度に応じてAI設定を調整
         this.adjustAIDifficulty();
         
-        console.log('🤖 CPU AI システムを初期化しました');
+        console.log('🤖 CPU AI システム（ビームサーチ+モンテカルロ強化版）を初期化しました');
     }
     
     adjustAIDifficulty() {
         switch (this.cpuLevel) {
             case 'easy':
-                this.aiConfig.thinkingDepth = 1;
-                this.aiConfig.chainWeight = 50;
-                this.aiConfig.heightPenalty = 5;
-                break;
-            case 'normal':
                 this.aiConfig.thinkingDepth = 2;
                 this.aiConfig.chainWeight = 100;
-                this.aiConfig.heightPenalty = 10;
+                this.aiConfig.chainSetupWeight = 80;
+                this.aiConfig.chainTriggerWeight = 150;
+                this.aiConfig.heightPenalty = 6;
+                break;
+            case 'normal':
+                this.aiConfig.thinkingDepth = 3;
+                this.aiConfig.chainWeight = 200;
+                this.aiConfig.chainSetupWeight = 150;
+                this.aiConfig.chainTriggerWeight = 300;
+                this.aiConfig.heightPenalty = 8;
                 break;
             case 'hard':
-                this.aiConfig.thinkingDepth = 3;
-                this.aiConfig.chainWeight = 150;
-                this.aiConfig.heightPenalty = 15;
+                this.aiConfig.thinkingDepth = 4;
+                this.aiConfig.chainWeight = 300;
+                this.aiConfig.chainSetupWeight = 250;
+                this.aiConfig.chainTriggerWeight = 500;
+                this.aiConfig.setupCompleteWeight = 400;
+                this.aiConfig.heightPenalty = 10;
                 break;
         }
         
         console.log(`🎯 CPU AI難易度: ${this.cpuLevel}`, this.aiConfig);
     }
     
-    // CPUの最適な手を計算
+    // 連鎖構築パターンを初期化
+    initializeChainPatterns() {
+        // 基本的な連鎖パターン（階段積み、鍵積み、GTRなど）
+        this.chainPatterns = {
+            // 階段積み（基本パターン）
+            stairs: [
+                {x: 0, y: 0, color: 1}, {x: 1, y: 0, color: 1}, 
+                {x: 1, y: 1, color: 2}, {x: 2, y: 1, color: 2},
+                {x: 2, y: 2, color: 3}, {x: 3, y: 2, color: 3}
+            ],
+            // 鍵積み（挟み込みパターン）
+            sandwich: [
+                {x: 0, y: 0, color: 1}, {x: 2, y: 0, color: 1},
+                {x: 1, y: 0, color: 2}, {x: 1, y: 1, color: 2}
+            ],
+            // GTR（Great Tanaka Rensa）
+            gtr: [
+                {x: 2, y: 0, color: 1}, {x: 3, y: 0, color: 2},
+                {x: 2, y: 1, color: 3}, {x: 3, y: 1, color: 1},
+                {x: 2, y: 2, color: 2}, {x: 3, y: 2, color: 3}
+            ]
+        };
+        
+        console.log('🧩 連鎖パターンを初期化しました');
+    }
+    
+    // CPUの最適な手を計算（高度アルゴリズム版）
     calculateBestMove() {
+        if (!this.cpuCurrentPiece) return null;
+        
+        const piece = this.cpuCurrentPiece;
+        const currentBoard = this.cpuBoard;
+        
+        // 簡単なAIモードが有効な場合は従来手法を使用
+        if (this.useSimpleAI) {
+            console.log('🧠 簡単AI思考開始');
+            return this.calculateBestMoveFallback();
+        }
+        
+        console.log('🧠 高度AI思考開始（ビームサーチ+モンテカルロ）');
+        
+        // ビームサーチで最適解を探索
+        const beamResult = this.beamSearch(
+            currentBoard, 
+            this.aiConfig.searchDepth, 
+            this.aiConfig.beamWidth
+        );
+        
+        if (beamResult && beamResult.moves.length > 0) {
+            const bestMove = beamResult.moves[0];
+            bestMove.score = beamResult.score || 0; // スコアを追加（デフォルト0）
+            console.log(`🎯 ビームサーチ結果: スコア=${(beamResult.score || 0).toFixed(1)}`);
+            return bestMove;
+        }
+        
+        // フォールバック: 従来の評価関数
+        console.log('⚠️ ビームサーチ失敗、従来手法を使用');
+        return this.calculateBestMoveFallback();
+    }
+    
+    // フォールバック用の従来手法
+    calculateBestMoveFallback() {
         if (!this.cpuCurrentPiece) return null;
         
         const piece = this.cpuCurrentPiece;
@@ -5509,6 +5634,10 @@ class BattleGame {
                 // ボードに仮配置してスコア評価
                 const testBoard = this.simulateMove('cpu', x, dropY, testPiece);
                 let score = this.evaluateBoard(testBoard, 'cpu');
+                
+                // モンテカルロ評価を追加
+                const monteCarloScore = this.monteCarloEvaluation(testBoard, this.aiConfig.monteCarloRuns);
+                score += monteCarloScore * 0.3; // 30%の重みでモンテカルロスコアを追加
                 
                 // 状況に応じてスコア調整
                 score = this.adjustScoreForSituation(score, testBoard, boardAnalysis);
@@ -5730,7 +5859,7 @@ class BattleGame {
         return testBoard;
     }
     
-    // ボード状態を評価
+    // ボード状態を評価（強化版）
     evaluateBoard(board, player) {
         let score = 0;
         
@@ -5738,31 +5867,59 @@ class BattleGame {
         const chainAnalysis = this.analyzeAdvancedChainPatterns(board);
         
         // 即座に発生する連鎖の評価（最重要）
-        score += chainAnalysis.immediateChains * this.aiConfig.chainWeight * 3;
+        score += chainAnalysis.immediateChains * this.aiConfig.chainWeight * 4;
         
-        // 潜在的連鎖の評価
-        score += chainAnalysis.potentialChains * this.aiConfig.chainWeight * 1.5;
+        // 潜在的連鎖の評価（強化）
+        score += chainAnalysis.potentialChains * this.aiConfig.chainWeight * 2.5;
         
-        // 最大連鎖長の評価
-        score += chainAnalysis.maxChainLength * this.aiConfig.chainWeight * 2;
+        // 🎯 新しい高度パターン評価
+        // GTRパターン認識
+        score += this.evaluateGTRPattern(board) * this.aiConfig.gtrPatternWeight;
         
-        // 連鎖の引き金位置の評価
-        score += chainAnalysis.triggerPositions.length * 20;
+        // 階段積みパターン認識
+        score += this.evaluateStairPattern(board) * this.aiConfig.stairPatternWeight;
+        
+        // 将来連鎖可能性
+        score += this.evaluateFutureChainPotential(board) * this.aiConfig.futureChainWeight;
+        
+        // 位置価値評価
+        score += this.evaluatePositionValue(board) * this.aiConfig.positionValueWeight;
+        
+        // 最大連鎖長の評価（大幅強化）
+        score += Math.pow(chainAnalysis.maxChainLength, 2) * this.aiConfig.chainWeight * 3;
+        
+        // 連鎖の引き金位置の評価（強化）
+        score += chainAnalysis.triggerPositions.length * this.aiConfig.chainTriggerWeight || 50;
+        
+        // 連鎖セットアップの評価（新追加）
+        score += this.evaluateChainSetup(board) * (this.aiConfig.chainSetupWeight || 150);
+        
+        // 連鎖構築パターンマッチングの評価（新追加）
+        score += this.evaluateChainPatterns(board) * 100;
+        
+        // 多段連鎖の可能性評価（新追加）
+        score += this.evaluateMultiStageChains(board) * 200;
         
         // 基本的な連鎖可能性の評価
         score += this.evaluateChainPotential(board) * this.aiConfig.chainWeight;
         
-        // ボードの高さペナルティ
-        score -= this.evaluateHeight(board) * this.aiConfig.heightPenalty;
+        // 色の連結性評価（強化）
+        score += this.evaluateColorConnectivity(board) * (this.aiConfig.connectedPuyoWeight || 80);
+        
+        // ボードの安定性評価（新追加）
+        score += this.evaluateBoardStability(board) * 60;
+        
+        // ボードの高さペナルティ（調整）
+        score -= this.evaluateHeight(board) * this.aiConfig.heightPenalty * 0.8;
         
         // おじゃまぷよの評価
         score -= this.evaluateGarbage(board) * this.aiConfig.garbageWeight;
         
         // 色のまとまり評価
-        score += this.evaluateColorGroups(board) * 20;
+        score += this.evaluateColorGroups(board) * 25;
         
-        // 相手への攻撃性評価
-        score += this.evaluateOffensivePotential(chainAnalysis) * 50;
+        // 相手への攻撃性評価（強化）
+        score += this.evaluateOffensivePotential(chainAnalysis) * 80;
         
         // 防御性評価
         score += this.evaluateDefensivePotential(board) * this.aiConfig.defenseWeight;
@@ -5809,6 +5966,147 @@ class BattleGame {
         defensiveScore += this.evaluateHeightDistribution(board) * 10;
         
         return defensiveScore;
+    }
+    
+    // 連鎖セットアップの評価（新メソッド）
+    evaluateChainSetup(board) {
+        let setupScore = 0;
+        
+        // 3個連結のぷよ（あと1個で連鎖）を高く評価
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false)));
+                    
+                    if (connected.length === 3) {
+                        setupScore += 50; // 3個連結は高評価
+                        
+                        // 周辺に同色ぷよがあるかチェック
+                        const adjacentSameColor = this.countAdjacentSameColor(board, connected, board[y][x]);
+                        setupScore += adjacentSameColor * 30;
+                    } else if (connected.length === 2) {
+                        setupScore += 20; // 2個連結も評価
+                    }
+                }
+            }
+        }
+        
+        return setupScore;
+    }
+    
+    // 連鎖構築パターンマッチングの評価（新メソッド）
+    evaluateChainPatterns(board) {
+        let patternScore = 0;
+        
+        // 基本的な階段積みパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 3; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 2; y++) {
+                if (this.matchesStairPattern(board, x, y)) {
+                    patternScore += 100;
+                }
+            }
+        }
+        
+        // 鍵積みパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 2; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 1; y++) {
+                if (this.matchesSandwichPattern(board, x, y)) {
+                    patternScore += 80;
+                }
+            }
+        }
+        
+        // GTRパターンを検出
+        for (let x = 0; x < this.BOARD_WIDTH - 1; x++) {
+            for (let y = 0; y < this.BOARD_HEIGHT - 2; y++) {
+                if (this.matchesGTRPattern(board, x, y)) {
+                    patternScore += 120;
+                }
+            }
+        }
+        
+        return patternScore;
+    }
+    
+    // 多段連鎖の可能性評価（新メソッド）
+    evaluateMultiStageChains(board) {
+        let multiStageScore = 0;
+        
+        // 複数の連鎖の種を検出
+        const chainSeeds = this.findChainSeeds(board);
+        
+        if (chainSeeds.length >= 2) {
+            multiStageScore += chainSeeds.length * 60;
+            
+            // 連鎖の種が近い位置にあるほど高評価
+            for (let i = 0; i < chainSeeds.length - 1; i++) {
+                for (let j = i + 1; j < chainSeeds.length; j++) {
+                    const distance = Math.abs(chainSeeds[i].x - chainSeeds[j].x) + Math.abs(chainSeeds[i].y - chainSeeds[j].y);
+                    if (distance <= 3) {
+                        multiStageScore += 40;
+                    }
+                }
+            }
+        }
+        
+        return multiStageScore;
+    }
+    
+    // 色の連結性評価（新メソッド）
+    evaluateColorConnectivity(board) {
+        let connectivityScore = 0;
+        
+        for (let color = 1; color <= 5; color++) {
+            const colorPositions = this.findColorPositions(board, color);
+            
+            if (colorPositions.length >= 2) {
+                // 同色ぷよ同士の距離を評価
+                let totalDistance = 0;
+                let pairCount = 0;
+                
+                for (let i = 0; i < colorPositions.length - 1; i++) {
+                    for (let j = i + 1; j < colorPositions.length; j++) {
+                        const distance = Math.abs(colorPositions[i].x - colorPositions[j].x) + 
+                                       Math.abs(colorPositions[i].y - colorPositions[j].y);
+                        totalDistance += distance;
+                        pairCount++;
+                    }
+                }
+                
+                if (pairCount > 0) {
+                    const avgDistance = totalDistance / pairCount;
+                    // 距離が近いほど高評価
+                    connectivityScore += Math.max(0, (10 - avgDistance) * colorPositions.length);
+                }
+            }
+        }
+        
+        return connectivityScore;
+    }
+    
+    // ボードの安定性評価（新メソッド）
+    evaluateBoardStability(board) {
+        let stabilityScore = 0;
+        
+        // 下の方のぷよが多いほど安定
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0) {
+                    stabilityScore += (this.BOARD_HEIGHT - y) * 2;
+                }
+            }
+        }
+        
+        // 空中に浮いているぷよを検出（不安定）
+        for (let y = 1; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y-1][x] === 0) {
+                    stabilityScore -= 20; // 浮いているぷよは不安定
+                }
+            }
+        }
+        
+        return stabilityScore;
     }
     
     countGarbagePuyos(board) {
@@ -6137,6 +6435,390 @@ class BattleGame {
         }
     }
     
+    // ================================================
+    // 高度AI アルゴリズム群
+    // ================================================
+    
+    initializeAdvancedPatterns() {
+        // GTRパターン（Great Tanaka Rensa）定義
+        this.gtrPatterns = [
+            // 基本GTRパターン（6x4の形状）
+            {
+                pattern: [
+                    [1, 1, 0, 2, 2, 0],
+                    [3, 1, 2, 2, 4, 4],
+                    [3, 3, 2, 4, 4, 5],
+                    [3, 5, 5, 4, 5, 5]
+                ],
+                score: 400,
+                name: 'Basic GTR'
+            }
+        ];
+        
+        // 階段積みパターン定義
+        this.stairPatterns = [
+            // 右階段パターン
+            {
+                pattern: [
+                    [0, 0, 0, 1, 1, 1],
+                    [0, 0, 2, 2, 1, 1],
+                    [0, 3, 3, 2, 2, 1],
+                    [4, 4, 3, 3, 2, 2]
+                ],
+                score: 200,
+                name: 'Right Stair'
+            }
+        ];
+        
+        // 位置価値マップ（中央ほど価値が高い）
+        this.positionValues = [
+            [1, 2, 3, 3, 2, 1],
+            [1, 3, 4, 4, 3, 1],
+            [1, 3, 5, 5, 3, 1],
+            [1, 3, 5, 5, 3, 1],
+            [2, 4, 6, 6, 4, 2],
+            [2, 4, 6, 6, 4, 2],
+            [2, 4, 6, 6, 4, 2],
+            [3, 5, 7, 7, 5, 3],
+            [3, 5, 7, 7, 5, 3],
+            [3, 5, 7, 7, 5, 3],
+            [4, 6, 8, 8, 6, 4],
+            [4, 6, 8, 8, 6, 4]
+        ];
+        
+        console.log('🎯 高度連鎖パターン初期化完了');
+    }
+    
+    // ビームサーチ実装
+    beamSearch(currentBoard, depth, beamWidth) {
+        let states = [{
+            board: this.deepCopyBoard(currentBoard),
+            score: this.evaluateBoard(currentBoard),
+            moves: []
+        }];
+        
+        for (let d = 0; d < depth; d++) {
+            let newStates = [];
+            
+            for (let state of states) {
+                // 全可能手を生成
+                const possibleMoves = this.generatePossibleMoves(state.board);
+                
+                for (let move of possibleMoves) {
+                    const newBoard = this.simulateMove(state.board, move);
+                    const newScore = this.evaluateBoard(newBoard);
+                    
+                    newStates.push({
+                        board: newBoard,
+                        score: newScore,
+                        moves: [...state.moves, move]
+                    });
+                }
+            }
+            
+            // ビーム幅で状態を制限（上位のみ保持）
+            newStates.sort((a, b) => b.score - a.score);
+            states = newStates.slice(0, beamWidth);
+            
+            if (states.length === 0) break;
+        }
+        
+        return states.length > 0 ? states[0] : null;
+    }
+    
+    // モンテカルロ法実装
+    monteCarloEvaluation(board, numRuns) {
+        let totalScore = 0;
+        
+        for (let i = 0; i < numRuns; i++) {
+            const randomBoard = this.deepCopyBoard(board);
+            const simulationScore = this.simulateRandomGame(randomBoard);
+            totalScore += simulationScore;
+        }
+        
+        return totalScore / numRuns;
+    }
+    
+    simulateRandomGame(board) {
+        let score = 0;
+        let moves = 0;
+        const maxMoves = 20; // 最大20手のシミュレーション
+        
+        while (moves < maxMoves && !this.isBoardFull(board)) {
+            const possibleMoves = this.generatePossibleMoves(board);
+            if (possibleMoves.length === 0) break;
+            
+            // ランダムに手を選択
+            const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+            board = this.simulateMove(board, randomMove);
+            
+            // 連鎖をシミュレート
+            const chainResult = this.simulateChains(board);
+            score += chainResult.score;
+            
+            moves++;
+        }
+        
+        return score;
+    }
+    
+    // GTRパターン認識
+    evaluateGTRPattern(board) {
+        let maxScore = 0;
+        
+        for (let pattern of this.gtrPatterns) {
+            const matchScore = this.matchPattern(board, pattern);
+            maxScore = Math.max(maxScore, matchScore);
+        }
+        
+        return maxScore;
+    }
+    
+    // 階段積みパターン認識
+    evaluateStairPattern(board) {
+        let score = 0;
+        
+        // 右階段をチェック
+        for (let x = 0; x < this.BOARD_WIDTH - 2; x++) {
+            for (let y = this.BOARD_HEIGHT - 4; y >= 0; y--) {
+                if (this.isStairPattern(board, x, y)) {
+                    score += 200;
+                }
+            }
+        }
+        
+        return score;
+    }
+    
+    isStairPattern(board, startX, startY) {
+        // 3x3の階段パターンをチェック
+        for (let i = 0; i < 3; i++) {
+            const expectedHeight = i + 1;
+            let actualHeight = 0;
+            
+            for (let y = this.BOARD_HEIGHT - 1; y >= startY; y--) {
+                if (board[y] && board[y][startX + i] > 0) {
+                    actualHeight++;
+                } else {
+                    break;
+                }
+            }
+            
+            if (actualHeight < expectedHeight) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    // 将来連鎖可能性評価
+    evaluateFutureChainPotential(board) {
+        let potential = 0;
+        
+        // 各空きマスに各色を置いた場合の連鎖可能性を評価
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === 0) {
+                    for (let color = 1; color <= 5; color++) {
+                        const testBoard = this.deepCopyBoard(board);
+                        testBoard[y][x] = color;
+                        
+                        const chainResult = this.simulateChains(testBoard);
+                        if (chainResult.chainCount > 0) {
+                            potential += chainResult.chainCount * 10;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return potential;
+    }
+    
+    // 位置価値評価
+    evaluatePositionValue(board) {
+        let value = 0;
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0) {
+                    value += this.positionValues[y][x];
+                }
+            }
+        }
+        
+        return value;
+    }
+    
+    // 補助関数群
+    generatePossibleMoves(board) {
+        const moves = [];
+        
+        // 現在のピースで全ての可能な手を生成
+        if (!this.cpuCurrentPiece && !this.cpuNextPiece) {
+            // ピースがない場合はランダムに生成
+            this.generateNextPiece('cpu');
+        }
+        
+        const piece = this.cpuCurrentPiece || this.generateRandomPiece();
+        
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            for (let rotation = 0; rotation < 4; rotation++) {
+                const testPiece = this.rotatePiece(piece, rotation);
+                const dropY = this.findDropPosition('cpu', x, testPiece.positions);
+                
+                if (dropY !== null) {
+                    moves.push({
+                        x: x,
+                        y: dropY,
+                        rotation: rotation,
+                        piece: testPiece
+                    });
+                }
+            }
+        }
+        
+        return moves;
+    }
+    
+    simulateMove(board, move) {
+        const testBoard = this.deepCopyBoard(board);
+        
+        // ピースを配置
+        for (let i = 0; i < move.piece.positions.length; i++) {
+            const pos = move.piece.positions[i];
+            const placeX = move.x + pos.x;
+            const placeY = move.y + pos.y;
+            
+            if (placeY >= 0 && placeY < this.BOARD_HEIGHT && 
+                placeX >= 0 && placeX < this.BOARD_WIDTH) {
+                testBoard[placeY][placeX] = move.piece.colors[i];
+            }
+        }
+        
+        // 重力を適用
+        this.applySimulatedGravity(testBoard);
+        
+        return testBoard;
+    }
+    
+    deepCopyBoard(board) {
+        return board.map(row => [...row]);
+    }
+    
+    isBoardFull(board) {
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            if (board[0][x] === 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    simulateChains(board) {
+        let chainCount = 0;
+        let totalScore = 0;
+        let currentBoard = this.deepCopyBoard(board);
+        
+        while (true) {
+            const removedGroups = this.findConnectedGroups(currentBoard);
+            if (removedGroups.length === 0) break;
+            
+            chainCount++;
+            totalScore += removedGroups.length * 100 * chainCount;
+            
+            // グループを削除
+            for (const group of removedGroups) {
+                for (const cell of group) {
+                    currentBoard[cell.y][cell.x] = 0;
+                }
+            }
+            
+            // 重力を適用
+            this.applySimulatedGravity(currentBoard);
+        }
+        
+        return { chainCount, score: totalScore };
+    }
+    
+    findConnectedGroups(board) {
+        const visited = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false));
+        const groups = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (!visited[y][x] && board[y][x] > 0) {
+                    const group = this.floodFill(board, visited, x, y, board[y][x]);
+                    if (group.length >= 4) {
+                        groups.push(group);
+                    }
+                }
+            }
+        }
+        
+        return groups;
+    }
+    
+    floodFill(board, visited, x, y, color) {
+        if (x < 0 || x >= this.BOARD_WIDTH || y < 0 || y >= this.BOARD_HEIGHT ||
+            visited[y][x] || board[y][x] !== color) {
+            return [];
+        }
+        
+        visited[y][x] = true;
+        const group = [{x, y}];
+        
+        // 4方向を探索
+        const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        for (const [dx, dy] of directions) {
+            group.push(...this.floodFill(board, visited, x + dx, y + dy, color));
+        }
+        
+        return group;
+    }
+    
+    generateRandomPiece() {
+        const colors = [1, 2, 3, 4, 5];
+        return {
+            colors: [
+                colors[Math.floor(Math.random() * colors.length)],
+                colors[Math.floor(Math.random() * colors.length)]
+            ],
+            positions: [
+                {x: 0, y: 0},
+                {x: 0, y: 1}
+            ]
+        };
+    }
+    
+    matchPattern(board, pattern) {
+        // パターンマッチング実装（簡易版）
+        let maxMatch = 0;
+        
+        for (let offsetY = 0; offsetY <= this.BOARD_HEIGHT - pattern.pattern.length; offsetY++) {
+            for (let offsetX = 0; offsetX <= this.BOARD_WIDTH - pattern.pattern[0].length; offsetX++) {
+                let match = 0;
+                
+                for (let y = 0; y < pattern.pattern.length; y++) {
+                    for (let x = 0; x < pattern.pattern[y].length; x++) {
+                        const boardY = offsetY + y;
+                        const boardX = offsetX + x;
+                        
+                        if (pattern.pattern[y][x] > 0 && 
+                            board[boardY][boardX] === pattern.pattern[y][x]) {
+                            match++;
+                        }
+                    }
+                }
+                
+                maxMatch = Math.max(maxMatch, match);
+            }
+        }
+        
+        return maxMatch * pattern.score / (pattern.pattern.length * pattern.pattern[0].length);
+    }
+    
     updateScore(player, points) {
         if (player === 'player') {
             this.playerScore += points;
@@ -6404,14 +7086,22 @@ class BattleGame {
         let garbageCount = 0;
         
         if (chainCount >= 2) {
-            garbageCount = chainCount * 2; // 基本: 連鎖数 × 2
-            
-            if (removedCount >= 8) {
-                garbageCount += Math.floor(removedCount / 4); // 大量消去ボーナス
+            // 連鎖数に応じた適切な量の調整
+            if (chainCount === 2) {
+                garbageCount = Math.floor(Math.random() * 2) + 1; // 1-2個
+            } else if (chainCount === 3) {
+                garbageCount = Math.floor(Math.random() * 2) + 2; // 2-3個
+            } else if (chainCount === 4) {
+                garbageCount = Math.floor(Math.random() * 3) + 3; // 3-5個
+            } else if (chainCount === 5) {
+                garbageCount = Math.floor(Math.random() * 3) + 5; // 5-7個
+            } else if (chainCount >= 6) {
+                garbageCount = Math.floor(Math.random() * 4) + 6 + (chainCount - 6) * 2; // 6個以上+連鎖ボーナス
             }
             
-            if (chainCount >= 4) {
-                garbageCount += chainCount; // 4連鎖以上ボーナス
+            // 大量消去ボーナス
+            if (removedCount >= 8) {
+                garbageCount += Math.floor(removedCount / 6);
             }
         }
         
@@ -6445,10 +7135,10 @@ class BattleGame {
         
         console.log(`💩 ${player} におじゃまぷよ ${pendingAmount}個落下`);
         
-        // 上から詰めて配置
+        // 下から上に向かって配置（重力に従って落下するように）
         let remainingGarbage = pendingAmount;
         
-        for (let row = 0; row < this.BOARD_HEIGHT && remainingGarbage > 0; row++) {
+        for (let row = this.BOARD_HEIGHT - 1; row >= 0 && remainingGarbage > 0; row--) {
             for (let col = 0; col < this.BOARD_WIDTH && remainingGarbage > 0; col++) {
                 if (board[row][col] === 0) {
                     board[row][col] = this.GARBAGE_PUYO;
@@ -6464,6 +7154,8 @@ class BattleGame {
             this.cpuPendingGarbage = 0;
         }
         
+        // 重力を適用しておじゃまぷよを正しく落下させる
+        this.applyGravity(player);
         this.drawGameBoard(player);
     }
     
@@ -6619,6 +7311,131 @@ class BattleGame {
         this.playerGameOver = false;
         this.cpuGameOver = false;
     }
+    
+    // ================================================
+    // 強化されたAI評価用ヘルパーメソッド
+    // ================================================
+    
+    // 周辺の同色ぷよをカウント
+    countAdjacentSameColor(board, connected, color) {
+        let count = 0;
+        const directions = [{x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}];
+        
+        for (const pos of connected) {
+            for (const dir of directions) {
+                const newX = pos.x + dir.x;
+                const newY = pos.y + dir.y;
+                
+                if (newX >= 0 && newX < this.BOARD_WIDTH && newY >= 0 && newY < this.BOARD_HEIGHT) {
+                    if (board[newY][newX] === color && !connected.some(p => p.x === newX && p.y === newY)) {
+                        count++;
+                    }
+                }
+            }
+        }
+        
+        return count;
+    }
+    
+    // 階段積みパターンマッチング
+    matchesStairPattern(board, startX, startY) {
+        if (startX + 3 >= this.BOARD_WIDTH || startY + 2 >= this.BOARD_HEIGHT) return false;
+        
+        // 基本の階段パターンをチェック
+        const pattern = [
+            {x: 0, y: 0}, {x: 1, y: 0},
+            {x: 1, y: 1}, {x: 2, y: 1},
+            {x: 2, y: 2}, {x: 3, y: 2}
+        ];
+        
+        const colors = new Map();
+        for (const pos of pattern) {
+            const x = startX + pos.x;
+            const y = startY + pos.y;
+            const color = board[y][x];
+            
+            if (color === 0 || color === this.GARBAGE_PUYO) return false;
+            
+            const key = `${pos.x}_${pos.y}`;
+            if (!colors.has(key)) {
+                colors.set(key, color);
+            }
+        }
+        
+        // 同じ高さのペアが同色かチェック
+        return (colors.get('0_0') === colors.get('1_0') &&
+                colors.get('1_1') === colors.get('2_1') &&
+                colors.get('2_2') === colors.get('3_2'));
+    }
+    
+    // 鍵積みパターンマッチング
+    matchesSandwichPattern(board, startX, startY) {
+        if (startX + 2 >= this.BOARD_WIDTH || startY + 1 >= this.BOARD_HEIGHT) return false;
+        
+        const leftColor = board[startY][startX];
+        const centerColor = board[startY][startX + 1];
+        const rightColor = board[startY][startX + 2];
+        const topColor = board[startY + 1][startX + 1];
+        
+        if (leftColor === 0 || centerColor === 0 || rightColor === 0 || topColor === 0) return false;
+        if (leftColor === this.GARBAGE_PUYO || centerColor === this.GARBAGE_PUYO || 
+            rightColor === this.GARBAGE_PUYO || topColor === this.GARBAGE_PUYO) return false;
+        
+        // 左右が同色で、中央と上が同色の鍵積みパターン
+        return (leftColor === rightColor && centerColor === topColor && leftColor !== centerColor);
+    }
+    
+    // GTRパターンマッチング
+    matchesGTRPattern(board, startX, startY) {
+        if (startX + 1 >= this.BOARD_WIDTH || startY + 2 >= this.BOARD_HEIGHT) return false;
+        
+        const pattern = [
+            board[startY][startX], board[startY][startX + 1],
+            board[startY + 1][startX], board[startY + 1][startX + 1],
+            board[startY + 2][startX], board[startY + 2][startX + 1]
+        ];
+        
+        // 全てのセルが空でないことを確認
+        if (pattern.some(color => color === 0 || color === this.GARBAGE_PUYO)) return false;
+        
+        // GTRパターン: AB / CA / BC の形
+        return (pattern[0] !== pattern[1] && pattern[2] !== pattern[3] && pattern[4] !== pattern[5] &&
+                pattern[0] === pattern[3] && pattern[1] === pattern[4] && pattern[2] === pattern[5]);
+    }
+    
+    // 連鎖の種を検出
+    findChainSeeds(board) {
+        const seeds = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] > 0 && board[y][x] !== this.GARBAGE_PUYO) {
+                    const connected = this.findConnectedPuyos(board, x, y, board[y][x], Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(false)));
+                    
+                    if (connected.length === 2 || connected.length === 3) {
+                        seeds.push({x: x, y: y, color: board[y][x], size: connected.length});
+                    }
+                }
+            }
+        }
+        
+        return seeds;
+    }
+    
+    // 特定色のぷよ位置を取得
+    findColorPositions(board, color) {
+        const positions = [];
+        
+        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+            for (let x = 0; x < this.BOARD_WIDTH; x++) {
+                if (board[y][x] === color) {
+                    positions.push({x: x, y: y});
+                }
+            }
+        }
+        
+        return positions;
+    }
 }
 
 // ================================================
@@ -6632,6 +7449,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // まずゲームインスタンスを作成
     window.game = new PuyoPuyoGame();
     console.log('✅ ゲームインスタンス作成完了');
+    
+    // BattleGameクラスをグローバルに公開
+    window.BattleGame = BattleGame;
+    console.log('✅ BattleGameクラスをグローバルに公開しました');
     
     // 少し遅延させてモード管理システムを初期化
     setTimeout(() => {
