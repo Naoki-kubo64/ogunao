@@ -1789,7 +1789,7 @@ body::before {
 .player-next-outside {
     position: absolute;
     top: 10px;
-    right: -400px;
+    right: -450px;
     z-index: 10;
 }
 
@@ -1797,7 +1797,7 @@ body::before {
 .cpu-next-outside {
     position: absolute;
     top: 10px;
-    left: -400px;
+    left: -450px;
     z-index: 10;
 }
 
