@@ -1789,7 +1789,7 @@ body::before {
 .player-next-outside {
     position: absolute;
     top: 10px;
-    right: -600px;
+    right: -400px;
     z-index: 10;
 }
 
@@ -1797,7 +1797,7 @@ body::before {
 .cpu-next-outside {
     position: absolute;
     top: 10px;
-    left: -600px;
+    left: -400px;
     z-index: 10;
 }
 
@@ -1810,7 +1810,7 @@ body::before {
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .player-next-outside {
-        right: -480px;
+        right: -320px;
         max-width: 120px;
         min-width: 100px;
         padding: 12px;
@@ -1818,7 +1818,7 @@ body::before {
     }
     
     .cpu-next-outside {
-        left: -480px;
+        left: -320px;
         max-width: 120px;
         min-width: 100px;
         padding: 12px;
