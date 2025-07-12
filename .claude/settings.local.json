@@ -43,12 +43,25 @@
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_press_key",
       "mcp__playwright__browser_console_messages",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(npm install)",
+      "Bash(sudo apt-get:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(npx:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install:*)",
+      "Bash(python:*)",
+      "Bash(start index.html)"
     ],
     "deny": []
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "playwright"
+    "playwright",
+    "ide"
   ]
 }

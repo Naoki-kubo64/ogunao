@@ -31,6 +31,7 @@
     "firebase": "^11.9.1"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.29",
     "@playwright/test": "^1.53.1",
     "@types/node": "^24.0.7"
   }

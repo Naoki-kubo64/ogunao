@@ -13,7 +13,7 @@ class PuyoPuyoGame {
         this.ctx = this.canvas.getContext('2d');
         this.BOARD_WIDTH = 6;
         this.BOARD_HEIGHT = 12;
-        this.CELL_SIZE = 80;
+        this.CELL_SIZE = 65;
         
         this.board = Array(this.BOARD_HEIGHT).fill().map(() => Array(this.BOARD_WIDTH).fill(0));
         this.currentPiece = null;
@@ -28,10 +28,15 @@ class PuyoPuyoGame {
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
         this.scoreSubmitted = false; // スコアが登録済みかどうか
         this.isPlacingPiece = false; // ピース配置中かどうか
+        this.gameHasStartedBefore = false; // ゲームが一度でも開始されたかどうか
         
         // Enter キー debounce 用
         this.lastEnterKeyTime = 0;
         this.enterKeyDebounceMs = 300;
+        
+        // イベントリスナー管理用
+        this.eventListeners = [];
+        this.boundKeyHandler = null;
         
         // コンボ状態
         this.oguComboActive = false;
@@ -329,62 +334,220 @@ class PuyoPuyoGame {
     }
     
     // ================================================
-    // 🎮 イベントリスナー設定
+    // 🎮 イベントリスナー設定（一元化）
     // ================================================
-    setupEventListeners() {
-        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
-        document.getElementById('restart-btn').addEventListener('click', () => this.restart());
-        document.getElementById('difficulty-select').addEventListener('change', (e) => {
-            this.difficulty = e.target.value;
-            this.updateFallSpeed();
+    
+    // すべてのイベントリスナーを削除（グローバルレベル）
+    static removeAllGlobalEventListeners() {
+        if (window.globalEventListeners) {
+            console.log(`🧹 グローバル ${window.globalEventListeners.length}個のイベントリスナーを削除中...`);
+            window.globalEventListeners.forEach(({ element, event, handler, options }) => {
+                element.removeEventListener(event, handler, options);
+            });
+            window.globalEventListeners = [];
+            console.log('✅ グローバルイベントリスナーをすべて削除しました');
+        }
+    }
+    
+    // グローバルイベントリスナーを管理するためのヘルパーメソッド
+    static addGlobalEventListenerWithTracking(element, event, handler, options = false) {
+        if (!window.globalEventListeners) {
+            window.globalEventListeners = [];
+        }
+        element.addEventListener(event, handler, options);
+        window.globalEventListeners.push({ element, event, handler, options });
+        console.log(`🔗 グローバルイベントリスナー追加: ${element.tagName || 'document'} -> ${event}`);
+    }
+    
+    // イベントリスナーを管理するためのヘルパーメソッド
+    addEventListenerWithTracking(element, event, handler, options = false) {
+        element.addEventListener(event, handler, options);
+        this.eventListeners.push({ element, event, handler, options });
+        console.log(`🔗 インスタンスイベントリスナー追加: ${element.tagName || 'document'} -> ${event}`);
+    }
+    
+    // すべてのイベントリスナーを削除
+    removeAllEventListeners() {
+        console.log(`🧹 ${this.eventListeners.length}個のイベントリスナーを削除中...`);
+        this.eventListeners.forEach(({ element, event, handler, options }) => {
+            element.removeEventListener(event, handler, options);
         });
+        this.eventListeners = [];
+        console.log('✅ すべてのイベントリスナーを削除しました');
+    }
+    
+    setupTitleMenuListeners() {
+        // トレーニングモードボタン
+        const trainingModeBtn = document.getElementById('training-mode-btn');
+        if (trainingModeBtn) {
+            console.log('🎯 トレーニングモードボタンにイベントリスナーを追加');
+            this.addEventListenerWithTracking(trainingModeBtn, 'click', () => {
+                console.log('🎮 トレーニングモードボタンがクリックされました');
+                this.startTrainingMode();
+            });
+        } else {
+            console.error('❌ トレーニングモードボタンが見つかりません');
+        }
+        
+        // ストーリーモードボタン
+        const storyModeBtn = document.getElementById('story-mode-btn');
+        if (storyModeBtn) {
+            this.addEventListenerWithTracking(storyModeBtn, 'click', () => {
+                this.startStoryMode();
+            });
+        }
+        
+        // 対戦モードボタン
+        const battleModeBtn = document.getElementById('battle-mode-btn');
+        if (battleModeBtn) {
+            console.log('🎯 対戦モードボタンにイベントリスナーを追加');
+            this.addEventListenerWithTracking(battleModeBtn, 'click', () => {
+                console.log('🎮 対戦モードボタンがクリックされました');
+                this.startBattleMode();
+            });
+        } else {
+            console.error('❌ 対戦モードボタンが見つかりません');
+        }
+        
+        // ルール説明ボタン
+        const rulesBtn = document.getElementById('rules-btn');
+        if (rulesBtn) {
+            this.addEventListenerWithTracking(rulesBtn, 'click', () => {
+                this.showHelpModal();
+            });
+        }
+        
+        // 設定ボタン
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            this.addEventListenerWithTracking(settingsBtn, 'click', () => {
+                alert('設定画面（未実装）');
+            });
+        }
+        
+        // ランキングボタン
+        const rankingBtn = document.getElementById('ranking-btn');
+        if (rankingBtn) {
+            this.addEventListenerWithTracking(rankingBtn, 'click', () => {
+                alert('ランキング画面（未実装）');
+            });
+        }
+    }
+    
+    
+    showHelpModal() {
+        const helpModal = document.getElementById('help-modal');
+        if (helpModal) {
+            helpModal.classList.remove('hidden');
+        }
+    }
+    
+    startTrainingMode() {
+        console.log('🎯 トレーニングモードを開始');
+        if (window.gameModeManager) {
+            window.gameModeManager.switchToSoloMode();
+        }
+    }
+    
+    startStoryMode() {
+        console.log('📖 ストーリーモード選択');
+        alert('ストーリーモード（未実装）\n近日公開予定です！');
+    }
+    
+    startBattleMode() {
+        console.log('⚔️ 対戦モードを開始');
+        console.log('🔍 gameModeManager存在確認:', !!window.gameModeManager);
+        if (window.gameModeManager) {
+            console.log('✅ gameModeManagerが見つかりました - switchToBattleModeを呼び出し');
+            window.gameModeManager.switchToBattleMode();
+        } else {
+            console.error('❌ gameModeManagerが見つかりません');
+        }
+    }
+    
+    setupEventListeners() {
+        // 既存のイベントリスナーをクリア
+        this.removeAllEventListeners();
+        
+        // キーボードイベントハンドラーを作成
+        this.boundKeyHandler = (e) => this.handleKeyPress(e);
+        this.addEventListenerWithTracking(document, 'keydown', this.boundKeyHandler);
+        
+        // タイトルメニューのイベントリスナー
+        this.setupTitleMenuListeners();
+        
+        // UI要素のイベントリスナー
+        const restartBtn = document.getElementById('restart-btn');
+        if (restartBtn) {
+            this.addEventListenerWithTracking(restartBtn, 'click', () => this.restart());
+        }
+        
+        const difficultySelect = document.getElementById('difficulty-select');
+        if (difficultySelect) {
+            this.addEventListenerWithTracking(difficultySelect, 'change', (e) => {
+                this.difficulty = e.target.value;
+                this.updateFallSpeed();
+            });
+        }
         
         // 音量調整
-        document.getElementById('volume-slider').addEventListener('input', (e) => {
-            this.updateVolume(e.target.value);
-        });
+        const volumeSlider = document.getElementById('volume-slider');
+        if (volumeSlider) {
+            this.addEventListenerWithTracking(volumeSlider, 'input', (e) => {
+                this.updateVolume(e.target.value);
+            });
+        }
         
         // デバッグボタンのイベントリスナー
-        document.getElementById('debug-2chain').addEventListener('click', () => this.debugChain(2));
-        document.getElementById('debug-3chain').addEventListener('click', () => this.debugChain(3));
-        document.getElementById('debug-4chain').addEventListener('click', () => this.debugChain(4));
-        document.getElementById('debug-5chain').addEventListener('click', () => this.debugChain(5));
-        document.getElementById('debug-7chain').addEventListener('click', () => this.debugChain(7));
-        document.getElementById('debug-cutin').addEventListener('click', () => this.debugCutin());
-        document.getElementById('debug-clear').addEventListener('click', () => this.debugClear());
+        const debugButtons = [
+            { id: 'debug-2chain', action: () => this.debugChain(2) },
+            { id: 'debug-3chain', action: () => this.debugChain(3) },
+            { id: 'debug-4chain', action: () => this.debugChain(4) },
+            { id: 'debug-5chain', action: () => this.debugChain(5) },
+            { id: 'debug-7chain', action: () => this.debugChain(7) },
+            { id: 'debug-cutin', action: () => this.debugCutin() },
+            { id: 'debug-clear', action: () => this.debugClear() }
+        ];
+        
+        debugButtons.forEach(({ id, action }) => {
+            const button = document.getElementById(id);
+            if (button) {
+                this.addEventListenerWithTracking(button, 'click', action);
+            }
+        });
         
         // 連鎖パターン設置ボタン
-        document.getElementById('debug-pattern-2').addEventListener('click', () => this.debugSetChainPattern(2));
-        document.getElementById('debug-pattern-3').addEventListener('click', () => this.debugSetChainPattern(3));
-        document.getElementById('debug-pattern-4').addEventListener('click', () => this.debugSetChainPattern(4));
-        document.getElementById('debug-pattern-5').addEventListener('click', () => this.debugSetChainPattern(5));
-        document.getElementById('debug-pattern-7').addEventListener('click', () => this.debugSetChainPattern(7));
+        this.addEventListenerWithTracking(document.getElementById('debug-pattern-2'), 'click', () => this.debugSetChainPattern(2));
+        this.addEventListenerWithTracking(document.getElementById('debug-pattern-3'), 'click', () => this.debugSetChainPattern(3));
+        this.addEventListenerWithTracking(document.getElementById('debug-pattern-4'), 'click', () => this.debugSetChainPattern(4));
+        this.addEventListenerWithTracking(document.getElementById('debug-pattern-5'), 'click', () => this.debugSetChainPattern(5));
+        this.addEventListenerWithTracking(document.getElementById('debug-pattern-7'), 'click', () => this.debugSetChainPattern(7));
         
         // 手動配置モード関連ボタン
-        document.getElementById('debug-manual-mode').addEventListener('click', () => this.toggleManualPlaceMode());
-        document.getElementById('debug-exit-manual').addEventListener('click', () => this.exitManualPlaceMode());
+        this.addEventListenerWithTracking(document.getElementById('debug-manual-mode'), 'click', () => this.toggleManualPlaceMode());
+        this.addEventListenerWithTracking(document.getElementById('debug-exit-manual'), 'click', () => this.exitManualPlaceMode());
         
         // 新機能デバッグボタン
-        document.getElementById('debug-naochan-time').addEventListener('click', () => this.debugNaochanTime());
-        document.getElementById('debug-ogu-combo').addEventListener('click', () => this.debugOguCombo());
-        document.getElementById('debug-nao-combo').addEventListener('click', () => this.debugNaoCombo());
-        document.getElementById('debug-saikyo-combo').addEventListener('click', () => this.debugSaikyoCombo());
+        this.addEventListenerWithTracking(document.getElementById('debug-naochan-time'), 'click', () => this.debugNaochanTime());
+        this.addEventListenerWithTracking(document.getElementById('debug-ogu-combo'), 'click', () => this.debugOguCombo());
+        this.addEventListenerWithTracking(document.getElementById('debug-nao-combo'), 'click', () => this.debugNaoCombo());
+        this.addEventListenerWithTracking(document.getElementById('debug-saikyo-combo'), 'click', () => this.debugSaikyoCombo());
         
         // 色選択ボタン
         for (let i = 0; i <= 5; i++) {
-            document.getElementById(`color-${i}`).addEventListener('click', () => this.selectColor(i));
+            this.addEventListenerWithTracking(document.getElementById(`color-${i}`), 'click', () => this.selectColor(i));
         }
         
         // ゲームキャンバスのクリックイベント
-        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        this.addEventListenerWithTracking(this.canvas, 'click', (e) => this.handleCanvasClick(e));
         
         // ランキング関連ボタン
-        document.getElementById('refresh-ranking').addEventListener('click', () => this.loadRanking());
-        document.getElementById('submit-score').addEventListener('click', () => this.submitScore());
+        this.addEventListenerWithTracking(document.getElementById('refresh-ranking'), 'click', () => this.loadRanking());
+        this.addEventListenerWithTracking(document.getElementById('submit-score'), 'click', () => this.submitScore());
         
         // コメント機能ボタン
-        document.getElementById('send-comment').addEventListener('click', () => this.sendComment());
-        document.getElementById('comment-input').addEventListener('keypress', (e) => {
+        this.addEventListenerWithTracking(document.getElementById('send-comment'), 'click', () => this.sendComment());
+        this.addEventListenerWithTracking(document.getElementById('comment-input'), 'keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation(); // イベントの伝播を停止
@@ -462,22 +625,37 @@ class PuyoPuyoGame {
     
     // 選択されたソロモードBGMを開始
     startSelectedSoloBgm() {
+        console.log('🎵 ソロモードBGM開始処理 - 選択されたBGM:', this.selectedSoloBgm);
+        
+        // すべてのオーディオを停止
+        this.stopAllAudio();
+        
         // 既存のBGMを停止
         if (this.currentBgm) {
+            console.log('🔇 既存BGMを停止');
             this.currentBgm.pause();
             this.currentBgm.currentTime = 0;
         }
         if (this.customBgmAudio) {
+            console.log('🔇 カスタムBGMを停止');
             this.customBgmAudio.pause();
             this.customBgmAudio = null;
         }
         
+        // BGM要素の再初期化
+        this.bgm = document.getElementById('game-bgm');
+        this.bgm2 = document.getElementById('game-bgm-2');
+        this.naochanBgm = document.getElementById('naochan-bgm');
+        
         // 選択されたBGMに基づいてAudio要素を設定
         if (this.selectedSoloBgm === 'ぷよぷよっと始まる毎日.mp3') {
+            console.log('🎵 メインBGMを選択');
             this.currentBgm = this.bgm;
         } else if (this.selectedSoloBgm === '2.mp3') {
+            console.log('🎵 BGM2を選択');
             this.currentBgm = this.bgm2;
         } else {
+            console.log('🎵 カスタムBGMを作成:', this.selectedSoloBgm);
             // カスタムBGM用のAudio要素を作成
             this.customBgmAudio = new Audio(`music/${this.selectedSoloBgm}`);
             this.customBgmAudio.loop = true;
@@ -485,11 +663,22 @@ class PuyoPuyoGame {
             this.currentBgm = this.customBgmAudio;
         }
         
-        // BGMを再生
+        // BGM要素の存在確認と音量設定
         if (this.currentBgm) {
-            this.currentBgm.play().catch(e => {
-                console.log('BGM auto-play blocked:', e);
+            console.log('🎵 BGM要素が見つかりました:', this.currentBgm.id || 'custom');
+            this.currentBgm.volume = this.bgmVolume;
+            this.currentBgm.loop = true;
+            
+            // BGMを再生
+            this.currentBgm.play().then(() => {
+                console.log('✅ BGM再生成功:', this.selectedSoloBgm);
+            }).catch(e => {
+                console.log('⚠️ BGM auto-play blocked or failed:', e.message);
+                // ユーザー操作待ちでBGMを開始するためのハンドラーを設定
+                this.setupBgmUserInteractionTrigger();
             });
+        } else {
+            console.error('❌ BGM要素が見つかりません');
         }
     }
     
@@ -561,8 +750,40 @@ class PuyoPuyoGame {
         }
     }
     
+    // すべてのBGMを停止
+    stopAllBgm() {
+        const bgmElements = [
+            'title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'
+        ];
+        
+        bgmElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.pause();
+                element.currentTime = 0;
+            }
+        });
+    }
+    
+    // すべてのBGMとSEを停止
+    stopAllAudio() {
+        // すべてのBGMを停止
+        this.stopAllBgm();
+        
+        // すべてのSEを停止
+        const allAudio = document.querySelectorAll('audio');
+        allAudio.forEach(audio => {
+            if (audio.id.startsWith('se-')) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+    }
+    
     startTitleBgm() {
+        this.stopAllAudio();
         if (this.titleBgm) {
+            this.titleBgm.currentTime = 0;
             this.titleBgm.play().catch(e => {
                 console.log('タイトルBGM再生に失敗:', e.message);
             });
@@ -570,10 +791,37 @@ class PuyoPuyoGame {
     }
     
     stopTitleBgm() {
+        console.log('🔇 タイトルBGMを停止');
         if (this.titleBgm) {
             this.titleBgm.pause();
             this.titleBgm.currentTime = 0;
         }
+    }
+    
+    // BGM用のユーザー操作トリガーを設定
+    setupBgmUserInteractionTrigger() {
+        console.log('🎵 BGM用ユーザー操作トリガーを設定');
+        
+        const startBgmOnInteraction = () => {
+            if (this.currentBgm && this.currentBgm.paused) {
+                console.log('🎵 ユーザー操作でBGMを開始');
+                this.currentBgm.play().then(() => {
+                    console.log('✅ BGM再生成功');
+                }).catch(e => {
+                    console.log('❌ BGM再生失敗:', e.message);
+                });
+                
+                // イベントリスナーを削除（一度だけ実行）
+                document.removeEventListener('click', startBgmOnInteraction);
+                document.removeEventListener('keydown', startBgmOnInteraction);
+                document.removeEventListener('touchstart', startBgmOnInteraction);
+            }
+        };
+        
+        // ユーザー操作をリスン
+        document.addEventListener('click', startBgmOnInteraction, { once: true });
+        document.addEventListener('keydown', startBgmOnInteraction, { once: true });
+        document.addEventListener('touchstart', startBgmOnInteraction, { once: true });
     }
     
     setupTitleBgmTrigger() {
@@ -694,7 +942,7 @@ class PuyoPuyoGame {
     }
     
     handleKeyPress(e) {
-        console.log('Key pressed:', e.key, 'Game running:', this.gameRunning, 'Active element:', document.activeElement?.id || 'none');
+        console.log('🎮 Key pressed:', e.key, 'Game running:', this.gameRunning, 'Mode:', window.gameModeManager?.currentMode, 'Active element:', document.activeElement?.id || 'none');
         
         // 隠しコマンドの処理（どの状態でも有効）
         this.handleSecretCommand(e.key);
@@ -716,26 +964,67 @@ class PuyoPuyoGame {
             }
             this.lastEnterKeyTime = now;
             
-            // ソロモード中のポーズ/再開処理
-            if (window.gameModeManager && window.gameModeManager.currentMode === 'solo') {
-                console.log('🎮 Solo mode - Enter key for pause/resume');
+            // ゲームモード管理システムが存在しない場合は処理しない
+            if (!window.gameModeManager) {
+                console.log('⚠️ GameModeManager not found');
+                return;
+            }
+            
+            const currentMode = window.gameModeManager.currentMode;
+            console.log('🎮 Current mode for Enter key processing:', currentMode);
+            
+            // ソロモード中のポーズ/再開処理（唯一のPuyoPuyoGameが処理）
+            if (currentMode === 'solo' && this.gameRunning !== undefined) {
+                console.log('⏸️▶️ Solo mode pause/resume - PuyoPuyoGame processing');
                 e.preventDefault();
                 e.stopPropagation();
                 this.togglePause();
                 return;
             }
             
+            // 対戦モード中のポーズ/再開処理はBattleGameが処理
+            if (currentMode === 'battle') {
+                console.log('⚔️ Battle mode - delegating to BattleGame');
+                return; // BattleGameが処理
+            }
+            
             // その他のモードではGameModeManagerに処理を委譲
+            console.log('🔄 Delegating Enter key to GameModeManager');
             return;
+        }
+        
+        // Escape キーでタイトルに戻る処理
+        if (e.key === 'Escape') {
+            console.log('🏠 Escape key pressed - returning to title');
+            if (window.gameModeManager && window.gameModeManager.currentMode !== 'title') {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // ゲームを停止
+                if (this.gameRunning) {
+                    this.gameRunning = false;
+                }
+                
+                // タイトルに戻る
+                window.gameModeManager.switchToTitleMode();
+                return;
+            }
         }
         
         // ゲームが動いていない場合は移動操作を無効にする
         if (!this.gameRunning) {
+            console.log('🚫 ゲーム停止中につき操作を無視:', e.key);
             return;
         }
         
         // 切り離されたピースは操作不可
         if (this.isSeparatedPiece) {
+            return;
+        }
+        
+        // ゲームが一時停止中の場合はピース操作を無効にする
+        if (!this.gameRunning) {
+            console.log('🚫 一時停止中につきピース操作を無視:', e.key);
             return;
         }
         
@@ -816,10 +1105,20 @@ class PuyoPuyoGame {
             return;
         }
         
+        // BattleGameインスタンスがある場合は停止
+        if (window.battleGame && window.battleGame.gameRunning) {
+            console.log('🛑 バトルゲームを停止してソロゲームを開始');
+            window.battleGame.gameRunning = false;
+            window.battleGame.gameLoopRunning = false;
+        }
+        
         console.log('Starting game...');
         
-        // ゲームスタートSEを再生
-        this.playSE(this.seGameStart, 'ゲームスタート');
+        // ゲームスタートSEを再生（初回起動時のみ）
+        if (!this.gameHasStartedBefore) {
+            this.playSE(this.seGameStart, 'ゲームスタート');
+            this.gameHasStartedBefore = true;
+        }
         
         this.gameRunning = true;
         this.timeStart = Date.now();
@@ -856,24 +1155,42 @@ class PuyoPuyoGame {
     
     togglePause() {
         console.log('🔄 togglePause called - current gameRunning:', this.gameRunning);
+        
+        // 他のゲームインスタンスが動作中の場合は停止
+        if (window.battleGame && window.battleGame !== this && window.battleGame.gameRunning) {
+            console.log('🛑 別のバトルゲームインスタンスを停止');
+            window.battleGame.gameRunning = false;
+        }
+        
         this.gameRunning = !this.gameRunning;
         console.log('🔄 togglePause - new gameRunning:', this.gameRunning);
         
         if (this.gameRunning) {
-            console.log('▶️ ゲーム再開');
+            console.log('▶️ ゲーム再開 - 正確にゲームループを開始');
+            
+            // タイマーをリセット
+            this.lastFallTime = Date.now();
+            
+            // ゲームループを明示的に開始
             this.gameLoop();
+            
             // ポーズ解除時に現在のBGMを再開
             if (this.currentBgm) {
                 this.currentBgm.play().catch(e => {
                     console.log('BGM resume failed:', e);
                 });
             }
+            
+            console.log('✅ ゲーム再開完了 - gameRunning:', this.gameRunning);
         } else {
-            console.log('⏸️ ゲーム一時停止');
+            console.log('⏸️ ゲーム一時停止 - すべてのゲームロジックを停止');
+            
             // ポーズ時に現在のBGMを一時停止
             if (this.currentBgm) {
                 this.currentBgm.pause();
             }
+            
+            console.log('✅ ゲーム一時停止完了 - gameRunning:', this.gameRunning);
         }
     }
     
@@ -888,12 +1205,26 @@ class PuyoPuyoGame {
     
     updateVolume(value) {
         const volume = value / 100;
-        this.bgm.volume = volume;
-        this.bgm2.volume = volume;
-        this.naochanBgm.volume = volume;
-        this.titleBgm.volume = volume * 0.8; // タイトルBGMは少し静か目
+        
+        // BGM要素の再初期化と音量設定
+        this.bgm = document.getElementById('game-bgm');
+        this.bgm2 = document.getElementById('game-bgm-2');
+        this.naochanBgm = document.getElementById('naochan-bgm');
+        this.titleBgm = document.getElementById('title-bgm');
+        
+        // BGM音量を更新
+        this.bgmVolume = volume;
+        
+        if (this.bgm) this.bgm.volume = volume;
+        if (this.bgm2) this.bgm2.volume = volume;
+        if (this.naochanBgm) this.naochanBgm.volume = volume;
+        if (this.titleBgm) this.titleBgm.volume = volume * 0.8; // タイトルBGMは少し静か目
+        if (this.customBgmAudio) this.customBgmAudio.volume = volume;
+        if (this.currentBgm) this.currentBgm.volume = volume;
         
         // SE音量も調整
+        this.seVolume = volume * 0.7; // SEのベース音量
+        
         if (this.seGameStart) this.seGameStart.volume = volume * 0.7;
         if (this.seChain2) this.seChain2.volume = volume * 0.8;
         if (this.seChain3) this.seChain3.volume = volume * 0.8;
@@ -902,8 +1233,12 @@ class PuyoPuyoGame {
         if (this.seRotate) this.seRotate.volume = volume * 0.5;
         if (this.seClear) this.seClear.volume = volume * 0.6;
         
-        document.getElementById('volume-display').textContent = `${value}%`;
-        console.log(`🔊 音量調整: ${value}%`);
+        const volumeDisplay = document.getElementById('volume-display');
+        if (volumeDisplay) {
+            volumeDisplay.textContent = `${value}%`;
+        }
+        
+        console.log(`🔊 音量調整: ${value}% (BGM: ${this.bgmVolume}, SE: ${this.seVolume})`);
     }
     
     generateNextPiece() {
@@ -1948,6 +2283,11 @@ class PuyoPuyoGame {
         
         const currentTime = Date.now();
         
+        // 時間開始が設定されていない場合は初期化
+        if (!this.timeStart) {
+            this.timeStart = currentTime;
+        }
+        
         this.time = Math.floor((currentTime - this.timeStart) / 1000);
         this.updateDisplay();
         
@@ -2930,6 +3270,7 @@ class PuyoPuyoGame {
         // ゲーム実行フラグとスコア登録状態をリセット
         this.gameRunning = false;
         this.scoreSubmitted = false;
+        this.gameHasStartedBefore = false;
         
         // スコア登録UIをリセット
         const submitButton = document.getElementById('submit-score');
@@ -2945,13 +3286,29 @@ class PuyoPuyoGame {
         this.generateNextPiece();
         this.spawnNewPiece();
         
-        // 画面表示を更新
-        document.getElementById('game-over').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
-        
         // ゲームBGM停止
         this.bgm.pause();
         this.bgm.currentTime = 0;
+        
+        // 全画面を非表示
+        this.hideAllScreens();
+        
+        // タイトル画面を適切に表示
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.classList.remove('hidden');
+            // bodyクラスを title-mode に変更
+            document.body.classList.remove('game-mode');
+            document.body.classList.add('title-mode');
+            document.body.style.display = 'block';
+            document.body.style.justifyContent = 'initial';
+            document.body.style.alignItems = 'initial';
+            // タイトル画面表示時はコンテナを隠す
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.display = 'none';
+            }
+        }
         
         // タイトルBGMを再開
         this.startTitleBgm();
@@ -4009,6 +4366,37 @@ class PuyoPuyoGame {
         // リアルタイム表示のみ（履歴やFirestoreには保存しない）
         this.displayFlyingComment(`${author}: ${trimmedMessage}`);
     }
+    
+    hideAllScreens() {
+        // タイトル画面を非表示
+        if (this.startScreen) {
+            this.startScreen.classList.add('hidden');
+        }
+        
+        // ゲームエリアを非表示（ソロモード用）
+        if (this.gameArea) {
+            this.gameArea.style.display = 'none';
+        }
+        
+        // コンテナを非表示
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'none';
+        }
+        
+        // 対戦画面を非表示
+        if (this.battleScreen) {
+            this.battleScreen.classList.add('hidden');
+            this.battleScreen.style.display = 'none';
+            this.battleScreen.style.visibility = 'hidden';
+        }
+        
+        // ゲームオーバー画面も非表示
+        const gameOverScreen = document.getElementById('game-over');
+        if (gameOverScreen) {
+            gameOverScreen.classList.add('hidden');
+        }
+    }
 }
 
 // ================================================
@@ -4087,8 +4475,29 @@ class GameModeManager {
         this.game = null; // ソロゲームインスタンス
         this.battleGame = null; // 対戦ゲームインスタンス
         
+        // イベントリスナー管理用
+        this.eventListeners = [];
+        this.boundKeyHandler = null;
+        
         this.initializeElements();
         this.setupModeEventListeners();
+    }
+    
+    // イベントリスナーを管理するためのヘルパーメソッド
+    addEventListenerWithTracking(element, event, handler, options = false) {
+        element.addEventListener(event, handler, options);
+        this.eventListeners.push({ element, event, handler, options });
+        console.log(`🔗 GameModeManager イベントリスナー追加: ${element.tagName || 'document'} -> ${event}`);
+    }
+    
+    // すべてのイベントリスナーを削除
+    removeAllEventListeners() {
+        console.log(`🧹 GameModeManager ${this.eventListeners.length}個のイベントリスナーを削除中...`);
+        this.eventListeners.forEach(({ element, event, handler, options }) => {
+            element.removeEventListener(event, handler, options);
+        });
+        this.eventListeners = [];
+        console.log('✅ GameModeManager すべてのイベントリスナーを削除しました');
     }
     
     initializeElements() {
@@ -4097,68 +4506,24 @@ class GameModeManager {
         this.gameArea = document.querySelector('.game-area');
         this.battleScreen = document.getElementById('battle-screen');
         
-        // モード選択ボタン
-        this.soloModeBtn = document.getElementById('solo-mode-btn');
-        this.battleModeBtn = document.getElementById('battle-mode-btn');
+        // タイトルに戻るボタン
         this.backToTitleBtn = document.getElementById('back-to-title');
-        
-        // Press Enter Key 表示要素
-        this.pressEnterInstruction = document.getElementById('press-enter-instruction');
-        this.startInstruction = document.querySelector('.start-instruction');
         
         console.log('🎮 ゲームモード管理システムを初期化しました');
     }
     
     setupModeEventListeners() {
-        // ソロモードボタン
-        if (this.soloModeBtn) {
-            this.soloModeBtn.addEventListener('click', () => {
-                this.showPressEnterInstruction();
-            });
-        }
-        
-        // 対戦モードボタン
-        if (this.battleModeBtn) {
-            this.battleModeBtn.addEventListener('click', () => {
-                this.switchToBattleMode();
-            });
-        }
+        // 既存のイベントリスナーをクリア
+        this.removeAllEventListeners();
         
         // タイトルに戻るボタン
         if (this.backToTitleBtn) {
-            this.backToTitleBtn.addEventListener('click', () => {
+            this.addEventListenerWithTracking(this.backToTitleBtn, 'click', () => {
                 this.switchToTitleMode();
             });
         }
-        
-        // Enterキーによるソロモード開始（既存の動作との互換性）
-        // 既存のキーハンドラーと競合しないよう、より優先度の高いイベントリスナーとして追加
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (this.currentMode === 'title' || this.currentMode === 'solo-waiting')) {
-                // タイトル画面またはソロ待機画面でEnterが押された場合、ソロモードに切り替え
-                e.preventDefault();
-                e.stopPropagation();
-                this.switchToSoloMode();
-            }
-        }, true); // キャプチャフェーズで実行
     }
     
-    showPressEnterInstruction() {
-        console.log('🎮 ソロプレイが選択されました - Press Enter Key表示');
-        
-        // モード選択の説明文を非表示
-        if (this.startInstruction) {
-            this.startInstruction.style.display = 'none';
-        }
-        
-        // Press Enter Key表示を表示
-        if (this.pressEnterInstruction) {
-            this.pressEnterInstruction.classList.remove('hidden');
-        }
-        
-        // モードを"solo-waiting"に設定（Enterキー待ち状態）
-        this.currentMode = 'solo-waiting';
-    }
     
     switchToTitleMode() {
         console.log('📱 タイトル画面に切り替え');
@@ -4175,6 +4540,17 @@ class GameModeManager {
         // タイトル画面を表示
         if (this.startScreen) {
             this.startScreen.classList.remove('hidden');
+            // bodyクラスを title-mode に変更
+            document.body.classList.remove('game-mode');
+            document.body.classList.add('title-mode');
+            document.body.style.display = 'block';
+            document.body.style.justifyContent = 'initial';
+            document.body.style.alignItems = 'initial';
+            // タイトル画面表示時はコンテナを隠す
+            const container = document.querySelector('.container');
+            if (container) {
+                container.style.display = 'none';
+            }
         }
         
         // Press Enter Key表示を非表示にして、元の説明文を表示
@@ -4200,7 +4576,7 @@ class GameModeManager {
             }
         }
         if (this.battleGame) {
-            this.battleGame.cleanup();
+            this.battleGame.destroy();
             this.battleGame = null;
         }
     }
@@ -4209,8 +4585,28 @@ class GameModeManager {
         console.log('🎮 ソロモードに切り替え');
         this.currentMode = 'solo';
         
+        // BattleGameインスタンスがある場合は停止
+        if (this.battleGame) {
+            console.log('🛑 バトルゲームを停止してソロゲームを開始');
+            this.battleGame.destroy();
+            this.battleGame = null;
+        }
+        
+        // ソロゲームがある場合、イベントリスナーを再設定
+        if (this.game) {
+            console.log('🔄 ソロゲームのイベントリスナーを再設定');
+            this.game.setupEventListeners();
+        }
+        
         // 全画面を非表示
         this.hideAllScreens();
+        
+        // bodyのtitle-modeを解除してgame-modeに変更
+        document.body.classList.remove('title-mode');
+        document.body.classList.add('game-mode');
+        document.body.style.display = 'flex';
+        document.body.style.justifyContent = 'center';
+        document.body.style.alignItems = 'center';
         
         // ソロゲーム画面を表示
         if (this.gameArea) {
@@ -4260,6 +4656,18 @@ class GameModeManager {
         console.log('⚔️ 対戦モードに切り替え');
         this.currentMode = 'battle';
         
+        // ソロゲームが動いている場合は停止してイベントリスナーを削除
+        if (this.game) {
+            console.log('🛑 ソロゲームを停止して対戦モードを開始');
+            if (this.game.gameRunning) {
+                this.game.gameRunning = false;
+            }
+            // ソロゲームのイベントリスナーを削除
+            if (this.game.removeAllEventListeners) {
+                this.game.removeAllEventListeners();
+            }
+        }
+        
         // bodyのflexboxを一時的に無効化
         document.body.style.display = 'block';
         document.body.style.justifyContent = 'initial';
@@ -4267,6 +4675,12 @@ class GameModeManager {
         
         // 全画面を非表示
         this.hideAllScreens();
+        
+        // bodyのtitle-modeを解除
+        document.body.classList.remove('title-mode');
+        document.body.style.display = 'block';
+        document.body.style.justifyContent = 'initial';
+        document.body.style.alignItems = 'initial';
         
         // 対戦画面を表示
         if (this.battleScreen) {
@@ -4301,6 +4715,11 @@ class GameModeManager {
         }, 100);
     }
     
+    setGameInstance(gameInstance) {
+        this.game = gameInstance;
+        console.log('🎯 ゲームインスタンスを設定しました');
+    }
+    
     hideAllScreens() {
         // タイトル画面を非表示
         if (this.startScreen) {
@@ -4310,6 +4729,12 @@ class GameModeManager {
         // ゲームエリアを非表示（ソロモード用）
         if (this.gameArea) {
             this.gameArea.style.display = 'none';
+        }
+        
+        // コンテナを非表示
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.display = 'none';
         }
         
         // 対戦画面を非表示
@@ -4324,11 +4749,6 @@ class GameModeManager {
         if (gameOverScreen) {
             gameOverScreen.classList.add('hidden');
         }
-    }
-    
-    setGameInstance(gameInstance) {
-        this.game = gameInstance;
-        console.log('🎯 ゲームインスタンスを設定しました');
     }
 }
 
@@ -4626,21 +5046,6 @@ class BattleGame {
         this.startSelectedBattleBgm();
     }
     
-    stopAllBgm() {
-        const bgmElements = [
-            'title-bgm', 'game-bgm', 'game-bgm-2', 'naochan-bgm', 'battle-bgm'
-        ];
-        
-        bgmElements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.pause();
-                element.currentTime = 0;
-            }
-        });
-        
-        console.log('🔇 全てのBGMを停止しました');
-    }
     
     stopBattleBgm() {
         const battleBgm = document.getElementById('battle-bgm');
@@ -4652,6 +5057,27 @@ class BattleGame {
     }
     
     handlePlayerInput(e) {
+        // Escape キーでタイトルに戻る処理（常に有効）
+        if (e.key === 'Escape') {
+            console.log('🏠 Battle mode Escape key pressed - returning to title');
+            if (window.gameModeManager) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // 対戦ゲームを停止
+                this.gameRunning = false;
+                this.gameLoopRunning = false;
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+                
+                // タイトルに戻る
+                window.gameModeManager.switchToTitleMode();
+                return;
+            }
+        }
+        
         // 対戦モードでない場合は処理しない
         if (!this.gameRunning || !this.playerCurrentPiece || this.playerGameOver) {
             return;
@@ -7806,6 +8232,9 @@ class BattleGame {
 // DOMが読み込まれた後にゲームを初期化
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 おぐなお - ゲーム初期化開始');
+    
+    // グローバルイベントリスナーを全てクリア
+    PuyoPuyoGame.removeAllGlobalEventListeners();
     
     // まずゲームインスタンスを作成
     window.game = new PuyoPuyoGame();

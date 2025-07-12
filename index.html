@@ -119,10 +119,56 @@
                     <div id="ranking-list" class="ranking-list">
                         <div class="loading">読み込み中...</div>
                     </div>
+                    <div class="debug-controls">
+                        <p>デバッグモード:</p>
+                        <div class="debug-row">
+                            <button id="debug-2chain">2連鎖テスト</button>
+                            <button id="debug-3chain">3連鎖テスト</button>
+                            <button id="debug-4chain">4連鎖テスト</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-5chain">5連鎖テスト</button>
+                            <button id="debug-7chain">7連鎖テスト</button>
+                            <button id="debug-cutin">カットインテスト</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-pattern-2">2連鎖設置</button>
+                            <button id="debug-pattern-3">3連鎖設置</button>
+                            <button id="debug-pattern-4">4連鎖設置</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-pattern-5">5連鎖設置</button>
+                            <button id="debug-pattern-7">7連鎖設置</button>
+                            <button id="debug-clear">ボードクリア</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-manual-mode">手動配置モード</button>
+                            <button id="debug-exit-manual">配置終了</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-naochan-time">なおちゃんタイム発動</button>
+                            <button id="debug-ogu-combo">おぐコンボテスト</button>
+                        </div>
+                        <div class="debug-row">
+                            <button id="debug-nao-combo">なおコンボテスト</button>
+                            <button id="debug-saikyo-combo">最強コンボテスト</button>
+                        </div>
+                        <div class="color-palette">
+                            <p>配置する色:</p>
+                            <div class="color-buttons">
+                                <button id="color-0" class="color-btn empty">消去</button>
+                                <button id="color-1" class="color-btn red">赤</button>
+                                <button id="color-2" class="color-btn green">緑</button>
+                                <button id="color-3" class="color-btn blue">青</button>
+                                <button id="color-4" class="color-btn yellow">黄</button>
+                                <button id="color-5" class="color-btn purple">紫</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="game-board">
-                <canvas id="game-canvas" width="480" height="960"></canvas>
+                <canvas id="game-canvas" width="390" height="780"></canvas>
             </div>
             <div class="controls">
                     <div class="next-puyo-label">次のぷよ</div>
@@ -180,77 +226,36 @@
                         </select>
                     </div>
                 </div>
-                <div class="debug-controls">
-                    <p>デバッグモード:</p>
-                    <div class="debug-row">
-                        <button id="debug-2chain">2連鎖テスト</button>
-                        <button id="debug-3chain">3連鎖テスト</button>
-                        <button id="debug-4chain">4連鎖テスト</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-5chain">5連鎖テスト</button>
-                        <button id="debug-7chain">7連鎖テスト</button>
-                        <button id="debug-cutin">カットインテスト</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-2">2連鎖設置</button>
-                        <button id="debug-pattern-3">3連鎖設置</button>
-                        <button id="debug-pattern-4">4連鎖設置</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-pattern-5">5連鎖設置</button>
-                        <button id="debug-pattern-7">7連鎖設置</button>
-                        <button id="debug-clear">ボードクリア</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-manual-mode">手動配置モード</button>
-                        <button id="debug-exit-manual">配置終了</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-naochan-time">なおちゃんタイム発動</button>
-                        <button id="debug-ogu-combo">おぐコンボテスト</button>
-                    </div>
-                    <div class="debug-row">
-                        <button id="debug-nao-combo">なおコンボテスト</button>
-                        <button id="debug-saikyo-combo">最強コンボテスト</button>
-                    </div>
-                    <div class="color-palette">
-                        <p>配置する色:</p>
-                        <div class="color-buttons">
-                            <button id="color-0" class="color-btn empty">消去</button>
-                            <button id="color-1" class="color-btn red">赤</button>
-                            <button id="color-2" class="color-btn green">緑</button>
-                            <button id="color-3" class="color-btn blue">青</button>
-                            <button id="color-4" class="color-btn yellow">黄</button>
-                            <button id="color-5" class="color-btn purple">紫</button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         <div class="game-status">
             <div id="start-screen" class="start-screen">
                 <div class="title-content">
-                    <img src="images/puyopuyo.jpg" alt="ぷよぷよタイトル" class="title-image">
-                    <h2 class="game-title">おぐなお</h2>
-                    <div class="mode-selection">
-                        <h3 class="mode-title">ゲームモード選択</h3>
-                        <div class="mode-buttons">
-                            <button id="solo-mode-btn" class="mode-button solo-button">
-                                <span class="mode-icon">🎮</span>
-                                <span class="mode-name">ソロプレイ</span>
-                                <span class="mode-desc">一人でプレイ</span>
-                            </button>
-                            <button id="battle-mode-btn" class="mode-button battle-button">
-                                <span class="mode-icon">⚔️</span>
-                                <span class="mode-name">対戦モード</span>
-                                <span class="mode-desc">CPUと対戦</span>
-                            </button>
+                    <h1 class="game-title">おぐなお</h1>
+                    <div class="title-menu">
+                        <div class="menu-item" id="training-mode-btn">
+                            <span class="menu-icon">🎯</span>
+                            <span class="menu-text">トレーニングモード</span>
                         </div>
-                        <p class="start-instruction">モードを選択してください</p>
-                        <div id="press-enter-instruction" class="press-enter-instruction hidden">
-                            <p class="press-enter-text">🎮 Press Enter Key to Start!</p>
-                            <p class="press-enter-subtext">Enterキーを押してゲーム開始</p>
+                        <div class="menu-item" id="story-mode-btn">
+                            <span class="menu-icon">📖</span>
+                            <span class="menu-text">ストーリーモード</span>
+                        </div>
+                        <div class="menu-item" id="battle-mode-btn">
+                            <span class="menu-icon">⚔️</span>
+                            <span class="menu-text">対戦モード</span>
+                        </div>
+                        <div class="menu-item" id="rules-btn">
+                            <span class="menu-icon">📚</span>
+                            <span class="menu-text">ルール説明</span>
+                        </div>
+                        <div class="menu-item" id="settings-btn">
+                            <span class="menu-icon">⚙️</span>
+                            <span class="menu-text">設定</span>
+                        </div>
+                        <div class="menu-item" id="ranking-btn">
+                            <span class="menu-icon">🏆</span>
+                            <span class="menu-text">ランキング</span>
                         </div>
                     </div>
                     <div class="title-effects">
@@ -459,5 +464,6 @@
     </div>
     
     <script src="script.js"></script>
+    <script src="test-bgm-functionality.js"></script>
 </body>
 </html>
