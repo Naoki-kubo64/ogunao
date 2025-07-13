@@ -23,6 +23,7 @@ class PuyoPuyoGame {
         this.time = 0;
         this.chain = 0;
         this.gameRunning = false;
+        this.gamePaused = false; // ポーズ状態
         this.difficulty = 'normal';
         this.fallSpeed = 1000;
         this.isSeparatedPiece = false; // 切り離されたピースかどうか
@@ -953,17 +954,52 @@ class PuyoPuyoGame {
             return;
         }
         
-        // Enter キーの debounce 処理
-        if (e.key === 'Enter') {
-            const now = Date.now();
-            if (now - this.lastEnterKeyTime < this.enterKeyDebounceMs) {
-                console.log('🚫 Enter key debounced - ignoring rapid press');
-                e.preventDefault();
-                e.stopPropagation();
+        // Escapeキーでポーズメニュー表示
+        if (e.key === 'Escape') {
+            console.log('🔑 Escape key pressed');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const currentMode = window.gameModeManager?.currentMode;
+            console.log('🎮 Current mode:', currentMode, 'Game running:', this.gameRunning, 'Game paused:', this.gamePaused, 'Game started before:', this.gameHasStartedBefore);
+            
+            // ソロモードでゲームが開始されている場合
+            if (currentMode === 'solo' && this.gameHasStartedBefore && !this.gamePaused) {
+                console.log('⏸️ Conditions met, showing pause menu');
+                // ゲームが動いていない場合は一時的に動かしてからポーズ
+                if (!this.gameRunning) {
+                    this.gameRunning = true;
+                }
+                this.showPauseMenu();
+                return;
+            } else if (currentMode === 'solo' && this.gameHasStartedBefore && this.gamePaused) {
+                console.log('▶️ Game already paused, resuming');
+                this.hidePauseMenu();
+                return;
+            } else {
+                console.log('⚠️ Conditions not met for pause menu - mode:', currentMode, 'started:', this.gameHasStartedBefore, 'paused:', this.gamePaused);
+                // タイトルに戻る処理（既存の処理を続行）
+                if (window.gameModeManager && window.gameModeManager.currentMode !== 'title') {
+                    // ゲームを停止
+                    if (this.gameRunning) {
+                        this.gameRunning = false;
+                    }
+                    
+                    // 全BGMを停止
+                    this.stopAllAudio();
+                    
+                    // タイトルBGMを再生
+                    this.playTitleBgm();
+                    
+                    // タイトル画面に戻る
+                    window.gameModeManager.switchToMode('title');
+                }
                 return;
             }
-            this.lastEnterKeyTime = now;
-            
+        }
+        
+        // Enter キーの処理（一時停止機能削除済み）
+        if (e.key === 'Enter') {
             // ゲームモード管理システムが存在しない場合は処理しない
             if (!window.gameModeManager) {
                 console.log('⚠️ GameModeManager not found');
@@ -973,19 +1009,10 @@ class PuyoPuyoGame {
             const currentMode = window.gameModeManager.currentMode;
             console.log('🎮 Current mode for Enter key processing:', currentMode);
             
-            // ソロモード中のポーズ/再開処理（唯一のPuyoPuyoGameが処理）
-            if (currentMode === 'solo' && this.gameRunning !== undefined) {
-                console.log('⏸️▶️ Solo mode pause/resume - PuyoPuyoGame processing');
-                e.preventDefault();
-                e.stopPropagation();
-                this.togglePause();
+            // ソロモード中はEnterキーの一時停止機能は無効
+            if (currentMode === 'solo') {
+                console.log('🎮 Solo mode - Enter key pause/resume disabled');
                 return;
-            }
-            
-            // 対戦モード中のポーズ/再開処理はBattleGameが処理
-            if (currentMode === 'battle') {
-                console.log('⚔️ Battle mode - delegating to BattleGame');
-                return; // BattleGameが処理
             }
             
             // その他のモードではGameModeManagerに処理を委譲
@@ -993,23 +1020,7 @@ class PuyoPuyoGame {
             return;
         }
         
-        // Escape キーでタイトルに戻る処理
-        if (e.key === 'Escape') {
-            console.log('🏠 Escape key pressed - returning to title');
-            if (window.gameModeManager && window.gameModeManager.currentMode !== 'title') {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // ゲームを停止
-                if (this.gameRunning) {
-                    this.gameRunning = false;
-                }
-                
-                // タイトルに戻る
-                window.gameModeManager.switchToTitleMode();
-                return;
-            }
-        }
+        // 重複Escape処理削除（上で統一処理済み）
         
         // ゲームが動いていない場合は移動操作を無効にする
         if (!this.gameRunning) {
@@ -1167,6 +1178,9 @@ class PuyoPuyoGame {
         
         if (this.gameRunning) {
             console.log('▶️ ゲーム再開 - 正確にゲームループを開始');
+            
+            // ゲームが一度でも開始されたことを記録
+            this.gameHasStartedBefore = true;
             
             // タイマーをリセット
             this.lastFallTime = Date.now();
@@ -2281,50 +2295,55 @@ class PuyoPuyoGame {
     gameLoop() {
         if (!this.gameRunning) return;
         
-        const currentTime = Date.now();
-        
-        // 時間開始が設定されていない場合は初期化
-        if (!this.timeStart) {
-            this.timeStart = currentTime;
-        }
-        
-        this.time = Math.floor((currentTime - this.timeStart) / 1000);
-        this.updateDisplay();
-        
-        // アニメーションを更新
-        this.updateAnimations();
-        
-        // なおちゃんタイムを更新
-        this.updateNaochanTime();
-        
-        // なおちゃんチャット機能（自動投稿）
-        this.sendNaochanChat();
-        
-        // 緊急スポーンを一時的に無効化（デバッグ用）
-        // if (!this.currentPiece && !this.isInChainSequence && !this.isPlacingPiece) {
-        //     this.generateNextPiece();
-        //     this.spawnNewPiece();
-        // }
-        
-        // 切り離されたピースは高速落下（100ms間隔）
-        // おぐコンボ効果も考慮
-        let baseFallSpeed = this.isSeparatedPiece ? 100 : this.getOguComboFallSpeed();
-        const effectiveFallSpeed = baseFallSpeed;
-        
-        if (currentTime - this.lastFallTime > effectiveFallSpeed) {
-            if (this.currentPiece) {
-                this.movePiece(0, 1);
+        // ポーズ中は描画のみ行い、ゲーム進行は停止
+        if (this.gamePaused) {
+            this.render();
+        } else {
+            const currentTime = Date.now();
+            
+            // 時間開始が設定されていない場合は初期化
+            if (!this.timeStart) {
+                this.timeStart = currentTime;
             }
-            this.lastFallTime = currentTime;
+            
+            this.time = Math.floor((currentTime - this.timeStart) / 1000);
+            this.updateDisplay();
+            
+            // アニメーションを更新
+            this.updateAnimations();
+            
+            // なおちゃんタイムを更新
+            this.updateNaochanTime();
+            
+            // なおちゃんチャット機能（自動投稿）
+            this.sendNaochanChat();
+            
+            // 緊急スポーンを一時的に無効化（デバッグ用）
+            // if (!this.currentPiece && !this.isInChainSequence && !this.isPlacingPiece) {
+            //     this.generateNextPiece();
+            //     this.spawnNewPiece();
+            // }
+            
+            // 切り離されたピースは高速落下（100ms間隔）
+            // おぐコンボ効果も考慮
+            let baseFallSpeed = this.isSeparatedPiece ? 100 : this.getOguComboFallSpeed();
+            const effectiveFallSpeed = baseFallSpeed;
+            
+            if (currentTime - this.lastFallTime > effectiveFallSpeed) {
+                if (this.currentPiece) {
+                    this.movePiece(0, 1);
+                }
+                this.lastFallTime = currentTime;
+            }
+            
+            this.render();
         }
-        
-        this.render();
         
         // ゲームが実行中の場合のみ次のフレームを要求
         if (this.gameRunning) {
             requestAnimationFrame(() => this.gameLoop());
         } else {
-            console.log('🛑 requestAnimationFrame停止: ゲーム一時停止中');
+            console.log('🛑 requestAnimationFrame停止: ゲーム停止中');
         }
     }
     
@@ -4367,6 +4386,93 @@ class PuyoPuyoGame {
         this.displayFlyingComment(`${author}: ${trimmedMessage}`);
     }
     
+    // ポーズメニュー表示
+    showPauseMenu() {
+        console.log('⏸️ ポーズメニューを表示');
+        this.gamePaused = true;
+        
+        const pauseMenu = document.getElementById('pause-menu');
+        console.log('📱 Pause menu element:', pauseMenu);
+        
+        if (pauseMenu) {
+            console.log('📱 Removing hidden class from pause menu');
+            pauseMenu.classList.remove('hidden');
+            console.log('📱 Pause menu classes after removal:', pauseMenu.className);
+            this.setupPauseMenuEventListeners();
+        } else {
+            console.error('❌ Pause menu element not found!');
+        }
+    }
+    
+    // ポーズメニュー非表示
+    hidePauseMenu() {
+        console.log('▶️ ポーズメニューを非表示');
+        this.gamePaused = false;
+        
+        const pauseMenu = document.getElementById('pause-menu');
+        if (pauseMenu) {
+            pauseMenu.classList.add('hidden');
+        }
+    }
+    
+    // ポーズメニューのイベントリスナー設定
+    setupPauseMenuEventListeners() {
+        const pauseResume = document.getElementById('pause-resume');
+        const pauseTitle = document.getElementById('pause-title');
+        const pauseSettings = document.getElementById('pause-settings');
+        const pauseRules = document.getElementById('pause-rules');
+        const pauseOverlay = document.querySelector('.pause-menu-overlay');
+        
+        // ゲーム再開
+        if (pauseResume) {
+            pauseResume.onclick = () => {
+                console.log('▶️ ゲーム再開ボタンが押されました');
+                this.hidePauseMenu();
+                // ゲームを再開
+                if (!this.gameRunning) {
+                    this.gameRunning = true;
+                    console.log('🎮 ゲームループを再開します');
+                    this.gameLoop();
+                }
+            };
+        }
+        
+        // タイトルに戻る
+        if (pauseTitle) {
+            pauseTitle.onclick = () => {
+                this.hidePauseMenu();
+                if (window.gameModeManager) {
+                    window.gameModeManager.switchToTitleMode();
+                }
+            };
+        }
+        
+        // 設定（音量調整パネルを表示）
+        if (pauseSettings) {
+            pauseSettings.onclick = () => {
+                alert('設定機能は開発中です。現在は右側パネルの音量設定をご利用ください。');
+            };
+        }
+        
+        // ルール説明
+        if (pauseRules) {
+            pauseRules.onclick = () => {
+                this.hidePauseMenu();
+                const helpModal = document.getElementById('help-modal');
+                if (helpModal) {
+                    helpModal.classList.remove('hidden');
+                }
+            };
+        }
+        
+        // オーバーレイクリックで閉じる
+        if (pauseOverlay) {
+            pauseOverlay.onclick = () => {
+                this.hidePauseMenu();
+            };
+        }
+    }
+    
     hideAllScreens() {
         // タイトル画面を非表示
         if (this.startScreen) {
@@ -4386,9 +4492,7 @@ class PuyoPuyoGame {
         
         // 対戦画面を非表示
         if (this.battleScreen) {
-            this.battleScreen.classList.add('hidden');
             this.battleScreen.style.display = 'none';
-            this.battleScreen.style.visibility = 'hidden';
         }
         
         // ゲームオーバー画面も非表示
@@ -4506,6 +4610,14 @@ class GameModeManager {
         this.gameArea = document.querySelector('.game-area');
         this.battleScreen = document.getElementById('battle-screen');
         
+        // 初期状態を設定
+        if (this.battleScreen) {
+            this.battleScreen.style.display = 'none';
+        }
+        if (this.startScreen) {
+            this.startScreen.classList.remove('hidden');
+        }
+        
         // タイトルに戻るボタン
         this.backToTitleBtn = document.getElementById('back-to-title');
         
@@ -4568,7 +4680,7 @@ class GameModeManager {
         }
         
         // ゲームを停止
-        if (this.game) {
+        if (this.game && typeof this.game.resetGame === 'function') {
             this.game.resetGame();
             // ゲームの状態をリセット
             if (this.game.gameRunning) {
@@ -4676,30 +4788,96 @@ class GameModeManager {
         // 全画面を非表示
         this.hideAllScreens();
         
-        // bodyのtitle-modeを解除
+        // bodyのtitle-modeを解除し、battle-modeクラスも削除
         document.body.classList.remove('title-mode');
+        document.body.classList.remove('battle-mode');
         document.body.style.display = 'block';
         document.body.style.justifyContent = 'initial';
         document.body.style.alignItems = 'initial';
         
-        // 対戦画面を表示
+        // bodyの背景エフェクトを無効化
+        document.body.classList.add('battle-mode');
+        
+        // 対戦画面を表示（新しいクラス対応）
         if (this.battleScreen) {
+            // hiddenクラスを削除（存在する場合）
             this.battleScreen.classList.remove('hidden');
-            this.battleScreen.style.display = 'block';
-            this.battleScreen.style.visibility = 'visible';
             
-            // 位置を強制的に修正
-            this.battleScreen.style.position = 'fixed';
-            this.battleScreen.style.top = '0px';
-            this.battleScreen.style.left = '0px';
-            this.battleScreen.style.width = '100vw';
-            this.battleScreen.style.height = '100vh';
-            this.battleScreen.style.zIndex = '9999';
-            this.battleScreen.style.margin = '0';
-            this.battleScreen.style.padding = '0';
-            this.battleScreen.style.transform = 'none';
+            // インライン表示設定をクリア
+            this.battleScreen.style.display = '';
+            this.battleScreen.style.visibility = '';
+            this.battleScreen.style.opacity = '';
             
-            console.log('✅ 対戦画面を表示しました');
+            // 対戦画面を完全に削除して新しく作成
+            this.battleScreen.remove();
+            
+            // 新しい対戦画面を動的に作成
+            const newBattleScreen = document.createElement('div');
+            newBattleScreen.id = 'battle-screen';
+            newBattleScreen.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: linear-gradient(135deg, #1a0f2e 0%, #2d1b3d 50%, #4a2c5a 100%);
+                z-index: 9999;
+                color: white;
+                font-family: Arial, sans-serif;
+                display: block;
+                overflow: visible;
+            `;
+            
+            // コンテンツを作成
+            newBattleScreen.innerHTML = `
+                <div style="width: 100%; height: 100%; padding: 20px; box-sizing: border-box; position: relative;">
+                    <h1 style="font-size: 3em; text-align: center; margin: 50px 0; color: white; display: block; width: 100%;">⚔️ CPU対戦モード</h1>
+                    <button id="back-to-title" onclick="window.gameModeManager.switchToTitleMode()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; display: block;">🏠 タイトルに戻る</button>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 50px; margin-top: 50px; width: 100%;">
+                        <div style="text-align: center; min-width: 200px;">
+                            <h3 style="font-size: 1.5em; margin-bottom: 20px; color: white; display: block;">あなた</h3>
+                            <div style="width: 200px; height: 400px; background: rgba(0,0,0,0.5); border: 2px solid #44ff44; border-radius: 10px; margin: 0 auto; display: block; position: relative;">
+                                <canvas id="player-canvas" width="200" height="400" style="position: absolute; top: 0; left: 0; border-radius: 8px;"></canvas>
+                            </div>
+                        </div>
+                        <div style="text-align: center; min-width: 200px;">
+                            <h2 style="font-size: 4em; color: #ffff44; margin-bottom: 20px; display: block;">VS</h2>
+                            <div id="time-left" style="background: rgba(255,255,255,0.3); padding: 15px 25px; border-radius: 20px; font-size: 1.5em; color: white; display: block; margin-bottom: 30px;">180秒</div>
+                            <button id="battle-start" onclick="this.startBattleGame()" style="padding: 15px 30px; background: #44ff44; color: white; border: none; border-radius: 15px; font-size: 1.2em; cursor: pointer; display: block; margin: 0 auto;">⚡ 対戦開始</button>
+                        </div>
+                        <div style="text-align: center; min-width: 200px;">
+                            <h3 style="font-size: 1.5em; margin-bottom: 20px; color: white; display: block;">CPU</h3>
+                            <div style="width: 200px; height: 400px; background: rgba(0,0,0,0.5); border: 2px solid #ff4444; border-radius: 10px; margin: 0 auto; display: block; position: relative;">
+                                <canvas id="cpu-canvas" width="200" height="400" style="position: absolute; top: 0; left: 0; border-radius: 8px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <p style="color: rgba(255,255,255,0.8); font-size: 1.1em; margin: 20px 0;">対戦開始ボタンを押してCPUとの対戦を始めよう！</p>
+                    </div>
+                </div>
+            `;
+            
+            // DOMに追加
+            document.body.appendChild(newBattleScreen);
+            
+            // 新しい要素を参照として保存
+            this.battleScreen = newBattleScreen;
+            
+            // 対戦開始ボタンのイベントリスナーを追加
+            const battleStartBtn = newBattleScreen.querySelector('#battle-start');
+            if (battleStartBtn) {
+                battleStartBtn.onclick = () => {
+                    this.startBattleGame();
+                };
+            }
+            
+            // レンダリングを強制
+            newBattleScreen.offsetHeight; // reflow trigger
+            
+            console.log('✅ 新しい対戦画面を動的作成しました');
+            
+            console.log('✅ 新しい対戦画面を表示しました');
         } else {
             console.error('❌ 対戦画面要素が見つかりません');
         }
@@ -4739,15 +4917,58 @@ class GameModeManager {
         
         // 対戦画面を非表示
         if (this.battleScreen) {
-            this.battleScreen.classList.add('hidden');
             this.battleScreen.style.display = 'none';
-            this.battleScreen.style.visibility = 'hidden';
         }
         
         // ゲームオーバー画面も非表示
         const gameOverScreen = document.getElementById('game-over');
         if (gameOverScreen) {
             gameOverScreen.classList.add('hidden');
+        }
+    }
+    
+    startBattleGame() {
+        console.log('⚡ 対戦ゲーム開始...');
+        try {
+            // 対戦ゲームが既に存在する場合は削除
+            if (this.battleGame) {
+                this.battleGame.destroy();
+                this.battleGame = null;
+            }
+            
+            // 対戦開始ボタンを隠す
+            const battleStartBtn = document.getElementById('battle-start');
+            if (battleStartBtn) {
+                battleStartBtn.style.display = 'none';
+                console.log('✅ 対戦開始ボタンを非表示にしました');
+            }
+            
+            // 対戦開始の説明文を更新
+            const instructionText = document.querySelector('#battle-screen div[style*="text-align: center"] p');
+            if (instructionText) {
+                instructionText.textContent = '対戦が開始されました！180秒間でより多くの得点を目指そう！';
+            }
+            
+            // 少し遅延してから対戦ゲームを作成（キャンバスが確実に存在するまで待つ）
+            setTimeout(() => {
+                // 新しい対戦ゲームを作成
+                this.battleGame = new BattleGame();
+                console.log('✅ 新しい対戦ゲームを作成しました');
+                
+                // 対戦ゲームのキャンバスを再初期化
+                this.battleGame.initializeElements();
+                this.battleGame.initializeCanvas();
+                
+                // 実際に対戦を開始
+                setTimeout(() => {
+                    this.battleGame.startBattle();
+                    console.log('🎮 対戦ゲーム開始処理完了');
+                }, 100);
+                
+            }, 100);
+            
+        } catch (error) {
+            console.error('❌ 対戦ゲーム開始エラー:', error);
         }
     }
 }
