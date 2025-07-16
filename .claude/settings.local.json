@@ -55,7 +55,17 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm install:*)",
       "Bash(python:*)",
-      "Bash(start index.html)"
+      "Bash(start index.html)",
+      "Bash(mv:*)",
+      "Bash(timeout:*)",
+      "Bash(del:*)",
+      "Bash(rm:*)",
+      "Bash(start chrome:*)",
+      "Bash(cmd /c start chrome:*)",
+      "WebFetch(domain:puyonexus.com)",
+      "Bash(touch:*)",
+      "Bash(move:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   },

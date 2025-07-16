@@ -49,13 +49,12 @@ export default defineConfig({
             '--disable-extensions',
             '--disable-plugins',
             '--disable-images',
-            '--disable-javascript',
             '--run-all-compositor-stages-before-draw'
           ],
           ignoreDefaultArgs: ['--disable-extensions']
         },
         viewport: { width: 1280, height: 720 },
-        headless: true
+        headless: false
       },
     },
 

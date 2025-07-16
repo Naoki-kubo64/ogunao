@@ -296,6 +296,212 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ストーリーモード画面 -->
+            <div id="story-screen" class="story-screen hidden">
+                <div class="story-header">
+                    <h1 class="story-title">🗡️ ローグライク冒険</h1>
+                    <button id="story-back-to-title" class="back-btn">🏠 タイトルに戻る</button>
+                </div>
+                
+                <div class="story-content">
+                    <!-- プレイヤー情報パネル -->
+                    <div class="player-panel">
+                        <div class="player-status">
+                            <div class="hp-section">
+                                <span class="status-label">💚 体力</span>
+                                <div class="hp-bar">
+                                    <div class="hp-fill" id="player-hp-fill"></div>
+                                    <span class="hp-text" id="player-hp-text">30/30</span>
+                                </div>
+                            </div>
+                            <div class="stats-section">
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚔️</span>
+                                    <span class="stat-value" id="player-attack">1</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🛡️</span>
+                                    <span class="stat-value" id="player-defense">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🪙</span>
+                                    <span class="stat-value" id="player-gold">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="equipment-section">
+                            <h3>🎒 装備品</h3>
+                            <div class="equipment-grid" id="equipment-grid">
+                                <!-- 装備品がここに表示される -->
+                            </div>
+                        </div>
+                        
+                        <div class="puyo-composition">
+                            <h3>🌈 ぷよ構成</h3>
+                            <div class="puyo-rates" id="puyo-rates">
+                                <div class="puyo-rate">🔴 <span id="red-rate">20%</span></div>
+                                <div class="puyo-rate">🔵 <span id="blue-rate">20%</span></div>
+                                <div class="puyo-rate">🟡 <span id="yellow-rate">20%</span></div>
+                                <div class="puyo-rate">🟢 <span id="green-rate">20%</span></div>
+                                <div class="puyo-rate">🟣 <span id="purple-rate">20%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- マップ・戦闘エリア -->
+                    <div class="adventure-area">
+                        <div class="current-floor">
+                            <h2 id="current-floor-text">フロア 1</h2>
+                            <div class="enemy-info" id="enemy-info">
+                                <div class="enemy-portrait">🛡️</div>
+                                <div class="enemy-details">
+                                    <h3 id="enemy-name">見習い戦士</h3>
+                                    <div class="enemy-hp-bar">
+                                        <div class="enemy-hp-fill" id="enemy-hp-fill"></div>
+                                        <span class="enemy-hp-text" id="enemy-hp-text">20/20</span>
+                                    </div>
+                                    <div class="enemy-stats">
+                                        <span>⚔️ <span id="enemy-attack">1</span></span>
+                                        <span>🛡️ <span id="enemy-defense">0</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-actions">
+                            <button id="start-battle-btn" class="action-btn battle-btn">⚔️ 戦闘開始</button>
+                            <div id="path-choices" class="path-choices hidden">
+                                <h3>🗺️ 道を選択してください</h3>
+                                <div class="choice-buttons">
+                                    <button id="path-left" class="choice-btn">
+                                        <div class="choice-icon">🛣️</div>
+                                        <div class="choice-text" id="left-choice-text">左の道</div>
+                                    </button>
+                                    <button id="path-center" class="choice-btn">
+                                        <div class="choice-icon">🛤️</div>
+                                        <div class="choice-text" id="center-choice-text">中央の道</div>
+                                    </button>
+                                    <button id="path-right" class="choice-btn">
+                                        <div class="choice-icon">🛣️</div>
+                                        <div class="choice-text" id="right-choice-text">右の道</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="battle-log" id="battle-log">
+                            <h4>📜 戦闘ログ</h4>
+                            <div class="log-content" id="log-content">
+                                冒険の始まりです...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ストーリーモード戦闘画面 -->
+            <div id="story-battle-screen" class="story-battle-screen hidden">
+                <div class="story-battle-header">
+                    <h1 class="battle-title">⚔️ ストーリーバトル</h1>
+                    <button id="story-battle-back" class="back-btn">🏠 戦闘終了</button>
+                </div>
+                
+                <div class="story-battle-content">
+                    <!-- 中央ゲームエリア -->
+                    <div class="battle-game-area">
+                        <!-- プレイヤー側 -->
+                        <div class="battle-player-side">
+                            <div class="player-label">🛡️ あなた</div>
+                            <div class="player-board">
+                                <canvas id="story-player-canvas" width="390" height="780"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- 中央エリア -->
+                        <div class="battle-center">
+                            <div class="vs-display">VS</div>
+                            <div class="battle-status">
+                                <div id="battle-status-text" class="status-text">戦闘準備中</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 敵側 -->
+                        <div class="battle-enemy-side">
+                            <div class="enemy-label" id="story-enemy-name">🛡️ 見習い戦士</div>
+                            <div class="enemy-board">
+                                <canvas id="story-enemy-canvas" width="390" height="780"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右側情報パネル -->
+                    <div class="battle-info-panel">
+                        <!-- プレイヤー情報 -->
+                        <div class="player-info-section">
+                            <h3>🛡️ プレイヤー</h3>
+                            <div class="hp-display">
+                                <span class="hp-label">HP:</span>
+                                <div class="hp-bar">
+                                    <div class="hp-fill" id="story-player-hp-fill"></div>
+                                    <span class="hp-text" id="story-player-hp-text">30/30</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 次のぷよ -->
+                            <div class="next-puyo-section">
+                                <h4>次のぷよ</h4>
+                                <div id="story-player-next" class="next-display"></div>
+                            </div>
+                            
+                            <!-- ポーション -->
+                            <div class="potions-display">
+                                <h4>🧪 ポーション</h4>
+                                <div id="player-potions" class="potions-grid">
+                                    <!-- ポーションがここに表示される -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 敵情報 -->
+                        <div class="enemy-info-section">
+                            <h3>⚔️ 敵</h3>
+                            <div class="hp-display">
+                                <span class="hp-label">HP:</span>
+                                <div class="hp-bar">
+                                    <div class="hp-fill" id="story-enemy-hp-fill"></div>
+                                    <span class="hp-text" id="story-enemy-hp-text">20/20</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 敵の行動 -->
+                            <div class="enemy-actions">
+                                <h4>🎯 次の行動</h4>
+                                <div id="enemy-next-action" class="next-action">準備中...</div>
+                            </div>
+                            
+                            <!-- 敵の次のぷよ -->
+                            <div class="enemy-next-puyo">
+                                <h4>敵の次ぷよ</h4>
+                                <div id="story-enemy-next" class="next-display"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="battle-controls">
+                    <div class="controls-info">
+                        <p><strong>操作:</strong> A/D: 移動 | S: 下移動 | Space: 回転 | Enter: ポーション使用</p>
+                    </div>
+                    
+                    <!-- デバッグボタン（ローカル環境のみ） -->
+                    <div class="debug-controls" id="debug-controls">
+                        <button id="debug-enemy-hp-zero" class="debug-btn">🔧 敵HP0</button>
+                        <button id="debug-player-hp-zero" class="debug-btn">🔧 自分HP0</button>
+                    </div>
+                </div>
+            </div>
     
     <!-- ポーズメニュー -->
     <div id="pause-menu" class="pause-menu hidden">
@@ -318,6 +524,118 @@
                 <button id="pause-rules" class="pause-menu-btn">
                     <span class="menu-icon">📚</span>
                     <span class="menu-text">ルール説明</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ストーリーモード専用ポーズメニュー -->
+    <div id="story-pause-menu" class="pause-menu hidden">
+        <div class="pause-menu-overlay"></div>
+        <div class="pause-menu-content">
+            <h2>⏸️ ストーリーポーズ</h2>
+            <div class="pause-menu-buttons">
+                <button id="story-pause-resume" class="pause-menu-btn resume-btn">
+                    <span class="menu-icon">▶️</span>
+                    <span class="menu-text">ゲームに戻る</span>
+                </button>
+                <button id="story-pause-save" class="pause-menu-btn">
+                    <span class="menu-icon">💾</span>
+                    <span class="menu-text">セーブ</span>
+                </button>
+                <button id="story-pause-title" class="pause-menu-btn">
+                    <span class="menu-icon">🏠</span>
+                    <span class="menu-text">タイトルに戻る</span>
+                </button>
+                <button id="story-pause-settings" class="pause-menu-btn">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-text">設定</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ストーリーモード設定メニュー -->
+    <div id="story-settings-menu" class="pause-menu hidden">
+        <div class="pause-menu-overlay"></div>
+        <div class="pause-menu-content">
+            <h2>⚙️ 設定</h2>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label for="bgm-volume">BGM音量</label>
+                    <div class="volume-control">
+                        <input type="range" id="bgm-volume" min="0" max="100" value="50">
+                        <span id="bgm-volume-value">50%</span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label for="se-volume">効果音音量</label>
+                    <div class="volume-control">
+                        <input type="range" id="se-volume" min="0" max="100" value="50">
+                        <span id="se-volume-value">50%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pause-menu-buttons">
+                <button id="story-settings-back" class="pause-menu-btn">
+                    <span class="menu-icon">↩️</span>
+                    <span class="menu-text">戻る</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ストーリーモード開始選択画面 -->
+    <div id="story-start-menu" class="pause-menu hidden">
+        <div class="pause-menu-overlay"></div>
+        <div class="pause-menu-content">
+            <h2>📖 ストーリーモード</h2>
+            <div class="pause-menu-buttons">
+                <button id="story-new-game" class="pause-menu-btn">
+                    <span class="menu-icon">🆕</span>
+                    <span class="menu-text">NEW GAME</span>
+                </button>
+                <button id="story-load-game" class="pause-menu-btn">
+                    <span class="menu-icon">📂</span>
+                    <span class="menu-text">LOAD GAME</span>
+                </button>
+                <button id="story-start-back" class="pause-menu-btn">
+                    <span class="menu-icon">↩️</span>
+                    <span class="menu-text">戻る</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- セーブ選択画面 -->
+    <div id="save-select-menu" class="pause-menu hidden">
+        <div class="pause-menu-overlay"></div>
+        <div class="pause-menu-content">
+            <h2>💾 セーブデータ選択</h2>
+            <div class="save-slots">
+                <div class="save-slot" data-slot="0">
+                    <div class="save-slot-header">
+                        <h3>セーブスロット 1</h3>
+                        <div class="save-slot-info" id="save-info-0">空のスロット</div>
+                    </div>
+                </div>
+                <div class="save-slot" data-slot="1">
+                    <div class="save-slot-header">
+                        <h3>セーブスロット 2</h3>
+                        <div class="save-slot-info" id="save-info-1">空のスロット</div>
+                    </div>
+                </div>
+                <div class="save-slot" data-slot="2">
+                    <div class="save-slot-header">
+                        <h3>セーブスロット 3</h3>
+                        <div class="save-slot-info" id="save-info-2">空のスロット</div>
+                    </div>
+                </div>
+            </div>
+            <div class="pause-menu-buttons">
+                <button id="save-select-back" class="pause-menu-btn">
+                    <span class="menu-icon">↩️</span>
+                    <span class="menu-text">戻る</span>
                 </button>
             </div>
         </div>
@@ -402,8 +720,213 @@
             </div>
         </div>
     </div>
+
+    <!-- 勝利画面 -->
+    <div id="story-victory-screen" class="story-victory-screen hidden">
+        <div class="victory-content">
+            <h1 class="victory-title">🎉 勝利！</h1>
+            <div class="victory-message">
+                <p>敵を倒しました！</p>
+                <p>報酬を選択してください：</p>
+            </div>
+            
+            <!-- 現在のステータス表示 -->
+            <div class="victory-status">
+                <div class="status-section">
+                    <h3>❤️ ステータス</h3>
+                    <div class="status-info">
+                        <div class="hp-display">
+                            <span>HP: </span>
+                            <span id="victory-hp-text">30/30</span>
+                            <div class="hp-bar">
+                                <div id="victory-hp-fill" class="hp-fill"></div>
+                            </div>
+                        </div>
+                        <div class="floor-display">
+                            <span>階層: </span>
+                            <span id="victory-floor-text">1</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="status-section">
+                    <h3>🌟 特殊ぷよ</h3>
+                    <div id="victory-special-puyo" class="item-list">
+                        <!-- 動的に生成 -->
+                    </div>
+                </div>
+                
+                <div class="status-section">
+                    <h3>🧪 ポーション</h3>
+                    <div id="victory-potions" class="item-list">
+                        <!-- 動的に生成 -->
+                    </div>
+                </div>
+                
+                <div class="status-section">
+                    <h3>⚔️ 装飾品</h3>
+                    <div id="victory-equipment" class="item-list">
+                        <!-- 動的に生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="reward-selection">
+                <button id="reward-special-puyo" class="reward-btn">
+                    <div class="reward-icon">🌟</div>
+                    <div class="reward-title">特殊ぷよ</div>
+                    <div class="reward-desc">ランダムな特殊ぷよを獲得</div>
+                </button>
+                <button id="reward-potion" class="reward-btn">
+                    <div class="reward-icon">🧪</div>
+                    <div class="reward-title">ポーション</div>
+                    <div class="reward-desc">ランダムなポーションを獲得</div>
+                </button>
+                <button id="reward-equipment" class="reward-btn">
+                    <div class="reward-icon">⚔️</div>
+                    <div class="reward-title">装飾品</div>
+                    <div class="reward-desc">ランダムな装飾品を獲得</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 宝箱ポップアップ -->
+    <div id="treasure-popup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2>📦 宝箱発見！</h2>
+                <button id="treasure-close" class="popup-close">&times;</button>
+            </div>
+            <div class="popup-body">
+                <div class="treasure-animation">
+                    <div class="treasure-icon">📦</div>
+                    <div class="treasure-sparkles">✨</div>
+                </div>
+                <div class="treasure-content">
+                    <p class="treasure-message">何かが入っているようです...</p>
+                    <div class="treasure-rewards" id="treasure-rewards">
+                        <!-- 宝箱の中身がここに表示される -->
+                    </div>
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button id="treasure-accept" class="popup-btn primary">🎁 受け取る</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ランダムイベントポップアップ -->
+    <div id="event-popup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2 id="event-title">🌟 ランダムイベント</h2>
+                <button id="event-close" class="popup-close">&times;</button>
+            </div>
+            <div class="popup-body">
+                <div class="event-image">
+                    <div id="event-icon" class="event-icon">🌟</div>
+                </div>
+                <div class="event-content">
+                    <p id="event-description" class="event-description">イベントが発生しました。</p>
+                    <div id="event-effects" class="event-effects">
+                        <!-- イベントの効果がここに表示される -->
+                    </div>
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button id="event-accept" class="popup-btn primary">✅ OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ショップポップアップ -->
+    <div id="shop-popup" class="popup-overlay hidden">
+        <div class="popup-content shop-content">
+            <div class="popup-header">
+                <h2>🏪 ショップ</h2>
+                <button id="shop-close" class="popup-close">&times;</button>
+            </div>
+            <div class="popup-body">
+                <div class="shop-keeper">
+                    <div class="keeper-image">🧙‍♂️</div>
+                    <div class="keeper-speech">いらっしゃいませ！何かお買い物はいかがですか？</div>
+                </div>
+                <div class="shop-status">
+                    <div class="player-gold">💰 所持ゴールド: <span id="shop-player-gold">0</span></div>
+                </div>
+                <div class="shop-items" id="shop-items">
+                    <!-- ショップアイテムがここに表示される -->
+                </div>
+            </div>
+            <div class="popup-footer">
+                <button id="shop-leave" class="popup-btn secondary">🚪 立ち去る</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- マップ画面 -->
+    <div id="story-map-screen" class="story-map-screen hidden">
+        <div class="map-container">
+            <div class="map-header">
+                <h1 class="map-title">🗺️ 冒険マップ</h1>
+                <div class="map-header-right">
+                    <!-- プレイヤーステータス表示 -->
+                    <div class="map-player-status">
+                        <div class="status-section">
+                            <div class="status-item">
+                                <span class="status-label">❤️ HP:</span>
+                                <span id="map-player-hp" class="status-value">30/30</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">💰 ゴールド:</span>
+                                <span id="map-player-gold" class="status-value">0</span>
+                            </div>
+                        </div>
+                        <div class="status-section">
+                            <div class="status-item">
+                                <span class="status-label">🧪 ポーション:</span>
+                                <span id="map-player-potions" class="status-value">0種類 (0個)</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">⚔️ 装備:</span>
+                                <span id="map-player-equipment" class="status-value">0個</span>
+                            </div>
+                        </div>
+                        <div class="status-section">
+                            <div class="status-item">
+                                <span class="status-label">🎯 所持ぷよ:</span>
+                                <div id="puyo-display" class="puyo-display"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-info">
+                        <span id="current-floor-display">階層: 1/15</span>
+                        <button id="map-close" class="map-close-btn">✕</button>
+                    </div>
+                </div>
+            </div>
+            <div class="map-viewport" id="map-viewport">
+                <svg id="adventure-map" class="adventure-map" viewBox="0 0 800 1200">
+                    <!-- マップノードとパスが動的に生成される -->
+                </svg>
+            </div>
+            <div class="map-legend">
+                <div class="legend-item"><span class="legend-icon normal">🔴</span>通常敵</div>
+                <div class="legend-item"><span class="legend-icon strong">🟡</span>強敵</div>
+                <div class="legend-item"><span class="legend-icon elite">⭐</span>エリート</div>
+                <div class="legend-item"><span class="legend-icon treasure">📦</span>宝箱</div>
+                <div class="legend-item"><span class="legend-icon event">💜</span>イベント</div>
+                <div class="legend-item"><span class="legend-icon rest">😴</span>休憩</div>
+                <div class="legend-item"><span class="legend-icon shop">🛒</span>ショップ</div>
+                <div class="legend-item"><span class="legend-icon boss">👑</span>ボス</div>
+            </div>
+        </div>
+    </div>
     
     <script src="script.js"></script>
+    <script src="js/gameModeManager.js"></script>
+    <script src="story-mode.js"></script>
     <script src="test-bgm-functionality.js"></script>
 </body>
 </html>
