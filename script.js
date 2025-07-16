@@ -452,7 +452,14 @@ class PuyoPuyoGame {
     
     startStoryMode() {
         console.log('📖 ストーリーモード選択');
-        alert('ストーリーモード（未実装）\n近日公開予定です！');
+        console.log('🔍 gameModeManager存在確認:', !!window.gameModeManager);
+        if (window.gameModeManager) {
+            console.log('✅ gameModeManagerが見つかりました - showStoryStartMenuを呼び出し');
+            window.gameModeManager.showStoryStartMenu();
+        } else {
+            console.error('❌ gameModeManagerが見つかりません');
+            alert('エラー: ゲームモード管理システムが見つかりません');
+        }
     }
     
     startBattleMode() {
@@ -4570,410 +4577,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ================================================
-// ゲームモード管理システム
-// ================================================
-
-class GameModeManager {
-    constructor() {
-        this.currentMode = 'title'; // 'title', 'solo', 'battle'
-        this.game = null; // ソロゲームインスタンス
-        this.battleGame = null; // 対戦ゲームインスタンス
-        
-        // イベントリスナー管理用
-        this.eventListeners = [];
-        this.boundKeyHandler = null;
-        
-        this.initializeElements();
-        this.setupModeEventListeners();
-    }
-    
-    // イベントリスナーを管理するためのヘルパーメソッド
-    addEventListenerWithTracking(element, event, handler, options = false) {
-        element.addEventListener(event, handler, options);
-        this.eventListeners.push({ element, event, handler, options });
-        console.log(`🔗 GameModeManager イベントリスナー追加: ${element.tagName || 'document'} -> ${event}`);
-    }
-    
-    // すべてのイベントリスナーを削除
-    removeAllEventListeners() {
-        console.log(`🧹 GameModeManager ${this.eventListeners.length}個のイベントリスナーを削除中...`);
-        this.eventListeners.forEach(({ element, event, handler, options }) => {
-            element.removeEventListener(event, handler, options);
-        });
-        this.eventListeners = [];
-        console.log('✅ GameModeManager すべてのイベントリスナーを削除しました');
-    }
-    
-    initializeElements() {
-        // スクリーン要素
-        this.startScreen = document.getElementById('start-screen');
-        this.gameArea = document.querySelector('.game-area');
-        this.battleScreen = document.getElementById('battle-screen');
-        
-        // 初期状態を設定
-        if (this.battleScreen) {
-            this.battleScreen.style.display = 'none';
-        }
-        if (this.startScreen) {
-            this.startScreen.classList.remove('hidden');
-        }
-        
-        // タイトルに戻るボタン
-        this.backToTitleBtn = document.getElementById('back-to-title');
-        
-        console.log('🎮 ゲームモード管理システムを初期化しました');
-    }
-    
-    setupModeEventListeners() {
-        // 既存のイベントリスナーをクリア
-        this.removeAllEventListeners();
-        
-        // タイトルに戻るボタン
-        if (this.backToTitleBtn) {
-            this.addEventListenerWithTracking(this.backToTitleBtn, 'click', () => {
-                this.switchToTitleMode();
-            });
-        }
-    }
-    
-    
-    switchToTitleMode() {
-        console.log('📱 タイトル画面に切り替え');
-        this.currentMode = 'title';
-        
-        // bodyのflexboxを元に戻す
-        document.body.style.display = 'flex';
-        document.body.style.justifyContent = 'center';
-        document.body.style.alignItems = 'center';
-        
-        // 全画面を非表示
-        this.hideAllScreens();
-        
-        // タイトル画面を表示
-        if (this.startScreen) {
-            this.startScreen.classList.remove('hidden');
-            // bodyクラスを title-mode に変更
-            document.body.classList.remove('game-mode');
-            document.body.classList.add('title-mode');
-            document.body.style.display = 'block';
-            document.body.style.justifyContent = 'initial';
-            document.body.style.alignItems = 'initial';
-            // タイトル画面表示時はコンテナを隠す
-            const container = document.querySelector('.container');
-            if (container) {
-                container.style.display = 'none';
-            }
-        }
-        
-        // Press Enter Key表示を非表示にして、元の説明文を表示
-        if (this.pressEnterInstruction) {
-            this.pressEnterInstruction.classList.add('hidden');
-        }
-        if (this.startInstruction) {
-            this.startInstruction.style.display = 'block';
-        }
-        
-        // コンテナの表示を確認
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.display = 'flex';
-        }
-        
-        // ゲームを停止
-        if (this.game && typeof this.game.resetGame === 'function') {
-            this.game.resetGame();
-            // ゲームの状態をリセット
-            if (this.game.gameRunning) {
-                this.game.gameRunning = false;
-            }
-        }
-        if (this.battleGame) {
-            this.battleGame.destroy();
-            this.battleGame = null;
-        }
-    }
-    
-    switchToSoloMode() {
-        console.log('🎮 ソロモードに切り替え');
-        this.currentMode = 'solo';
-        
-        // BattleGameインスタンスがある場合は停止
-        if (this.battleGame) {
-            console.log('🛑 バトルゲームを停止してソロゲームを開始');
-            this.battleGame.destroy();
-            this.battleGame = null;
-        }
-        
-        // ソロゲームがある場合、イベントリスナーを再設定
-        if (this.game) {
-            console.log('🔄 ソロゲームのイベントリスナーを再設定');
-            this.game.setupEventListeners();
-        }
-        
-        // 全画面を非表示
-        this.hideAllScreens();
-        
-        // bodyのtitle-modeを解除してgame-modeに変更
-        document.body.classList.remove('title-mode');
-        document.body.classList.add('game-mode');
-        document.body.style.display = 'flex';
-        document.body.style.justifyContent = 'center';
-        document.body.style.alignItems = 'center';
-        
-        // ソロゲーム画面を表示
-        if (this.gameArea) {
-            this.gameArea.style.display = 'flex';
-            this.gameArea.style.visibility = 'visible';
-        }
-        
-        // コンテナの表示を確認
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.display = 'flex';
-        }
-        
-        // 従来のEnterキー処理と同じロジックを実行
-        setTimeout(() => {
-            if (this.game) {
-                console.log('🎯 従来のEnterキー処理でソロゲームを開始します');
-                
-                // コメント入力フィールドからフォーカスを外す（従来の処理と同じ）
-                const commentInput = document.getElementById('comment-input');
-                if (document.activeElement === commentInput) {
-                    console.log('📝 Removing focus from comment input');
-                    commentInput.blur();
-                }
-                
-                // 従来のstartGame()メソッドを直接呼び出し
-                this.game.startGame();
-                console.log('✅ 従来のstartGame()メソッドを実行しました');
-                
-            } else {
-                console.log('⚠️ ゲームインスタンスが見つかりません');
-                // ゲームインスタンスが見つからない場合、window.gameを試行
-                if (window.game) {
-                    console.log('🔄 window.gameを使用してゲームを開始します');
-                    // コメント入力フィールドからフォーカスを外す
-                    const commentInput = document.getElementById('comment-input');
-                    if (document.activeElement === commentInput) {
-                        commentInput.blur();
-                    }
-                    window.game.startGame();
-                }
-            }
-        }, 150);
-    }
-    
-    switchToBattleMode() {
-        console.log('⚔️ 対戦モードに切り替え');
-        this.currentMode = 'battle';
-        
-        // ソロゲームが動いている場合は停止してイベントリスナーを削除
-        if (this.game) {
-            console.log('🛑 ソロゲームを停止して対戦モードを開始');
-            if (this.game.gameRunning) {
-                this.game.gameRunning = false;
-            }
-            // ソロゲームのイベントリスナーを削除
-            if (this.game.removeAllEventListeners) {
-                this.game.removeAllEventListeners();
-            }
-        }
-        
-        // bodyのflexboxを一時的に無効化
-        document.body.style.display = 'block';
-        document.body.style.justifyContent = 'initial';
-        document.body.style.alignItems = 'initial';
-        
-        // 全画面を非表示
-        this.hideAllScreens();
-        
-        // bodyのtitle-modeを解除し、battle-modeクラスも削除
-        document.body.classList.remove('title-mode');
-        document.body.classList.remove('battle-mode');
-        document.body.style.display = 'block';
-        document.body.style.justifyContent = 'initial';
-        document.body.style.alignItems = 'initial';
-        
-        // bodyの背景エフェクトを無効化
-        document.body.classList.add('battle-mode');
-        
-        // 対戦画面を表示（新しいクラス対応）
-        if (this.battleScreen) {
-            // hiddenクラスを削除（存在する場合）
-            this.battleScreen.classList.remove('hidden');
-            
-            // インライン表示設定をクリア
-            this.battleScreen.style.display = '';
-            this.battleScreen.style.visibility = '';
-            this.battleScreen.style.opacity = '';
-            
-            // 対戦画面を完全に削除して新しく作成
-            this.battleScreen.remove();
-            
-            // 新しい対戦画面を動的に作成
-            const newBattleScreen = document.createElement('div');
-            newBattleScreen.id = 'battle-screen';
-            newBattleScreen.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background: linear-gradient(135deg, #1a0f2e 0%, #2d1b3d 50%, #4a2c5a 100%);
-                z-index: 9999;
-                color: white;
-                font-family: Arial, sans-serif;
-                display: block;
-                overflow: visible;
-            `;
-            
-            // コンテンツを作成
-            newBattleScreen.innerHTML = `
-                <div style="width: 100%; height: 100%; padding: 20px; box-sizing: border-box; position: relative;">
-                    <h1 style="font-size: 3em; text-align: center; margin: 50px 0; color: white; display: block; width: 100%;">⚔️ CPU対戦モード</h1>
-                    <button id="back-to-title" onclick="window.gameModeManager.switchToTitleMode()" style="position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; display: block;">🏠 タイトルに戻る</button>
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 50px; margin-top: 50px; width: 100%;">
-                        <div style="text-align: center; min-width: 200px;">
-                            <h3 style="font-size: 1.5em; margin-bottom: 20px; color: white; display: block;">あなた</h3>
-                            <div style="width: 200px; height: 400px; background: rgba(0,0,0,0.5); border: 2px solid #44ff44; border-radius: 10px; margin: 0 auto; display: block; position: relative;">
-                                <canvas id="player-canvas" width="200" height="400" style="position: absolute; top: 0; left: 0; border-radius: 8px;"></canvas>
-                            </div>
-                        </div>
-                        <div style="text-align: center; min-width: 200px;">
-                            <h2 style="font-size: 4em; color: #ffff44; margin-bottom: 20px; display: block;">VS</h2>
-                            <div id="time-left" style="background: rgba(255,255,255,0.3); padding: 15px 25px; border-radius: 20px; font-size: 1.5em; color: white; display: block; margin-bottom: 30px;">180秒</div>
-                            <button id="battle-start" onclick="this.startBattleGame()" style="padding: 15px 30px; background: #44ff44; color: white; border: none; border-radius: 15px; font-size: 1.2em; cursor: pointer; display: block; margin: 0 auto;">⚡ 対戦開始</button>
-                        </div>
-                        <div style="text-align: center; min-width: 200px;">
-                            <h3 style="font-size: 1.5em; margin-bottom: 20px; color: white; display: block;">CPU</h3>
-                            <div style="width: 200px; height: 400px; background: rgba(0,0,0,0.5); border: 2px solid #ff4444; border-radius: 10px; margin: 0 auto; display: block; position: relative;">
-                                <canvas id="cpu-canvas" width="200" height="400" style="position: absolute; top: 0; left: 0; border-radius: 8px;"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="text-align: center; margin-top: 30px;">
-                        <p style="color: rgba(255,255,255,0.8); font-size: 1.1em; margin: 20px 0;">対戦開始ボタンを押してCPUとの対戦を始めよう！</p>
-                    </div>
-                </div>
-            `;
-            
-            // DOMに追加
-            document.body.appendChild(newBattleScreen);
-            
-            // 新しい要素を参照として保存
-            this.battleScreen = newBattleScreen;
-            
-            // 対戦開始ボタンのイベントリスナーを追加
-            const battleStartBtn = newBattleScreen.querySelector('#battle-start');
-            if (battleStartBtn) {
-                battleStartBtn.onclick = () => {
-                    this.startBattleGame();
-                };
-            }
-            
-            // レンダリングを強制
-            newBattleScreen.offsetHeight; // reflow trigger
-            
-            console.log('✅ 新しい対戦画面を動的作成しました');
-            
-            console.log('✅ 新しい対戦画面を表示しました');
-        } else {
-            console.error('❌ 対戦画面要素が見つかりません');
-        }
-        
-        // 少し遅延してから対戦ゲームを初期化
-        setTimeout(() => {
-            if (!this.battleGame) {
-                this.battleGame = new BattleGame();
-                console.log('✅ 新しい対戦ゲームを作成しました');
-            } else {
-                console.log('✅ 既存の対戦ゲームを使用します');
-            }
-        }, 100);
-    }
-    
-    setGameInstance(gameInstance) {
-        this.game = gameInstance;
-        console.log('🎯 ゲームインスタンスを設定しました');
-    }
-    
-    hideAllScreens() {
-        // タイトル画面を非表示
-        if (this.startScreen) {
-            this.startScreen.classList.add('hidden');
-        }
-        
-        // ゲームエリアを非表示（ソロモード用）
-        if (this.gameArea) {
-            this.gameArea.style.display = 'none';
-        }
-        
-        // コンテナを非表示
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.display = 'none';
-        }
-        
-        // 対戦画面を非表示
-        if (this.battleScreen) {
-            this.battleScreen.style.display = 'none';
-        }
-        
-        // ゲームオーバー画面も非表示
-        const gameOverScreen = document.getElementById('game-over');
-        if (gameOverScreen) {
-            gameOverScreen.classList.add('hidden');
-        }
-    }
-    
-    startBattleGame() {
-        console.log('⚡ 対戦ゲーム開始...');
-        try {
-            // 対戦ゲームが既に存在する場合は削除
-            if (this.battleGame) {
-                this.battleGame.destroy();
-                this.battleGame = null;
-            }
-            
-            // 対戦開始ボタンを隠す
-            const battleStartBtn = document.getElementById('battle-start');
-            if (battleStartBtn) {
-                battleStartBtn.style.display = 'none';
-                console.log('✅ 対戦開始ボタンを非表示にしました');
-            }
-            
-            // 対戦開始の説明文を更新
-            const instructionText = document.querySelector('#battle-screen div[style*="text-align: center"] p');
-            if (instructionText) {
-                instructionText.textContent = '対戦が開始されました！180秒間でより多くの得点を目指そう！';
-            }
-            
-            // 少し遅延してから対戦ゲームを作成（キャンバスが確実に存在するまで待つ）
-            setTimeout(() => {
-                // 新しい対戦ゲームを作成
-                this.battleGame = new BattleGame();
-                console.log('✅ 新しい対戦ゲームを作成しました');
-                
-                // 対戦ゲームのキャンバスを再初期化
-                this.battleGame.initializeElements();
-                this.battleGame.initializeCanvas();
-                
-                // 実際に対戦を開始
-                setTimeout(() => {
-                    this.battleGame.startBattle();
-                    console.log('🎮 対戦ゲーム開始処理完了');
-                }, 100);
-                
-            }, 100);
-            
-        } catch (error) {
-            console.error('❌ 対戦ゲーム開始エラー:', error);
-        }
-    }
-}
-
-// ================================================
 // 対戦ゲームプロトタイプクラス
 // ================================================
 
@@ -8450,9 +8053,34 @@ class BattleGame {
 // ゲーム初期化時にモード管理システムを追加
 // ================================================
 
+// デバッグボタンの表示/非表示を制御
+function setupDebugControls() {
+    const debugControls = document.getElementById('debug-controls');
+    
+    if (debugControls) {
+        // ローカル環境の判定
+        const isLocalEnvironment = 
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            window.location.hostname === '' ||
+            window.location.protocol === 'file:';
+        
+        if (isLocalEnvironment) {
+            console.log('🔧 ローカル環境を検出 - デバッグボタンを表示');
+            debugControls.style.display = 'flex';
+        } else {
+            console.log('🌐 本番環境を検出 - デバッグボタンを非表示');
+            debugControls.style.display = 'none';
+        }
+    }
+}
+
 // DOMが読み込まれた後にゲームを初期化
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 おぐなお - ゲーム初期化開始');
+    
+    // デバッグボタンの表示/非表示を制御
+    setupDebugControls();
     
     // グローバルイベントリスナーを全てクリア
     PuyoPuyoGame.removeAllGlobalEventListeners();
